@@ -4,7 +4,7 @@ A Paper plugin (Minecraft 26.2) that rents out tool upgrades for netherite.
 
 | Upgrade | Ability | Upgrade price | Renewal |
 |---|---|---|---|
-| **Timber Axe** | Sneak + break any log to fell the whole tree (touching trees fall together, max 64 logs per chop), clear its leaves (Silk Touch keeps them as blocks) and replant saplings | Netherite axe + 2 netherite ingots | 1 ingot |
+| **Timber Axe** | Sneak + break any log to fell the whole tree (touching trees fall together, max 150 logs per chop), clear its leaves (Silk Touch keeps them as blocks) and replant saplings | Netherite axe + 2 netherite ingots | 1 ingot |
 | **Vein Pickaxe** | Sneak + break an ore to mine the whole vein (max 64, no ancient debris) | Netherite pickaxe + 3 netherite ingots | 1 ingot |
 | **Excavator Shovel** | Sneak + dig to clear a 3×3 area of dirt, sand, gravel and other shovel blocks | Netherite shovel + 2 netherite ingots | 1 ingot |
 

@@ -34,8 +34,8 @@ timber:
   require-sneak: true
   # Most logs felled per chop. Trees whose logs touch come down together, so this
   # stops a whole tree farm being cleared in one swing. The closest logs go first.
-  # 64 covers almost any single tree (a giant jungle tree can be more).
-  max-logs: 64
+  # 150 covers a whole giant 2x2 spruce or jungle tree.
+  max-logs: 150
   # How far sideways (in blocks) from the chopped log felling can reach. 0 = no limit.
   max-radius: 0
   # A tree only falls if at least this many natural (not player-placed) leaves touch its logs.
