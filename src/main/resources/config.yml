@@ -41,11 +41,10 @@ timber:
   # A tree only falls if at least this many natural (not player-placed) leaves touch its logs.
   # This protects log cabins and other builds.
   min-natural-leaves: 3
-  # Quickly clear the felled tree's leaves (they drop saplings and apples as usual).
-  # Leaves still attached to a neighbouring tree are left alone.
+  # With a Silk Touch axe, the felled tree's leaves are collected as leaf blocks right away.
+  # Without Silk Touch, leaves are left to decay the normal way (dropping saplings and apples).
+  # Leaves still attached to a neighbouring tree are never touched.
   clear-leaves: true
-  # Plant a matching sapling where the trunk stood.
-  replant: true
 
 excavator:
   # Players must hold Shift (sneak) while digging.

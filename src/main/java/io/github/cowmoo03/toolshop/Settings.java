@@ -20,7 +20,6 @@ public final class Settings {
     public final int timberMinLeaves;
     public final int timberMaxRadius;
     public final boolean timberClearLeaves;
-    public final boolean timberReplant;
 
     public final boolean excavatorRequireSneak;
     public final float excavatorExhaustionPerBlock;
@@ -51,7 +50,6 @@ public final class Settings {
         this.timberMinLeaves = Math.max(0, config.getInt("timber.min-natural-leaves", 3));
         this.timberMaxRadius = Math.max(0, config.getInt("timber.max-radius", 0));
         this.timberClearLeaves = config.getBoolean("timber.clear-leaves", true);
-        this.timberReplant = config.getBoolean("timber.replant", true);
 
         this.excavatorRequireSneak = config.getBoolean("excavator.require-sneak", true);
         this.excavatorExhaustionPerBlock = (float) Math.max(0, config.getDouble("excavator.exhaustion-per-block", 0.05));

@@ -2,7 +2,6 @@ package io.github.cowmoo03.toolshop;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Axis;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -11,8 +10,8 @@ import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -23,7 +22,6 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +90,7 @@ public final class AbilityListener implements Listener {
                 b -> r <= 0 || (Math.abs(b.getX() - startX) <= r && Math.abs(b.getZ() - startZ) <= r));
         if (countNaturalFoliage(logs, s.timberMinLeaves) < s.timberMinLeaves) {
             // No natural leaves. Usually that means a build, so only the one log breaks.
-            // The exception is the leftover stump of a tree this axe already felled: chop it all, no sapling.
+            // The exception is the leftover stump of a tree this axe already felled: chop it all.
             if (isLeftoverStump(logs)) fellStump(player, start, logs);
             return;
         }
@@ -100,19 +98,12 @@ public final class AbilityListener implements Listener {
             player.sendActionBar(Component.text("Log limit reached (" + s.timberMaxLogs
                     + "). Chop again for the rest.", NamedTextColor.YELLOW));
         }
-        // Remember where each trunk stood and its wood type, before anything is broken, so every felled
-        // tree gets its own sapling back. A trunk base is an upright log that isn't standing on another log.
-        // Sideways logs (fallen logs, branches) are skipped, so a fallen log doesn't get a sapling per block.
-        Map<Block, Material> trunkBase = new HashMap<>();
-        for (Block b : logs) {
-            boolean upright = !(b.getBlockData() instanceof Orientable o) || o.getAxis() == Axis.Y;
-            if (upright && !isLog(b.getRelative(0, -1, 0).getType())) trunkBase.put(b, b.getType());
-        }
         Set<Block> felled = new HashSet<>(logs);
         rememberFelled(felled);
-        // Leaves are broken with a copy of the axe, so Silk Touch drops the leaf blocks
-        // and Fortune boosts sapling and apple drops, just like breaking them by hand.
+        // Leaves are only collected when the axe has Silk Touch (they drop as leaf blocks).
+        // Without it, leaves are left to decay the normal vanilla way.
         ItemStack axe = player.getInventory().getItemInMainHand().clone();
+        boolean collectLeaves = s.timberClearLeaves && axe.getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0;
 
         logs.remove(start);
         // Break the lowest and closest logs first.
@@ -121,11 +112,7 @@ public final class AbilityListener implements Listener {
         breakAll(player, logs, ToolType.TIMBER);
         playSound(start, Sound.BLOCK_WOOD_BREAK, 0.6f);
 
-        // The log that was hit only breaks after this event finishes, so replant one tick later.
-        if (s.timberReplant) {
-            plugin.getServer().getScheduler().runTask(plugin, () -> replant(trunkBase));
-        }
-        if (s.timberClearLeaves) {
+        if (collectLeaves) {
             // Give the game a moment to work out which leaves lost their log, then sweep twice.
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled, axe), 20L);
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled, axe), 60L);
@@ -173,7 +160,7 @@ public final class AbilityListener implements Listener {
         return false;
     }
 
-    /** Chops a leftover stump. No sapling, because the tree wasn't felled in one go. */
+    /** Chops a leftover stump of a tree this axe already felled. */
     private void fellStump(Player player, Block start, List<Block> logs) {
         List<Block> rest = new ArrayList<>(logs);
         rest.remove(start);
@@ -186,7 +173,7 @@ public final class AbilityListener implements Listener {
     /**
      * Breaks leaves around the felled tree that are no longer attached to any log, so they drop
      * right away instead of decaying over several minutes. They're broken with the axe's enchantments:
-     * Silk Touch drops the leaf blocks themselves, otherwise saplings, sticks and apples drop as usual.
+     * Only runs for Silk Touch axes, so the leaf blocks themselves drop.
      * Leaves still held up by a neighbouring tree are left alone, because the game marks only
      * unattached leaves with the maximum distance (7).
      */
@@ -232,38 +219,6 @@ public final class AbilityListener implements Listener {
             world.playSound(new org.bukkit.Location(world, sumX / cleared + 0.5, sumY / cleared + 0.5,
                     sumZ / cleared + 0.5), Sound.BLOCK_AZALEA_LEAVES_BREAK, 1f, 0.9f);
         }
-    }
-
-    /** Plants the matching sapling (or fungus) where the trunk stood, if the ground allows it. */
-    private void replant(Map<Block, Material> trunkBase) {
-        for (Map.Entry<Block, Material> entry : trunkBase.entrySet()) {
-            Block spot = entry.getKey();
-            Material sapling = saplingFor(entry.getValue());
-            if (sapling == null || !spot.getType().isAir()) continue;
-            boolean fungus = sapling == Material.CRIMSON_FUNGUS || sapling == Material.WARPED_FUNGUS;
-            Material ground = spot.getRelative(0, -1, 0).getType();
-            boolean groundOk = fungus
-                    ? ground == Material.CRIMSON_NYLIUM || ground == Material.WARPED_NYLIUM
-                    : Tag.DIRT.isTagged(ground);
-            if (groundOk) spot.setType(sapling);
-        }
-    }
-
-    /** OAK_LOG -> OAK_SAPLING, CRIMSON_STEM -> CRIMSON_FUNGUS, MANGROVE_LOG -> MANGROVE_PROPAGULE. */
-    private static Material saplingFor(Material log) {
-        String name = log.name();
-        String candidate;
-        if (name.equals("MANGROVE_LOG")) {
-            candidate = "MANGROVE_PROPAGULE";
-        } else if (name.endsWith("_STEM")) {
-            candidate = name.replace("_STEM", "_FUNGUS");
-        } else if (name.endsWith("_LOG")) {
-            candidate = name.replace("_LOG", "_SAPLING");
-        } else {
-            return null;
-        }
-        Material m = Material.matchMaterial(candidate);
-        return (m != null && m.isBlock()) ? m : null;
     }
 
     // ---------------------------------------------------------------- Excavator

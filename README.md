@@ -4,7 +4,7 @@ A Paper plugin (Minecraft 26.2) that rents out tool upgrades for netherite.
 
 | Upgrade | Ability | Upgrade price | Renewal |
 |---|---|---|---|
-| **Timber Axe** | Sneak + break any log to fell the whole tree (touching trees fall together, max 150 logs per chop), clear its leaves (Silk Touch keeps them as blocks) and replant saplings | Netherite axe + 2 netherite ingots | 1 ingot |
+| **Timber Axe** | Sneak + break any log to fell the whole tree (touching trees fall together, max 150 logs per chop). With Silk Touch it also collects the tree's leaves | Netherite axe + 2 netherite ingots | 1 ingot |
 | **Vein Pickaxe** | Sneak + break an ore to mine the whole vein (max 64, no ancient debris) | Netherite pickaxe + 3 netherite ingots | 1 ingot |
 | **Excavator Shovel** | Sneak + dig to clear a 3×3 area of dirt, sand, gravel and other shovel blocks | Netherite shovel + 2 netherite ingots | 1 ingot |
 
@@ -18,8 +18,8 @@ A Paper plugin (Minecraft 26.2) that rents out tool upgrades for netherite.
 - Renewing early adds another 7 days on top of the time left.
 - Durability works like vanilla (1 per block), with Fortune, Silk Touch, Unbreaking and Mending all applying normally.
 - Repair upgraded tools with Mending or an anvil (upgraded tool in the left slot). Crafting-grid merges, grindstones and putting an upgraded tool in the anvil's right slot are blocked, because they would throw the upgrade away.
-- The Timber Axe only fells trees with natural leaves, so log builds are safe. Afterwards it clears leaves that are no longer attached to any log (neighbouring trees keep theirs) and plants a matching sapling.
-- A leftover stump (when a tree was split before it was chopped) can be chopped in one go too, but only a tree felled down to its base in one chop gets a sapling.
+- The Timber Axe only fells trees with natural leaves, so log builds are safe. With Silk Touch, leaves no longer attached to any log are collected as leaf blocks (neighbouring trees keep theirs); without it, leaves decay the vanilla way.
+- A leftover stump (when a tree was split before it was chopped) can be chopped in one go too.
 - Abilities play a sound and show break particles, and cleared leaves rustle and burst into leaf particles (turn off with `effects: false`).
 
 All prices, times and limits are in `config.yml`.
