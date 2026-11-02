@@ -34,15 +34,18 @@ wait_for_enable() {
     for _ in $(seq 1 45); do
         sleep 2
         # Only look at server output since this restart, so an older run can't fool the check.
-        if journalctl -u "$SERVICE" --since "@$STARTED_AT" --no-pager 2>/dev/null \
-                | grep -q "Enabling ToolShop v$want"; then
+        # Captured into a variable first: piping straight into "grep -q" breaks under pipefail,
+        # because grep stops reading at the first match and journalctl then reports an error.
+        local output
+        output="$(journalctl -u "$SERVICE" --since "@$STARTED_AT" --no-pager 2>/dev/null || true)"
+        if grep -qF "Enabling ToolShop v$want" <<< "$output"; then
             ok "ToolShop v$want is running."
             return 0
         fi
     done
     echo
     echo "ToolShop v$want didn't report starting. Last ToolShop/error lines since the restart:"
-    journalctl -u "$SERVICE" --since "@$STARTED_AT" --no-pager 2>/dev/null \
+    { journalctl -u "$SERVICE" --since "@$STARTED_AT" --no-pager 2>/dev/null || true; } \
         | grep -iE "toolshop|exception|error" | tail -n 15 || true
     echo
     echo "To go back to the previous version:  sudo update-toolshop --rollback"
