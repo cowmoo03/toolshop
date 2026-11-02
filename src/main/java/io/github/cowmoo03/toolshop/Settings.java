@@ -47,9 +47,9 @@ public final class Settings {
         this.effects = config.getBoolean("effects", true);
 
         this.timberRequireSneak = config.getBoolean("timber.require-sneak", true);
-        this.timberMaxLogs = Math.max(1, config.getInt("timber.max-logs", 200));
+        this.timberMaxLogs = Math.max(1, config.getInt("timber.max-logs", 64));
         this.timberMinLeaves = Math.max(0, config.getInt("timber.min-natural-leaves", 3));
-        this.timberMaxRadius = Math.max(1, config.getInt("timber.max-radius", 8));
+        this.timberMaxRadius = Math.max(0, config.getInt("timber.max-radius", 0));
         this.timberClearLeaves = config.getBoolean("timber.clear-leaves", true);
         this.timberReplant = config.getBoolean("timber.replant", true);
 

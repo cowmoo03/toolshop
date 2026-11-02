@@ -21,8 +21,10 @@ import org.bukkit.inventory.ItemStack;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -80,22 +82,24 @@ public final class AbilityListener implements Listener {
         Settings s = plugin.settings();
         int startX = start.getX();
         int startZ = start.getZ();
-        int r = s.timberMaxRadius;
-        // Every log of the tree, above and below the one that was hit (so chopping anywhere fells it all),
-        // connected through faces, edges or corners, and within a few blocks sideways so it doesn't
-        // chain into neighbouring trees.
+        int r = s.timberMaxRadius; // 0 = no sideways limit
+        // Every connected log, above and below the one that was hit, so chopping anywhere fells the
+        // whole tree, and trees whose logs touch come down together. The closest logs are found first,
+        // and max-logs caps how many go per chop so big tree farms can't be cleared in one swing.
         List<Block> logs = collect(start, this::isLog, s.timberMaxLogs,
-                b -> Math.abs(b.getX() - startX) <= r && Math.abs(b.getZ() - startZ) <= r);
+                b -> r <= 0 || (Math.abs(b.getX() - startX) <= r && Math.abs(b.getZ() - startZ) <= r));
         if (countNaturalFoliage(logs, s.timberMinLeaves) < s.timberMinLeaves) {
             return; // No natural leaves: probably a build, so only the one log breaks.
         }
-        // Remember where the trunk stood (its lowest logs) and what tree it was, before anything is broken.
-        Material logType = start.getType();
-        int baseY = Integer.MAX_VALUE;
-        for (Block b : logs) baseY = Math.min(baseY, b.getY());
-        List<Block> trunkBase = new ArrayList<>();
+        if (logs.size() >= s.timberMaxLogs) {
+            player.sendActionBar(Component.text("Log limit reached (" + s.timberMaxLogs
+                    + "). Chop again for the rest.", NamedTextColor.YELLOW));
+        }
+        // Remember where each trunk stood (logs sitting on the ground, not on another log) and its wood type,
+        // before anything is broken, so every felled tree gets its own sapling back.
+        Map<Block, Material> trunkBase = new HashMap<>();
         for (Block b : logs) {
-            if (b.getY() == baseY) trunkBase.add(b);
+            if (!isLog(b.getRelative(0, -1, 0).getType())) trunkBase.put(b, b.getType());
         }
         Set<Block> felled = new HashSet<>(logs);
         // Leaves are broken with a copy of the axe, so Silk Touch drops the leaf blocks
@@ -111,7 +115,7 @@ public final class AbilityListener implements Listener {
 
         // The log that was hit only breaks after this event finishes, so replant one tick later.
         if (s.timberReplant) {
-            plugin.getServer().getScheduler().runTask(plugin, () -> replant(trunkBase, logType));
+            plugin.getServer().getScheduler().runTask(plugin, () -> replant(trunkBase));
         }
         if (s.timberClearLeaves) {
             // Give the game a moment to work out which leaves lost their log, then sweep twice.
@@ -156,12 +160,12 @@ public final class AbilityListener implements Listener {
     }
 
     /** Plants the matching sapling (or fungus) where the trunk stood, if the ground allows it. */
-    private void replant(List<Block> trunkBase, Material logType) {
-        Material sapling = saplingFor(logType);
-        if (sapling == null) return;
-        boolean fungus = sapling == Material.CRIMSON_FUNGUS || sapling == Material.WARPED_FUNGUS;
-        for (Block spot : trunkBase) {
-            if (!spot.getType().isAir()) continue;
+    private void replant(Map<Block, Material> trunkBase) {
+        for (Map.Entry<Block, Material> entry : trunkBase.entrySet()) {
+            Block spot = entry.getKey();
+            Material sapling = saplingFor(entry.getValue());
+            if (sapling == null || !spot.getType().isAir()) continue;
+            boolean fungus = sapling == Material.CRIMSON_FUNGUS || sapling == Material.WARPED_FUNGUS;
             Material ground = spot.getRelative(0, -1, 0).getType();
             boolean groundOk = fungus
                     ? ground == Material.CRIMSON_NYLIUM || ground == Material.WARPED_NYLIUM
