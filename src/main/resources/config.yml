@@ -18,6 +18,12 @@ prices:
   vein:
     upgrade: 3   # netherite pickaxe + this many ingots
     renew: 1
+  excavator:
+    upgrade: 2   # netherite shovel + this many ingots
+    renew: 1
+
+# Sounds and break particles when an ability goes off.
+effects: true
 
 # true = upgraded tools never lose durability while active.
 # false = normal durability (1 per block broken, Unbreaking and Mending work as usual).
@@ -34,6 +40,17 @@ timber:
   # A tree only falls if at least this many natural (not player-placed) leaves touch its logs.
   # This protects log cabins and other builds.
   min-natural-leaves: 3
+  # Quickly clear the felled tree's leaves (they drop saplings and apples as usual).
+  # Leaves still attached to a neighbouring tree are left alone.
+  clear-leaves: true
+  # Plant a matching sapling where the trunk stood.
+  replant: true
+
+excavator:
+  # Players must hold Shift (sneak) while digging.
+  require-sneak: true
+  # Extra hunger for each extra block dug. 4.0 = one hunger point.
+  exhaustion-per-block: 0.05
 
 vein:
   # Players must hold Shift (sneak) while breaking an ore.

@@ -16,7 +16,7 @@ import java.util.Locale;
 
 /**
  * /toolshop                                  open the shop
- * /toolshop give <player> <timber|vein> [days]   admin: give a new upgraded tool
+ * /toolshop give <player> <timber|vein|excavator> [days]   admin: give a new upgraded tool
  * /toolshop reload                           admin: reload config.yml
  */
 public final class ToolShopCommand implements BasicCommand {
@@ -52,13 +52,13 @@ public final class ToolShopCommand implements BasicCommand {
                 send(sender, "Config reloaded.", NamedTextColor.GREEN);
             }
             case "give" -> give(sender, args);
-            default -> send(sender, "Usage: /toolshop [give <player> <timber|vein> [days] | reload]", NamedTextColor.RED);
+            default -> send(sender, "Usage: /toolshop [give <player> <timber|vein|excavator> [days] | reload]", NamedTextColor.RED);
         }
     }
 
     private void give(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            send(sender, "Usage: /toolshop give <player> <timber|vein> [days]", NamedTextColor.RED);
+            send(sender, "Usage: /toolshop give <player> <timber|vein|excavator> [days]", NamedTextColor.RED);
             return;
         }
         Player target = Bukkit.getPlayerExact(args[1]);
@@ -68,7 +68,7 @@ public final class ToolShopCommand implements BasicCommand {
         }
         ToolType type = ToolType.fromId(args[2]);
         if (type == null) {
-            send(sender, "Tool must be timber or vein.", NamedTextColor.RED);
+            send(sender, "Tool must be timber, vein or excavator.", NamedTextColor.RED);
             return;
         }
         long durationMs = plugin.settings().durationMs;
@@ -106,7 +106,7 @@ public final class ToolShopCommand implements BasicCommand {
         } else if (args[0].equalsIgnoreCase("give") && args.length == 2) {
             Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
         } else if (args[0].equalsIgnoreCase("give") && args.length == 3) {
-            options.addAll(List.of("timber", "vein"));
+            options.addAll(List.of("timber", "vein", "excavator"));
         }
         return options.stream().filter(o -> o.toLowerCase(Locale.ROOT).startsWith(last)).toList();
     }

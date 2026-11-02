@@ -29,13 +29,23 @@ public final class ShopListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         if (event.getClickedInventory() != top) return;
 
-        ToolType type = switch (event.getRawSlot()) {
-            case ShopMenu.TIMBER_SLOT -> ToolType.TIMBER;
-            case ShopMenu.VEIN_SLOT -> ToolType.VEIN;
-            default -> null;
-        };
+        ToolType type = ShopMenu.typeAt(event.getRawSlot());
         if (type == null) return;
-        buy(player, type);
+
+        long now = System.currentTimeMillis();
+        if (Offer.forHand(plugin, player, type) == null) {
+            // Not holding the right tool: explain right away, nothing to confirm.
+            menu.clearConfirm();
+            buy(player, type);
+        } else if (menu.isAwaitingConfirm(type, now)) {
+            // Second click on the same button within the time limit: pay.
+            menu.clearConfirm();
+            buy(player, type);
+        } else {
+            // First click: ask for a second click before taking any netherite.
+            menu.askConfirm(type, now);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        }
         menu.render(player);
     }
 

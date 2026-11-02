@@ -13,11 +13,17 @@ public final class Settings {
     public final long graceMs;
     public final Material currency;
     public final boolean unbreakableWhileActive;
+    public final boolean effects;
 
     public final boolean timberRequireSneak;
     public final int timberMaxLogs;
     public final int timberMinLeaves;
     public final int timberMaxRadius;
+    public final boolean timberClearLeaves;
+    public final boolean timberReplant;
+
+    public final boolean excavatorRequireSneak;
+    public final float excavatorExhaustionPerBlock;
 
     public final boolean veinRequireSneak;
     public final int veinMaxBlocks;
@@ -38,11 +44,17 @@ public final class Settings {
         }
         this.currency = cur;
         this.unbreakableWhileActive = config.getBoolean("unbreakable-while-active", false);
+        this.effects = config.getBoolean("effects", true);
 
         this.timberRequireSneak = config.getBoolean("timber.require-sneak", true);
         this.timberMaxLogs = Math.max(1, config.getInt("timber.max-logs", 200));
         this.timberMinLeaves = Math.max(0, config.getInt("timber.min-natural-leaves", 3));
         this.timberMaxRadius = Math.max(1, config.getInt("timber.max-radius", 8));
+        this.timberClearLeaves = config.getBoolean("timber.clear-leaves", true);
+        this.timberReplant = config.getBoolean("timber.replant", true);
+
+        this.excavatorRequireSneak = config.getBoolean("excavator.require-sneak", true);
+        this.excavatorExhaustionPerBlock = (float) Math.max(0, config.getDouble("excavator.exhaustion-per-block", 0.05));
 
         this.veinRequireSneak = config.getBoolean("vein.require-sneak", true);
         this.veinMaxBlocks = Math.max(1, config.getInt("vein.max-blocks", 64));
@@ -63,7 +75,11 @@ public final class Settings {
     }
 
     public int upgradePrice(ToolType type) {
-        return Math.max(0, config.getInt("prices." + type.id() + ".upgrade", type == ToolType.VEIN ? 3 : 2));
+        int fallback = switch (type) {
+            case TIMBER, EXCAVATOR -> 2;
+            case VEIN -> 3;
+        };
+        return Math.max(0, config.getInt("prices." + type.id() + ".upgrade", fallback));
     }
 
     public int renewPrice(ToolType type) {
@@ -71,7 +87,11 @@ public final class Settings {
     }
 
     public boolean requireSneak(ToolType type) {
-        return type == ToolType.TIMBER ? timberRequireSneak : veinRequireSneak;
+        return switch (type) {
+            case TIMBER -> timberRequireSneak;
+            case VEIN -> veinRequireSneak;
+            case EXCAVATOR -> excavatorRequireSneak;
+        };
     }
 
     /** e.g. "1 netherite ingot" or "3 netherite ingots". */

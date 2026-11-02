@@ -26,6 +26,10 @@ public final class ToolShopPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        // Add any settings introduced by an update to an existing config.yml, keeping the server's values.
+        reloadConfig();
+        getConfig().options().copyDefaults(true);
+        saveConfig();
         reloadSettings();
         toolData = new ToolData(this);
 

@@ -4,8 +4,11 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.Player;
@@ -50,7 +53,11 @@ public final class AbilityListener implements Listener {
         if (s.requireSneak(type) && !player.isSneaking()) return;
 
         Block block = event.getBlock();
-        boolean wouldTrigger = type == ToolType.TIMBER ? isLog(block.getType()) : s.veinOres.contains(block.getType());
+        boolean wouldTrigger = switch (type) {
+            case TIMBER -> isLog(block.getType());
+            case VEIN -> s.veinOres.contains(block.getType());
+            case EXCAVATOR -> isShovelBlock(block.getType());
+        };
         if (!wouldTrigger) return;
 
         long now = System.currentTimeMillis();
@@ -60,10 +67,10 @@ public final class AbilityListener implements Listener {
             return;
         }
 
-        if (type == ToolType.TIMBER) {
-            fellTree(player, block);
-        } else {
-            mineVein(player, block);
+        switch (type) {
+            case TIMBER -> fellTree(player, block);
+            case VEIN -> mineVein(player, block);
+            case EXCAVATOR -> excavate(player, block);
         }
     }
 
@@ -82,11 +89,130 @@ public final class AbilityListener implements Listener {
         if (countNaturalFoliage(logs, s.timberMinLeaves) < s.timberMinLeaves) {
             return; // No natural leaves: probably a build, so only the one log breaks.
         }
+        // Remember where the trunk stood (and what tree it was) before anything is broken.
+        Material logType = start.getType();
+        List<Block> trunkBase = new ArrayList<>();
+        for (Block b : logs) {
+            if (b.getY() == startY) trunkBase.add(b);
+        }
+        Set<Block> felled = new HashSet<>(logs);
+
         logs.remove(start);
         // Break the lowest and closest logs first.
         logs.sort(Comparator.comparingInt(Block::getY)
                 .thenComparingDouble(b -> b.getLocation().distanceSquared(start.getLocation())));
         breakAll(player, logs, ToolType.TIMBER);
+        playSound(start, Sound.BLOCK_WOOD_BREAK, 0.6f);
+
+        // The log that was hit only breaks after this event finishes, so replant one tick later.
+        if (s.timberReplant) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> replant(trunkBase, logType));
+        }
+        if (s.timberClearLeaves) {
+            // Give the game a moment to work out which leaves lost their log, then sweep twice.
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled), 20L);
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled), 60L);
+        }
+    }
+
+    /**
+     * Breaks leaves around the felled tree that are no longer attached to any log, so they drop
+     * their saplings and apples right away instead of decaying over several minutes.
+     * Leaves still held up by a neighbouring tree are left alone, because the game marks only
+     * unattached leaves with the maximum distance (7).
+     */
+    private void clearLooseLeaves(Set<Block> felledLogs) {
+        if (felledLogs.isEmpty()) return;
+        final int reach = 7; // leaves can't be further than this from their log
+        Block any = felledLogs.iterator().next();
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        for (Block b : felledLogs) {
+            minX = Math.min(minX, b.getX()); maxX = Math.max(maxX, b.getX());
+            minY = Math.min(minY, b.getY()); maxY = Math.max(maxY, b.getY());
+            minZ = Math.min(minZ, b.getZ()); maxZ = Math.max(maxZ, b.getZ());
+        }
+        var world = any.getWorld();
+        int bottom = Math.max(world.getMinHeight(), minY - 1);
+        int top = Math.min(world.getMaxHeight() - 1, maxY + reach);
+        for (int x = minX - reach; x <= maxX + reach; x++) {
+            for (int z = minZ - reach; z <= maxZ + reach; z++) {
+                for (int y = bottom; y <= top; y++) {
+                    Block b = world.getBlockAt(x, y, z);
+                    if (b.getBlockData() instanceof Leaves leaves
+                            && !leaves.isPersistent()
+                            && leaves.getDistance() >= 7) {
+                        b.breakNaturally();
+                    }
+                }
+            }
+        }
+    }
+
+    /** Plants the matching sapling (or fungus) where the trunk stood, if the ground allows it. */
+    private void replant(List<Block> trunkBase, Material logType) {
+        Material sapling = saplingFor(logType);
+        if (sapling == null) return;
+        boolean fungus = sapling == Material.CRIMSON_FUNGUS || sapling == Material.WARPED_FUNGUS;
+        for (Block spot : trunkBase) {
+            if (!spot.getType().isAir()) continue;
+            Material ground = spot.getRelative(0, -1, 0).getType();
+            boolean groundOk = fungus
+                    ? ground == Material.CRIMSON_NYLIUM || ground == Material.WARPED_NYLIUM
+                    : Tag.DIRT.isTagged(ground);
+            if (groundOk) spot.setType(sapling);
+        }
+    }
+
+    /** OAK_LOG -> OAK_SAPLING, CRIMSON_STEM -> CRIMSON_FUNGUS, MANGROVE_LOG -> MANGROVE_PROPAGULE. */
+    private static Material saplingFor(Material log) {
+        String name = log.name();
+        String candidate;
+        if (name.equals("MANGROVE_LOG")) {
+            candidate = "MANGROVE_PROPAGULE";
+        } else if (name.endsWith("_STEM")) {
+            candidate = name.replace("_STEM", "_FUNGUS");
+        } else if (name.endsWith("_LOG")) {
+            candidate = name.replace("_LOG", "_SAPLING");
+        } else {
+            return null;
+        }
+        Material m = Material.matchMaterial(candidate);
+        return (m != null && m.isBlock()) ? m : null;
+    }
+
+    // ---------------------------------------------------------------- Excavator
+
+    private boolean isShovelBlock(Material m) {
+        return Tag.MINEABLE_SHOVEL.isTagged(m);
+    }
+
+    /** Digs the 3x3 square around the block, facing the way the player is looking. */
+    private void excavate(Player player, Block center) {
+        float pitch = player.getLocation().getPitch();
+        BlockFace facing = player.getFacing();
+        List<Block> area = new ArrayList<>();
+        for (int a = -1; a <= 1; a++) {
+            for (int b = -1; b <= 1; b++) {
+                if (a == 0 && b == 0) continue;
+                Block n;
+                if (pitch > 45 || pitch < -45) {
+                    n = center.getRelative(a, 0, b);           // looking down or up: flat square
+                } else if (facing == BlockFace.NORTH || facing == BlockFace.SOUTH) {
+                    n = center.getRelative(a, b, 0);           // wall facing north/south
+                } else {
+                    n = center.getRelative(0, b, a);           // wall facing east/west
+                }
+                if (isShovelBlock(n.getType())) area.add(n);
+            }
+        }
+        if (area.isEmpty()) return;
+        int broken = breakAll(player, area, ToolType.EXCAVATOR);
+        if (broken > 0) playSound(center, Sound.BLOCK_ROOTED_DIRT_BREAK, 0.8f);
+        float cost = plugin.settings().excavatorExhaustionPerBlock;
+        if (broken > 0 && cost > 0) {
+            player.setExhaustion(Math.min(40f, player.getExhaustion() + broken * cost));
+        }
     }
 
     private boolean isLog(Material m) {
@@ -136,6 +262,7 @@ public final class AbilityListener implements Listener {
         ores.remove(start);
         if (ores.isEmpty()) return;
         int broken = breakAll(player, ores, ToolType.VEIN);
+        if (broken > 0) playSound(start, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.2f);
         if (broken > 0 && s.veinExhaustionPerBlock > 0) {
             player.setExhaustion(Math.min(40f, player.getExhaustion() + broken * s.veinExhaustionPerBlock));
         }
@@ -147,6 +274,12 @@ public final class AbilityListener implements Listener {
     }
 
     // ---------------------------------------------------------------- Shared
+
+    /** Plays a sound at the block for everyone nearby, if effects are on. */
+    private void playSound(Block at, Sound sound, float pitch) {
+        if (!plugin.settings().effects) return;
+        at.getWorld().playSound(at.getLocation().add(0.5, 0.5, 0.5), sound, 1f, pitch);
+    }
 
     /** Breadth-first search for connected blocks (26 neighbours) whose material matches. Includes {@code start}. */
     private static List<Block> collect(Block start, Predicate<Material> matches, int max, Predicate<Block> allowed) {
@@ -182,12 +315,21 @@ public final class AbilityListener implements Listener {
         UUID id = player.getUniqueId();
         busy.add(id);
         int broken = 0;
+        boolean effects = plugin.settings().effects;
         try {
             for (Block b : blocks) {
                 ItemStack hand = player.getInventory().getItemInMainHand();
                 if (plugin.toolData().getType(hand) != type) break;
                 if (b.getType().isAir()) continue;
-                if (player.breakBlock(b)) broken++;
+                BlockData before = b.getBlockData();
+                if (player.breakBlock(b)) {
+                    broken++;
+                    if (effects) {
+                        // Break particles, visible to everyone (vanilla hides them from the breaker).
+                        b.getWorld().spawnParticle(Particle.BLOCK, b.getLocation().add(0.5, 0.5, 0.5),
+                                12, 0.3, 0.3, 0.3, 0, before);
+                    }
+                }
             }
         } finally {
             busy.remove(id);

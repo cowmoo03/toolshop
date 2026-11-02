@@ -3,12 +3,14 @@ package io.github.cowmoo03.toolshop;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 
-/** The two upgrades the shop sells. */
+/** The upgrades the shop sells. */
 public enum ToolType {
     TIMBER("timber", "Timber Axe", Material.NETHERITE_AXE, NamedTextColor.GOLD,
             "Sneak + break a log to fell the whole tree"),
     VEIN("vein", "Vein Pickaxe", Material.NETHERITE_PICKAXE, NamedTextColor.AQUA,
-            "Sneak + break an ore to mine the whole vein");
+            "Sneak + break an ore to mine the whole vein"),
+    EXCAVATOR("excavator", "Excavator Shovel", Material.NETHERITE_SHOVEL, NamedTextColor.GREEN,
+            "Sneak + dig to clear a 3x3 area");
 
     private final String id;
     private final String displayName;
