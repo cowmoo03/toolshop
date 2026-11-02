@@ -2,6 +2,7 @@ package io.github.cowmoo03.toolshop;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Axis;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -10,6 +11,7 @@ import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Orientable;
 import org.bukkit.block.data.type.Leaves;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -95,11 +97,13 @@ public final class AbilityListener implements Listener {
             player.sendActionBar(Component.text("Log limit reached (" + s.timberMaxLogs
                     + "). Chop again for the rest.", NamedTextColor.YELLOW));
         }
-        // Remember where each trunk stood (logs sitting on the ground, not on another log) and its wood type,
-        // before anything is broken, so every felled tree gets its own sapling back.
+        // Remember where each trunk stood and its wood type, before anything is broken, so every felled
+        // tree gets its own sapling back. A trunk base is an upright log that isn't standing on another log.
+        // Sideways logs (fallen logs, branches) are skipped, so a fallen log doesn't get a sapling per block.
         Map<Block, Material> trunkBase = new HashMap<>();
         for (Block b : logs) {
-            if (!isLog(b.getRelative(0, -1, 0).getType())) trunkBase.put(b, b.getType());
+            boolean upright = !(b.getBlockData() instanceof Orientable o) || o.getAxis() == Axis.Y;
+            if (upright && !isLog(b.getRelative(0, -1, 0).getType())) trunkBase.put(b, b.getType());
         }
         Set<Block> felled = new HashSet<>(logs);
         // Leaves are broken with a copy of the axe, so Silk Touch drops the leaf blocks
