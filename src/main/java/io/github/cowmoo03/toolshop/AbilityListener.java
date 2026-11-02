@@ -79,23 +79,28 @@ public final class AbilityListener implements Listener {
     private void fellTree(Player player, Block start) {
         Settings s = plugin.settings();
         int startX = start.getX();
-        int startY = start.getY();
         int startZ = start.getZ();
         int r = s.timberMaxRadius;
-        // Only logs at or above the one that was hit, connected through faces, edges or corners,
-        // and within a few blocks sideways so it doesn't chain into neighbouring trees.
+        // Every log of the tree, above and below the one that was hit (so chopping anywhere fells it all),
+        // connected through faces, edges or corners, and within a few blocks sideways so it doesn't
+        // chain into neighbouring trees.
         List<Block> logs = collect(start, this::isLog, s.timberMaxLogs,
-                b -> b.getY() >= startY && Math.abs(b.getX() - startX) <= r && Math.abs(b.getZ() - startZ) <= r);
+                b -> Math.abs(b.getX() - startX) <= r && Math.abs(b.getZ() - startZ) <= r);
         if (countNaturalFoliage(logs, s.timberMinLeaves) < s.timberMinLeaves) {
             return; // No natural leaves: probably a build, so only the one log breaks.
         }
-        // Remember where the trunk stood (and what tree it was) before anything is broken.
+        // Remember where the trunk stood (its lowest logs) and what tree it was, before anything is broken.
         Material logType = start.getType();
+        int baseY = Integer.MAX_VALUE;
+        for (Block b : logs) baseY = Math.min(baseY, b.getY());
         List<Block> trunkBase = new ArrayList<>();
         for (Block b : logs) {
-            if (b.getY() == startY) trunkBase.add(b);
+            if (b.getY() == baseY) trunkBase.add(b);
         }
         Set<Block> felled = new HashSet<>(logs);
+        // Leaves are broken with a copy of the axe, so Silk Touch drops the leaf blocks
+        // and Fortune boosts sapling and apple drops, just like breaking them by hand.
+        ItemStack axe = player.getInventory().getItemInMainHand().clone();
 
         logs.remove(start);
         // Break the lowest and closest logs first.
@@ -110,18 +115,19 @@ public final class AbilityListener implements Listener {
         }
         if (s.timberClearLeaves) {
             // Give the game a moment to work out which leaves lost their log, then sweep twice.
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled), 20L);
-            plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled), 60L);
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled, axe), 20L);
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled, axe), 60L);
         }
     }
 
     /**
      * Breaks leaves around the felled tree that are no longer attached to any log, so they drop
-     * their saplings and apples right away instead of decaying over several minutes.
+     * right away instead of decaying over several minutes. They're broken with the axe's enchantments:
+     * Silk Touch drops the leaf blocks themselves, otherwise saplings, sticks and apples drop as usual.
      * Leaves still held up by a neighbouring tree are left alone, because the game marks only
      * unattached leaves with the maximum distance (7).
      */
-    private void clearLooseLeaves(Set<Block> felledLogs) {
+    private void clearLooseLeaves(Set<Block> felledLogs, ItemStack axe) {
         if (felledLogs.isEmpty()) return;
         final int reach = 7; // leaves can't be further than this from their log
         Block any = felledLogs.iterator().next();
@@ -142,7 +148,7 @@ public final class AbilityListener implements Listener {
                     if (b.getBlockData() instanceof Leaves leaves
                             && !leaves.isPersistent()
                             && leaves.getDistance() >= 7) {
-                        b.breakNaturally();
+                        b.breakNaturally(axe);
                     }
                 }
             }
