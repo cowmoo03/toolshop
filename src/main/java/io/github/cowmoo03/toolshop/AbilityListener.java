@@ -204,6 +204,9 @@ public final class AbilityListener implements Listener {
         var world = any.getWorld();
         int bottom = Math.max(world.getMinHeight(), minY - 1);
         int top = Math.min(world.getMaxHeight() - 1, maxY + reach);
+        boolean effects = plugin.settings().effects;
+        int cleared = 0;
+        double sumX = 0, sumY = 0, sumZ = 0;
         for (int x = minX - reach; x <= maxX + reach; x++) {
             for (int z = minZ - reach; z <= maxZ + reach; z++) {
                 for (int y = bottom; y <= top; y++) {
@@ -211,10 +214,23 @@ public final class AbilityListener implements Listener {
                     if (b.getBlockData() instanceof Leaves leaves
                             && !leaves.isPersistent()
                             && leaves.getDistance() >= 7) {
+                        BlockData before = b.getBlockData();
                         b.breakNaturally(axe);
+                        cleared++;
+                        sumX += x; sumY += y; sumZ += z;
+                        if (effects) {
+                            // A few leaf particles per block: enough to see, light enough for big trees.
+                            world.spawnParticle(Particle.BLOCK, b.getLocation().add(0.5, 0.5, 0.5),
+                                    4, 0.3, 0.3, 0.3, 0, before);
+                        }
                     }
                 }
             }
+        }
+        if (effects && cleared > 0) {
+            // One rustle from the middle of the canopy, rather than one per leaf.
+            world.playSound(new org.bukkit.Location(world, sumX / cleared + 0.5, sumY / cleared + 0.5,
+                    sumZ / cleared + 0.5), Sound.BLOCK_AZALEA_LEAVES_BREAK, 1f, 0.9f);
         }
     }
 

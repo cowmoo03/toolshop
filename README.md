@@ -20,7 +20,7 @@ A Paper plugin (Minecraft 26.2) that rents out tool upgrades for netherite.
 - Repair upgraded tools with Mending or an anvil (upgraded tool in the left slot). Crafting-grid merges, grindstones and putting an upgraded tool in the anvil's right slot are blocked, because they would throw the upgrade away.
 - The Timber Axe only fells trees with natural leaves, so log builds are safe. Afterwards it clears leaves that are no longer attached to any log (neighbouring trees keep theirs) and plants a matching sapling.
 - A leftover stump (when a tree was split before it was chopped) can be chopped in one go too, but only a tree felled down to its base in one chop gets a sapling.
-- Abilities play a sound and show break particles (turn off with `effects: false`).
+- Abilities play a sound and show break particles, and cleared leaves rustle and burst into leaf particles (turn off with `effects: false`).
 
 All prices, times and limits are in `config.yml`.
 
@@ -47,3 +47,17 @@ curl -fL -o plugins/ToolShop.jar https://github.com/cowmoo03/toolshop/releases/d
 ```
 
 Then restart the server.
+
+## Updating
+
+`scripts/update-toolshop.sh` downloads the latest build, checks it's a valid ToolShop jar, compares versions,
+keeps the current jar as a backup, restarts the server and confirms the new version started.
+
+```bash
+# one-time setup on the server
+sudo curl -fsSL -o /usr/local/bin/update-toolshop https://raw.githubusercontent.com/cowmoo03/toolshop/main/scripts/update-toolshop.sh
+sudo chmod 755 /usr/local/bin/update-toolshop
+
+sudo update-toolshop              # update (asks before restarting)
+sudo update-toolshop --rollback   # go back to the previous version
+```
