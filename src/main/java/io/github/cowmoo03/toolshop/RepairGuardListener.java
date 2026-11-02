@@ -62,8 +62,13 @@ public final class RepairGuardListener implements Listener {
         if (!isUpgraded(inv.getItem(1))) return;
         event.setResult(null);
         if (isUpgraded(inv.getItem(0))) {
-            warn(event.getView().getPlayer(),
-                    "Two upgraded tools can't be combined. Repair it with netherite ingots or a plain netherite tool instead.");
+            ToolType left = plugin.toolData().getType(inv.getItem(0));
+            ToolType right = plugin.toolData().getType(inv.getItem(1));
+            String both = left == right
+                    ? "Both tools in the anvil are upgraded " + left.displayName() + "s."
+                    : "Both tools in the anvil are upgraded (" + left.displayName() + " + " + right.displayName() + ").";
+            warn(event.getView().getPlayer(), both
+                    + " Two upgraded tools can't be combined. Repair it with netherite ingots or a plain netherite tool instead.");
         } else {
             warn(event.getView().getPlayer(),
                     "Put the upgraded tool in the LEFT anvil slot, or it gets used up.");
