@@ -58,8 +58,13 @@ public final class RepairGuardListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onAnvil(PrepareAnvilEvent event) {
-        if (isUpgraded(event.getInventory().getItem(1))) {
-            event.setResult(null);
+        Inventory inv = event.getInventory();
+        if (!isUpgraded(inv.getItem(1))) return;
+        event.setResult(null);
+        if (isUpgraded(inv.getItem(0))) {
+            warn(event.getView().getPlayer(),
+                    "Two upgraded tools can't be combined. Repair it with netherite ingots or a plain netherite tool instead.");
+        } else {
             warn(event.getView().getPlayer(),
                     "Put the upgraded tool in the LEFT anvil slot, or it gets used up.");
         }
