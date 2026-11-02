@@ -91,7 +91,10 @@ public final class AbilityListener implements Listener {
         List<Block> logs = collect(start, this::isLog, s.timberMaxLogs,
                 b -> r <= 0 || (Math.abs(b.getX() - startX) <= r && Math.abs(b.getZ() - startZ) <= r));
         if (countNaturalFoliage(logs, s.timberMinLeaves) < s.timberMinLeaves) {
-            return; // No natural leaves: probably a build, so only the one log breaks.
+            // No natural leaves. Usually that means a build, so only the one log breaks.
+            // The exception is the leftover stump of a tree this axe already felled: chop it all, no sapling.
+            if (isLeftoverStump(logs)) fellStump(player, start, logs);
+            return;
         }
         if (logs.size() >= s.timberMaxLogs) {
             player.sendActionBar(Component.text("Log limit reached (" + s.timberMaxLogs
@@ -106,6 +109,7 @@ public final class AbilityListener implements Listener {
             if (upright && !isLog(b.getRelative(0, -1, 0).getType())) trunkBase.put(b, b.getType());
         }
         Set<Block> felled = new HashSet<>(logs);
+        rememberFelled(felled);
         // Leaves are broken with a copy of the axe, so Silk Touch drops the leaf blocks
         // and Fortune boosts sapling and apple drops, just like breaking them by hand.
         ItemStack axe = player.getInventory().getItemInMainHand().clone();
@@ -126,6 +130,57 @@ public final class AbilityListener implements Listener {
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled, axe), 20L);
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> clearLooseLeaves(felled, axe), 60L);
         }
+    }
+
+    // ------------------------------------------------ Leftover stumps
+
+    /** How far below a felled tree a leftover stump can be and still count as part of it. */
+    private static final int STUMP_REACH = 16;
+    /** Most logs a leftover stump can have. Anything bigger is treated as a build. */
+    private static final int STUMP_MAX_LOGS = 16;
+    /** How many tree columns to remember (oldest are forgotten first). */
+    private static final int REMEMBERED_COLUMNS = 20_000;
+
+    /**
+     * For each column (world + x + z) where this axe felled logs, the lowest Y that was felled.
+     * Used to recognise the stump left behind when a tree was split before it was chopped.
+     * Kept in memory only, so it resets when the server restarts.
+     */
+    private final Map<String, Integer> felledColumns = new java.util.LinkedHashMap<>(256, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Integer> eldest) {
+            return size() > REMEMBERED_COLUMNS;
+        }
+    };
+
+    private static String columnKey(Block b) {
+        return b.getWorld().getUID() + ":" + b.getX() + ":" + b.getZ();
+    }
+
+    private void rememberFelled(Set<Block> felled) {
+        for (Block b : felled) {
+            felledColumns.merge(columnKey(b), b.getY(), Math::min);
+        }
+    }
+
+    /** True if these leafless logs sit just below logs this axe already felled, in the same column. */
+    private boolean isLeftoverStump(List<Block> logs) {
+        if (logs.isEmpty() || logs.size() > STUMP_MAX_LOGS) return false;
+        for (Block b : logs) {
+            Integer felledY = felledColumns.get(columnKey(b));
+            if (felledY != null && b.getY() < felledY && felledY - b.getY() <= STUMP_REACH) return true;
+        }
+        return false;
+    }
+
+    /** Chops a leftover stump. No sapling, because the tree wasn't felled in one go. */
+    private void fellStump(Player player, Block start, List<Block> logs) {
+        List<Block> rest = new ArrayList<>(logs);
+        rest.remove(start);
+        rest.sort(Comparator.comparingInt(Block::getY));
+        breakAll(player, rest, ToolType.TIMBER);
+        playSound(start, Sound.BLOCK_WOOD_BREAK, 0.8f);
+        for (Block b : logs) felledColumns.remove(columnKey(b));
     }
 
     /**

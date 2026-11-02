@@ -19,6 +19,7 @@ A Paper plugin (Minecraft 26.2) that rents out tool upgrades for netherite.
 - Durability works like vanilla (1 per block), with Fortune, Silk Touch, Unbreaking and Mending all applying normally.
 - Repair upgraded tools with Mending or an anvil (upgraded tool in the left slot). Crafting-grid merges, grindstones and putting an upgraded tool in the anvil's right slot are blocked, because they would throw the upgrade away.
 - The Timber Axe only fells trees with natural leaves, so log builds are safe. Afterwards it clears leaves that are no longer attached to any log (neighbouring trees keep theirs) and plants a matching sapling.
+- A leftover stump (when a tree was split before it was chopped) can be chopped in one go too, but only a tree felled down to its base in one chop gets a sapling.
 - Abilities play a sound and show break particles (turn off with `effects: false`).
 
 All prices, times and limits are in `config.yml`.
