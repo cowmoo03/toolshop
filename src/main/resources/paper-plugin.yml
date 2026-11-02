@@ -1,0 +1,14 @@
+name: ToolShop
+version: '${version}'
+main: io.github.cowmoo03.toolshop.ToolShopPlugin
+api-version: '26.2'
+description: Timber Axe and Vein Pickaxe upgrades that are rented with netherite and expire after a set time.
+authors:
+  - cowmoo03
+permissions:
+  toolshop.use:
+    description: Open /toolshop and use upgraded tools
+    default: true
+  toolshop.admin:
+    description: Give upgraded tools and reload the config
+    default: op

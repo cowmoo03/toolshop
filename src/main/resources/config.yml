@@ -1,0 +1,61 @@
+# ToolShop configuration
+# Apply changes in-game with: /toolshop reload
+
+# How long an upgrade stays active after buying or renewing (real time, counts while offline).
+duration-days: 7
+
+# After it expires, players can still renew at the cheap renewal price for this many hours.
+# After that, re-activating costs the full upgrade price again.
+grace-hours: 24
+
+# Item used to pay.
+currency: NETHERITE_INGOT
+
+prices:
+  timber:
+    upgrade: 2   # netherite axe + this many ingots
+    renew: 1     # while active or during the grace period
+  vein:
+    upgrade: 3   # netherite pickaxe + this many ingots
+    renew: 1
+
+# true = upgraded tools never lose durability while active.
+# false = normal durability (1 per block broken, Unbreaking and Mending work as usual).
+unbreakable-while-active: false
+
+timber:
+  # Players must hold Shift (sneak) while breaking a log.
+  require-sneak: true
+  # Most logs felled at once.
+  max-logs: 200
+  # A tree only falls if at least this many natural (not player-placed) leaves touch its logs.
+  # This protects log cabins and other builds.
+  min-natural-leaves: 3
+
+vein:
+  # Players must hold Shift (sneak) while breaking an ore.
+  require-sneak: true
+  # Most ore blocks mined at once (including the first one).
+  max-blocks: 64
+  # Extra hunger for each extra block mined. 4.0 = one hunger point (half a drumstick).
+  exhaustion-per-block: 0.15
+  # Ores the Vein Pickaxe works on. Ancient debris is left out on purpose.
+  ores:
+    - COAL_ORE
+    - DEEPSLATE_COAL_ORE
+    - IRON_ORE
+    - DEEPSLATE_IRON_ORE
+    - COPPER_ORE
+    - DEEPSLATE_COPPER_ORE
+    - GOLD_ORE
+    - DEEPSLATE_GOLD_ORE
+    - REDSTONE_ORE
+    - DEEPSLATE_REDSTONE_ORE
+    - LAPIS_ORE
+    - DEEPSLATE_LAPIS_ORE
+    - DIAMOND_ORE
+    - DEEPSLATE_DIAMOND_ORE
+    - EMERALD_ORE
+    - DEEPSLATE_EMERALD_ORE
+    - NETHER_GOLD_ORE
+    - NETHER_QUARTZ_ORE
