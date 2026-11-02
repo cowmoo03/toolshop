@@ -28,6 +28,9 @@ timber:
   require-sneak: true
   # Most logs felled at once.
   max-logs: 200
+  # How far sideways (in blocks) from the chopped log a tree can reach.
+  # Stops it from chaining into neighbouring trees in a dense forest.
+  max-radius: 8
   # A tree only falls if at least this many natural (not player-placed) leaves touch its logs.
   # This protects log cabins and other builds.
   min-natural-leaves: 3

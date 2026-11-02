@@ -119,12 +119,12 @@ public final class ToolData {
                 long left = expires - now;
                 NamedTextColor c = left < HOUR ? NamedTextColor.RED
                         : left < DAY ? NamedTextColor.YELLOW : NamedTextColor.GREEN;
-                lore.add(line("Expires in " + formatDuration(left), c));
+                lore.add(line("Expires in " + formatCoarse(left), c));
                 lore.add(line("Renew early at /toolshop", NamedTextColor.DARK_GRAY));
             }
             case GRACE -> {
                 lore.add(line("EXPIRED", NamedTextColor.RED).decoration(TextDecoration.BOLD, true));
-                lore.add(line("Renew within " + formatDuration(expires + s.graceMs - now) + " for "
+                lore.add(line("Renew within " + formatCoarse(expires + s.graceMs - now) + " for "
                         + s.currencyAmount(s.renewPrice(type)), NamedTextColor.YELLOW));
                 lore.add(line("at /toolshop", NamedTextColor.YELLOW));
             }
@@ -154,6 +154,20 @@ public final class ToolData {
 
     private static Component line(String text, TextColor color) {
         return Component.text(text, color).decoration(TextDecoration.ITALIC, false);
+    }
+
+    /**
+     * Countdown for the item description: "6d 23h", "5h" or "under 1h".
+     * Kept coarse on purpose so the held tool only changes about once an hour,
+     * because changing the item in a player's hand interrupts their mining.
+     */
+    public static String formatCoarse(long ms) {
+        if (ms < 0) ms = 0;
+        if (ms < HOUR) return "under 1h";
+        long hoursTotal = (ms + HOUR - 1) / HOUR; // round up
+        long days = hoursTotal / 24;
+        long hours = hoursTotal % 24;
+        return days > 0 ? days + "d " + hours + "h" : hours + "h";
     }
 
     /** "6d 23h", "5h 12m" or "42m". */

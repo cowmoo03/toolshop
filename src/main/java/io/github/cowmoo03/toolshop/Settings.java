@@ -17,6 +17,7 @@ public final class Settings {
     public final boolean timberRequireSneak;
     public final int timberMaxLogs;
     public final int timberMinLeaves;
+    public final int timberMaxRadius;
 
     public final boolean veinRequireSneak;
     public final int veinMaxBlocks;
@@ -41,6 +42,7 @@ public final class Settings {
         this.timberRequireSneak = config.getBoolean("timber.require-sneak", true);
         this.timberMaxLogs = Math.max(1, config.getInt("timber.max-logs", 200));
         this.timberMinLeaves = Math.max(0, config.getInt("timber.min-natural-leaves", 3));
+        this.timberMaxRadius = Math.max(1, config.getInt("timber.max-radius", 8));
 
         this.veinRequireSneak = config.getBoolean("vein.require-sneak", true);
         this.veinMaxBlocks = Math.max(1, config.getInt("vein.max-blocks", 64));

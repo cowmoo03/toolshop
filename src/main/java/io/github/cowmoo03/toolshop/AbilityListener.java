@@ -71,9 +71,14 @@ public final class AbilityListener implements Listener {
 
     private void fellTree(Player player, Block start) {
         Settings s = plugin.settings();
+        int startX = start.getX();
         int startY = start.getY();
-        // Only logs at or above the one that was hit, connected through faces, edges or corners.
-        List<Block> logs = collect(start, this::isLog, s.timberMaxLogs, b -> b.getY() >= startY);
+        int startZ = start.getZ();
+        int r = s.timberMaxRadius;
+        // Only logs at or above the one that was hit, connected through faces, edges or corners,
+        // and within a few blocks sideways so it doesn't chain into neighbouring trees.
+        List<Block> logs = collect(start, this::isLog, s.timberMaxLogs,
+                b -> b.getY() >= startY && Math.abs(b.getX() - startX) <= r && Math.abs(b.getZ() - startZ) <= r);
         if (countNaturalFoliage(logs, s.timberMinLeaves) < s.timberMinLeaves) {
             return; // No natural leaves: probably a build, so only the one log breaks.
         }
