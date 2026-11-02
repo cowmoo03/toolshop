@@ -31,6 +31,7 @@ public final class ToolShopPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new AbilityListener(this), this);
         getServer().getPluginManager().registerEvents(new ShopListener(this), this);
+        getServer().getPluginManager().registerEvents(new RepairGuardListener(this), this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
                 event.registrar().register("toolshop", "Buy and renew upgraded tools", new ToolShopCommand(this)));

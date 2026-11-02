@@ -16,6 +16,7 @@ A Paper plugin (Minecraft 26.2) that rents out two tool upgrades for netherite.
 - For **24 hours** after it expires, it can be renewed for the renewal price. After that, the full upgrade price applies again.
 - Renewing early adds another 7 days on top of the time left.
 - Durability works like vanilla (1 per block), with Fortune, Silk Touch, Unbreaking and Mending all applying normally.
+- Repair upgraded tools with Mending or an anvil (upgraded tool in the left slot). Crafting-grid merges, grindstones and putting an upgraded tool in the anvil's right slot are blocked, because they would throw the upgrade away.
 - The Timber Axe only fells trees with natural leaves, so log builds are safe.
 
 All prices, times and limits are in `config.yml`.
