@@ -127,6 +127,9 @@ public final class RecoveryListener implements Listener {
                     new Vector3f(0.9f, 0.9f, 0.9f), new AxisAngle4f()));
             d.setGlowing(true);
             d.setGlowColorOverride(Color.AQUA);
+            // Display entities only render within view-range x 64 blocks (scaled by the client's Entity Distance).
+            // 4 = about 256 blocks, so the owner can spot it from the surface or across a cave system.
+            d.setViewRange(4.0f);
             d.setTeleportDuration((int) TASK_PERIOD_TICKS);
         });
         markers.put(item.getUniqueId(), marker);
