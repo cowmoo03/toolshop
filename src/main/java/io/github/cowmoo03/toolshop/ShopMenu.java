@@ -26,15 +26,17 @@ public final class ShopMenu implements InventoryHolder {
     public static final int TOOL_SLOT = 4;
     public static final int CREATE_SLOT = 22;
     public static final int MODE_SLOT = 40;
+    public static final int RECHARGE_SLOT = 42;
     public static final int INFO_SLOT = 36;
     private static final int[] UPGRADE_SLOTS = {19, 20, 21, 22, 23, 24, 25, 29, 30, 31, 32, 33};
     public static final long CONFIRM_WINDOW_MS = 5000;
 
     /** What a slot does. */
-    public sealed interface Action permits Create, Buy, ToggleMode {}
+    public sealed interface Action permits Create, Buy, ToggleMode, Recharge {}
     public record Create(ToolKind kind) implements Action {}
     public record Buy(Upgrade upgrade) implements Action {}
     public record ToggleMode() implements Action {}
+    public record Recharge() implements Action {}
 
     private final ToolShopPlugin plugin;
     private final Inventory inventory;
@@ -118,6 +120,25 @@ public final class ShopMenu implements InventoryHolder {
             i++;
         }
 
+        int soulTier = lt.tier(hand, Upgrade.SOULBOUND);
+        if (soulTier > 0) {
+            int saves = lt.saves(hand);
+            int max = lt.maxSaves(hand);
+            boolean canRecharge = plugin.settings().soulboundRechargeAnytime ? saves < max : saves == 0;
+            if (canRecharge) {
+                Recharge recharge = new Recharge();
+                actions.put(RECHARGE_SLOT, recharge);
+                inventory.setItem(RECHARGE_SLOT, rechargeButton(player, soulTier, saves, max,
+                        isAwaitingConfirm(recharge, now)));
+            } else {
+                inventory.setItem(RECHARGE_SLOT, icon(Material.TOTEM_OF_UNDYING,
+                        text("Soulbound: " + saves + "/" + max + " saves", NamedTextColor.GOLD), List.of(
+                                text(plugin.settings().soulboundRechargeAnytime
+                                        ? "Fully charged."
+                                        : "You can recharge once all saves are used.", NamedTextColor.GRAY)), false));
+            }
+        }
+
         if (kind == ToolKind.PICKAXE && lt.tier(hand, Upgrade.DRILL) > 0 && lt.tier(hand, Upgrade.VEIN) > 0) {
             boolean vein = Legendary.MODE_VEIN.equals(lt.mode(hand));
             actions.put(MODE_SLOT, new ToggleMode());
@@ -195,6 +216,26 @@ public final class ShopMenu implements InventoryHolder {
         return icon(icon, name, lore, confirming);
     }
 
+    private ItemStack rechargeButton(Player player, int tier, int saves, int max, boolean confirming) {
+        Settings.Tier req = plugin.settings().tier(Upgrade.SOULBOUND, tier);
+        List<Component> lore = new ArrayList<>();
+        lore.add(text("Saves left: " + saves + "/" + max, saves == 0 ? NamedTextColor.RED : NamedTextColor.YELLOW));
+        lore.add(text("Refill to " + max + " saves. No level needed.", NamedTextColor.GRAY));
+        lore.add(Component.empty());
+        for (Map.Entry<Material, Integer> e : req.cost().entrySet()) {
+            boolean ok = player.getInventory().containsAtLeast(ItemStack.of(e.getKey()), e.getValue());
+            lore.add(text((ok ? "✔ " : "✘ ") + e.getValue() + " " + Settings.itemName(e.getKey(), e.getValue()),
+                    ok ? NamedTextColor.GREEN : NamedTextColor.RED));
+        }
+        if (req.cost().isEmpty()) lore.add(text("✔ Free", NamedTextColor.GREEN));
+        lore.add(Component.empty());
+        lore.add(confirming
+                ? text("CLICK AGAIN TO CONFIRM", NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true)
+                : text("Click to recharge", NamedTextColor.GREEN));
+        return icon(Material.TOTEM_OF_UNDYING, text("Recharge Soulbound", NamedTextColor.GOLD)
+                .decoration(TextDecoration.BOLD, true), lore, confirming);
+    }
+
     /** What a tier does, for the button description. */
     private String tierDetail(Upgrade u, int t) {
         Settings s = plugin.settings();
@@ -209,6 +250,8 @@ public final class ShopMenu implements InventoryHolder {
             case TIMBER -> "up to " + Settings.forTier(s.timberMaxLogs, t) + " logs"
                     + (t >= s.timberSilkLeavesFromTier ? " + Silk Touch collects leaves" : "");
             case DURABILITY -> Settings.forTier(s.durabilityChance, t) + "% chance to save durability";
+            case FIREPROOF -> "survives fire and lava for " + Settings.forTier(s.fireproofSeconds, t) + "s";
+            case SOULBOUND -> Settings.forTier(s.soulboundSaves, t) + " saves (upgrading refills them)";
             default -> null;
         };
     }
@@ -237,8 +280,9 @@ public final class ShopMenu implements InventoryHolder {
                 text("4. Sneak while breaking to use abilities.", NamedTextColor.GRAY),
                 Component.empty(),
                 text("Upgrades are permanent, but if the tool breaks,", NamedTextColor.RED),
-                text("burns or despawns, it's gone. Protect it with", NamedTextColor.RED),
-                text("Last Stand, Fireproof and Soulbound.", NamedTextColor.RED));
+                text("burns or despawns, it's gone. Last Stand stops it", NamedTextColor.RED),
+                text("breaking, Fireproof buys time in lava, and", NamedTextColor.RED),
+                text("Soulbound saves it on death a few times.", NamedTextColor.RED));
         return icon(Material.BOOK, text("How it works", NamedTextColor.YELLOW), lore, false);
     }
 

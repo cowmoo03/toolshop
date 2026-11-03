@@ -116,7 +116,10 @@ public final class PerkListener implements Listener {
         }
     }
 
-    // ------------------------------------------------------------------ Fireproof
+    // ------------------------------------------------------------------ Fireproof (timed)
+
+    /** When each dropped legendary tool first touched lava or fire, by item entity. */
+    private final Map<UUID, Long> burningSince = new HashMap<>();
 
     @EventHandler(ignoreCancelled = true)
     public void onDroppedItemDamage(EntityDamageEvent event) {
@@ -124,20 +127,42 @@ public final class PerkListener implements Listener {
         EntityDamageEvent.DamageCause cause = event.getCause();
         if (cause != EntityDamageEvent.DamageCause.LAVA && cause != EntityDamageEvent.DamageCause.FIRE
                 && cause != EntityDamageEvent.DamageCause.FIRE_TICK) return;
-        if (isFireproof(item.getItemStack())) event.setCancelled(true);
+        if (stillFireproof(item)) event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onDroppedItemBurn(EntityCombustEvent event) {
-        if (event.getEntity() instanceof Item item && isFireproof(item.getItemStack())) event.setCancelled(true);
+        if (event.getEntity() instanceof Item item && stillFireproof(item)) event.setCancelled(true);
     }
 
-    private boolean isFireproof(ItemStack stack) {
+    /**
+     * True while a dropped Fireproof tool is inside its protection window. The window starts the first time
+     * it touches lava or fire and lasts the tier's number of seconds; after that it burns like any item.
+     */
+    private boolean stillFireproof(Item item) {
+        ItemStack stack = item.getItemStack();
         Legendary lt = plugin.legendary();
-        return lt.isLegendary(stack) && lt.tier(stack, Upgrade.FIREPROOF) > 0;
+        if (!lt.isLegendary(stack)) return false;
+        int tier = lt.tier(stack, Upgrade.FIREPROOF);
+        if (tier <= 0) return false;
+        long limitMs = Settings.forTier(plugin.settings().fireproofSeconds, tier) * 1000L;
+        long now = System.currentTimeMillis();
+        Long since = burningSince.get(item.getUniqueId());
+        if (since == null) {
+            burningSince.put(item.getUniqueId(), now);
+            since = now;
+            Player owner = lt.owner(stack) == null ? null : plugin.getServer().getPlayer(lt.owner(stack));
+            if (owner != null) {
+                owner.sendMessage(ToolShopPlugin.PREFIX.append(Component.text("Your " + lt.kind(stack).displayName()
+                        + " fell into fire or lava! Fireproof protects it for " + (limitMs / 1000) + " seconds.",
+                        NamedTextColor.RED)));
+            }
+            if (burningSince.size() > 500) burningSince.entrySet().removeIf(e -> now - e.getValue() > 600_000);
+        }
+        return now - since <= limitMs;
     }
 
-    // ------------------------------------------------------------------ Soulbound
+    // ------------------------------------------------------------------ Soulbound (limited saves)
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onDeath(PlayerDeathEvent event) {
@@ -147,11 +172,24 @@ public final class PerkListener implements Listener {
         Iterator<ItemStack> it = event.getDrops().iterator();
         while (it.hasNext()) {
             ItemStack drop = it.next();
-            if (lt.isLegendary(drop) && lt.tier(drop, Upgrade.SOULBOUND) > 0
-                    && player.getUniqueId().equals(lt.owner(drop))) {
-                it.remove();
-                event.getItemsToKeep().add(drop);
+            if (!lt.isLegendary(drop) || lt.tier(drop, Upgrade.SOULBOUND) <= 0
+                    || !player.getUniqueId().equals(lt.owner(drop))) continue;
+            int saves = lt.saves(drop);
+            String name = lt.kind(drop).displayName();
+            if (saves <= 0) {
+                player.sendMessage(ToolShopPlugin.PREFIX.append(Component.text("Your " + name
+                        + " had no Soulbound saves left and was dropped!", NamedTextColor.RED)));
+                continue;
             }
+            lt.setSaves(drop, saves - 1);
+            lt.refresh(drop);
+            it.remove();
+            event.getItemsToKeep().add(drop);
+            int left = saves - 1;
+            player.sendMessage(ToolShopPlugin.PREFIX.append(Component.text("Soulbound saved your " + name + ". "
+                    + (left == 0 ? "That was its last save! Recharge it in /toolshop."
+                            : left + " save" + (left == 1 ? "" : "s") + " left."),
+                    left == 0 ? NamedTextColor.RED : NamedTextColor.GOLD)));
         }
     }
 

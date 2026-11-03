@@ -43,6 +43,7 @@ public final class ShopListener implements Listener {
             menu.clearConfirm();
             if (action instanceof ShopMenu.Create c) create(player, c.kind());
             else if (action instanceof ShopMenu.Buy b) buy(player, b.upgrade());
+            else if (action instanceof ShopMenu.Recharge) recharge(player);
         } else {
             menu.askConfirm(action, now);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
@@ -134,6 +135,39 @@ public final class ShopListener implements Listener {
         plugin.log(player, "UPGRADE " + upgrade.withTier(next) + ", paid " + Settings.describeCost(req.cost()), lt.id(tool));
         ok(player, "Upgraded to " + upgrade.withTier(next) + "!");
         player.playSound(player.getLocation(), Sound.BLOCK_SMITHING_TABLE_USE, 1f, 1f);
+    }
+
+    /** Refills Soulbound saves for the items of the tool's current Soulbound tier (no level needed). */
+    private void recharge(Player player) {
+        PlayerInventory inv = player.getInventory();
+        ItemStack hand = inv.getItemInMainHand();
+        Legendary lt = plugin.legendary();
+        int tier = lt.usableBy(hand, player) ? lt.tier(hand, Upgrade.SOULBOUND) : 0;
+        if (tier <= 0) {
+            fail(player, "Hold your legendary tool with Soulbound to recharge it.");
+            return;
+        }
+        int saves = lt.saves(hand);
+        int max = lt.maxSaves(hand);
+        boolean allowed = plugin.settings().soulboundRechargeAnytime ? saves < max : saves == 0;
+        if (!allowed) {
+            fail(player, saves >= max ? "Soulbound is already full." : "You can recharge once all saves are used.");
+            return;
+        }
+        Map<Material, Integer> cost = plugin.settings().tier(Upgrade.SOULBOUND, tier).cost();
+        List<String> missing = missingItems(player, cost);
+        if (!missing.isEmpty()) {
+            fail(player, "You still need: " + String.join(", ", missing));
+            return;
+        }
+        take(player, cost);
+        ItemStack tool = inv.getItemInMainHand();
+        lt.setSaves(tool, max);
+        lt.refresh(tool);
+        inv.setItemInMainHand(tool);
+        plugin.log(player, "RECHARGE soulbound to " + max + ", paid " + Settings.describeCost(cost), lt.id(tool));
+        ok(player, "Soulbound recharged: " + max + "/" + max + " saves.");
+        player.playSound(player.getLocation(), Sound.ITEM_TOTEM_USE, 0.5f, 1.2f);
     }
 
     /** Switches a pickaxe that has both Drill and Vein Mining between the two. Also used by /toolshop mode. */

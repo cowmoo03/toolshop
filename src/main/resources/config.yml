@@ -53,9 +53,13 @@ upgrades:
   last-stand:
     - { level: 30, cost: { DIAMOND: 8 } }
   fireproof:
-    - { level: 40, cost: { NETHERITE_SCRAP: 4 } }
+    - { level: 40, cost: { NETHERITE_SCRAP: 2 } }
+    - { level: 60, cost: { NETHERITE_SCRAP: 4 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 1 } }
   soulbound:
     - { level: 50, cost: { TOTEM_OF_UNDYING: 1 } }
+    - { level: 70, cost: { TOTEM_OF_UNDYING: 2 } }
+    - { level: 90, cost: { TOTEM_OF_UNDYING: 3 } }
 
 drill:
   # Tier 1 = 1x2 (player height), tier 2 = 3x3, tier 3 = 5x5.
@@ -111,6 +115,17 @@ excavator:
 durability:
   # Chance (%) for a block to use no durability, for tier 1, 2 and 3. Stacks with Unbreaking.
   chance: [5, 10, 20]
+
+fireproof:
+  # Seconds a dropped tool survives in lava or fire, for tier 1, 2 and 3. Then it burns.
+  seconds: [15, 45, 120]
+
+soulbound:
+  # Deaths the tool survives, for tier 1, 2 and 3. Each death uses one save; with none left it drops normally.
+  saves: [3, 5, 8]
+  # When players can refill their saves in /toolshop (costs the items of their current tier, no level needed):
+  # "empty" = only once all saves are used up, "anytime" = whenever they're below the maximum.
+  recharge: empty
 
 # Cosmetic ranks shown on the tool, by blocks broken with it.
 ranks:

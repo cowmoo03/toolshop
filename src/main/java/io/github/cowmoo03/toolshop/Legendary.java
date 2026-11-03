@@ -33,6 +33,7 @@ public final class Legendary {
     private final NamespacedKey ownerKey;
     private final NamespacedKey kindKey;
     private final NamespacedKey modeKey;
+    private final NamespacedKey savesKey;
     private final Map<Upgrade, NamespacedKey> tierKeys = new EnumMap<>(Upgrade.class);
     /** Keys used by ToolShop 1.x rentals, so old tools can be cleaned up. */
     private final NamespacedKey legacyType;
@@ -46,6 +47,7 @@ public final class Legendary {
         ownerKey = new NamespacedKey(plugin, "lt_owner");
         kindKey = new NamespacedKey(plugin, "lt_kind");
         modeKey = new NamespacedKey(plugin, "lt_mode");
+        savesKey = new NamespacedKey(plugin, "lt_soul_saves");
         for (Upgrade u : Upgrade.values()) tierKeys.put(u, new NamespacedKey(plugin, "lt_up_" + u.id().replace('-', '_')));
         legacyType = new NamespacedKey(plugin, "type");
         legacyExpires = new NamespacedKey(plugin, "expires");
@@ -91,6 +93,24 @@ public final class Legendary {
         return MODE_VEIN.equals(m) ? MODE_VEIN : MODE_DRILL;
     }
 
+    /** Soulbound saves left on this tool. */
+    public int saves(ItemStack item) {
+        Integer v = item.getItemMeta().getPersistentDataContainer().get(savesKey, PersistentDataType.INTEGER);
+        return v == null ? 0 : Math.max(0, v);
+    }
+
+    /** Most Soulbound saves this tool can hold at its current tier. */
+    public int maxSaves(ItemStack item) {
+        int tier = tier(item, Upgrade.SOULBOUND);
+        return tier <= 0 ? 0 : Settings.forTier(plugin.settings().soulboundSaves, tier);
+    }
+
+    public void setSaves(ItemStack item, int saves) {
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(savesKey, PersistentDataType.INTEGER, Math.max(0, saves));
+        item.setItemMeta(meta);
+    }
+
     /** True if this is still the owner's current legendary tool (not retired by a newer one). */
     public boolean isCurrent(ItemStack item) {
         ToolKind kind = kind(item);
@@ -115,15 +135,18 @@ public final class Legendary {
         pdc.set(kindKey, PersistentDataType.STRING, kind.id());
         pdc.set(modeKey, PersistentDataType.STRING, MODE_DRILL);
         for (NamespacedKey k : tierKeys.values()) pdc.remove(k);
+        pdc.remove(savesKey);
         item.setItemMeta(meta);
         return id;
     }
 
+    /** Sets an upgrade's tier. Setting Soulbound also refills its saves to the new tier's maximum. */
     public void setTier(ItemStack item, Upgrade upgrade, int tier) {
         ItemMeta meta = item.getItemMeta();
         if (tier <= 0) meta.getPersistentDataContainer().remove(tierKeys.get(upgrade));
         else meta.getPersistentDataContainer().set(tierKeys.get(upgrade), PersistentDataType.INTEGER, tier);
         item.setItemMeta(meta);
+        if (upgrade == Upgrade.SOULBOUND) setSaves(item, maxSaves(item));
     }
 
     public void setMode(ItemStack item, String mode) {
@@ -186,6 +209,11 @@ public final class Legendary {
             if (t <= 0) continue;
             any = true;
             String suffix = "";
+            if (u == Upgrade.SOULBOUND) {
+                suffix = "  (" + saves(item) + "/" + maxSaves(item) + " saves)";
+            } else if (u == Upgrade.FIREPROOF) {
+                suffix = "  (" + Settings.forTier(s.fireproofSeconds, t) + "s)";
+            }
             if (u == Upgrade.DRILL || u == Upgrade.VEIN) {
                 boolean both = tier(item, Upgrade.DRILL) > 0 && tier(item, Upgrade.VEIN) > 0;
                 if (both && mode(item).equals(u == Upgrade.DRILL ? MODE_DRILL : MODE_VEIN)) suffix = "  ◀ active";

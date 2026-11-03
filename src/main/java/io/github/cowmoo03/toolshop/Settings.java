@@ -39,6 +39,10 @@ public final class Settings {
     public final int timberMinLeaves;
     public final float excavatorExhaustion;
     public final int[] durabilityChance;
+    public final int[] fireproofSeconds;
+    public final int[] soulboundSaves;
+    /** True = saves can be refilled whenever below max; false = only once all are used up. */
+    public final boolean soulboundRechargeAnytime;
     /** Blocks broken -> rank name, sorted. */
     public final TreeMap<Long, String> ranks = new TreeMap<>();
 
@@ -52,7 +56,12 @@ public final class Settings {
 
         for (Upgrade u : Upgrade.values()) {
             List<Tier> list = new ArrayList<>();
-            List<Map<?, ?>> raw = c.getMapList("upgrades." + u.id());
+            List<Map<?, ?>> raw = new ArrayList<>(c.getMapList("upgrades." + u.id()));
+            // An older config may list fewer tiers than this version has: take the missing ones from the defaults.
+            if (raw.size() < u.maxTier() && c.getDefaults() != null) {
+                List<Map<?, ?>> defaults = c.getDefaults().getMapList("upgrades." + u.id());
+                for (int i = raw.size(); i < Math.min(u.maxTier(), defaults.size()); i++) raw.add(defaults.get(i));
+            }
             for (Map<?, ?> entry : raw) {
                 int level = entry.get("level") instanceof Number n ? n.intValue() : 0;
                 Map<Material, Integer> cost = new LinkedHashMap<>();
@@ -70,7 +79,7 @@ public final class Settings {
                 list.add(new Tier(level, Collections.unmodifiableMap(cost)));
             }
             if (list.size() < u.maxTier()) {
-                log.warning("upgrades." + u.id() + " needs " + u.maxTier() + " tiers; missing ones are free with no level.");
+                log.warning("upgrades." + u.id() + " needs " + u.maxTier() + " tiers; the missing ones have no requirements.");
                 while (list.size() < u.maxTier()) list.add(new Tier(0, Map.of()));
             }
             tiers.put(u, List.copyOf(list.subList(0, u.maxTier())));
@@ -88,6 +97,9 @@ public final class Settings {
         timberMinLeaves = Math.max(0, c.getInt("timber.min-natural-leaves", 3));
         excavatorExhaustion = (float) Math.max(0, c.getDouble("excavator.exhaustion-per-block", 0.05));
         durabilityChance = readTierInts(c.getIntegerList("durability.chance"), new int[]{5, 10, 20});
+        fireproofSeconds = readTierInts(c.getIntegerList("fireproof.seconds"), new int[]{15, 45, 120});
+        soulboundSaves = readTierInts(c.getIntegerList("soulbound.saves"), new int[]{3, 5, 8});
+        soulboundRechargeAnytime = "anytime".equalsIgnoreCase(c.getString("soulbound.recharge", "empty"));
 
         ConfigurationSection rankSection = c.getConfigurationSection("ranks");
         if (rankSection != null) {

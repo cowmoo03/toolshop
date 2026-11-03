@@ -11,8 +11,8 @@ public enum Upgrade {
     MAGNET("magnet", "Magnet", null, 1, "Drops from blocks you break go straight into your inventory"),
     DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block to use no durability"),
     LAST_STAND("last-stand", "Last Stand", null, 1, "Stops at 1 durability instead of breaking"),
-    FIREPROOF("fireproof", "Fireproof", null, 1, "Survives lava and fire when dropped"),
-    SOULBOUND("soulbound", "Soulbound", null, 1, "Stays with you when you die");
+    FIREPROOF("fireproof", "Fireproof", null, 3, "Survives lava and fire for a while when dropped"),
+    SOULBOUND("soulbound", "Soulbound", null, 3, "Saves the tool when you die, a set number of times");
 
     private final String id;
     private final String displayName;
