@@ -27,6 +27,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     private Registry registry;
     private McMMOHook mcmmo;
     private ShopListener shopListener;
+    private RecoveryListener recovery;
 
     @Override
     public void onEnable() {
@@ -45,7 +46,8 @@ public final class ToolShopPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new AbilityListener(this), this);
         getServer().getPluginManager().registerEvents(new PerkListener(this), this);
-        getServer().getPluginManager().registerEvents(new RecoveryListener(this), this);
+        recovery = new RecoveryListener(this);
+        getServer().getPluginManager().registerEvents(recovery, this);
         getServer().getPluginManager().registerEvents(shopListener, this);
         getServer().getPluginManager().registerEvents(new RepairGuardListener(this), this);
         getServer().getPluginManager().registerEvents(new AnnouncementListener(this), this);
@@ -62,6 +64,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (registry != null) registry.save();
+        if (recovery != null) recovery.shutdown();
     }
 
     /** ToolShop 1.x used a different config (rental prices). Keep it as a backup and start fresh. */

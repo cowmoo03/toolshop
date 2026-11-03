@@ -16,7 +16,7 @@ pickaxe, axe and shovel into their own legendary tool and upgrades it for good, 
 | **Durability Saver** | Any | 5% → 10% → 20% chance to use no durability | 20 / 40 / 70 |
 | **Last Stand** | Any | stops at 1 durability instead of breaking | 30 + 8 diamonds |
 | **Fireproof** | Iron/diamond | survives lava and fire for 1 → 3 → 5 min of game time (and doesn't despawn meanwhile), then burns | 40 + 2 netherite scrap · 60 + 4 scrap · 80 + 1 netherite ingot |
-| **Recovery** | Netherite | dropped tool glows and stays 1 → 3 → 5 extra min; death location message · tier 2+: survives explosions and cactus · tier 3: returns from the void | 40 + 2 netherite scrap · 60 + 4 scrap · 80 + 1 netherite ingot |
+| **Recovery** | Netherite | dropped tool glows (only for its owner) and stays 1 → 3 → 5 extra min; death location message · tier 2+: survives explosions and cactus · tier 3: returns from the void | 40 + 2 netherite scrap · 60 + 4 scrap · 80 + 1 netherite ingot |
 | **Soulbound** | Any | survives 3 → 5 → 8 deaths; recharge in /toolshop once used up (or upgrade to refill) | 50 + 1 totem · 70 + 2 totems · 90 + 3 totems |
 
 Abilities work while sneaking. Everything above is set in `config.yml`.

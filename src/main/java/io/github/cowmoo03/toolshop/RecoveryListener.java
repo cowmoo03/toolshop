@@ -2,11 +2,14 @@ package io.github.cowmoo03.toolshop;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -20,6 +23,9 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Transformation;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,22 +39,29 @@ import java.util.UUID;
 /**
  * Recovery, the netherite-only safety upgrade (netherite never burns, so Fireproof does nothing for it).
  * <ul>
- *   <li>Tier 1+: a dropped tool glows through walls and stays extra time before despawning; on death the owner is
- *   told where it dropped.</li>
+ *   <li>Tier 1+: a dropped tool glows through walls for its owner only and stays extra time before despawning; on
+ *   death the owner is told where it dropped.</li>
  *   <li>Tier 2+: explosions and cactus can't destroy it.</li>
  *   <li>Tier 3: if it falls into the void it goes back to the owner (inventory, then ender chest, then at their
  *   feet; if they're offline, when they next join).</li>
  * </ul>
  * The extra time counts game ticks while the item's chunk is loaded, like Fireproof.
+ * <p>
+ * Minecraft has no per-player glow, so the glow is a glowing copy of the tool (an item display entity) that follows
+ * the dropped item and is shown only to the owner. It's never saved; it's recreated when the item's chunk loads.
  */
 public final class RecoveryListener implements Listener {
     private static final long TASK_PERIOD_TICKS = 5L;
+    /** Dropped items render a little above their position. */
+    private static final double MARKER_HEIGHT = 0.3;
 
     private final ToolShopPlugin plugin;
     /** Ticks of extra time left, stored on the item entity so it survives chunk unloads and restarts. */
     private final NamespacedKey extraLeftKey;
     /** Dropped Recovery tools in loaded chunks. */
     private final Map<UUID, Item> tracked = new HashMap<>();
+    /** Item entity id -> the glowing copy only its owner can see. */
+    private final Map<UUID, ItemDisplay> markers = new HashMap<>();
     private final File returnsFile;
     /** Owner -> tools that fell into the void while the owner was offline. */
     private final Map<UUID, List<ItemStack>> pendingReturns = new HashMap<>();
@@ -85,14 +98,51 @@ public final class RecoveryListener implements Listener {
     @EventHandler
     public void onEntitiesLoad(EntitiesLoadEvent event) {
         for (Entity e : event.getEntities()) {
-            if (e instanceof Item item && tier(item) > 0) tracked.put(item.getUniqueId(), item);
+            if (e instanceof Item item) start(item);
         }
     }
 
     private void start(Item item) {
         if (tier(item) <= 0) return;
-        item.setGlowing(true);
+        item.setGlowing(false); // 2.3.0 made the real item glow for everyone
         tracked.put(item.getUniqueId(), item);
+        // Spawning entities during a chunk load or spawn event can be unsafe, so do it on the next tick.
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (item.isValid() && tracked.containsKey(item.getUniqueId())) ensureMarker(item);
+        });
+    }
+
+    private void ensureMarker(Item item) {
+        ItemDisplay existing = markers.get(item.getUniqueId());
+        if (existing != null && existing.isValid()) return;
+        ItemStack look = item.getItemStack().clone();
+        look.setAmount(1);
+        ItemDisplay marker = item.getWorld().spawn(item.getLocation().add(0, MARKER_HEIGHT, 0), ItemDisplay.class, d -> {
+            d.setPersistent(false);
+            d.setVisibleByDefault(false);
+            d.setItemStack(look);
+            d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.GROUND);
+            d.setBillboard(Display.Billboard.VERTICAL);
+            d.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(),
+                    new Vector3f(0.9f, 0.9f, 0.9f), new AxisAngle4f()));
+            d.setGlowing(true);
+            d.setGlowColorOverride(Color.AQUA);
+            d.setTeleportDuration((int) TASK_PERIOD_TICKS);
+        });
+        markers.put(item.getUniqueId(), marker);
+        Player owner = owner(item.getItemStack());
+        if (owner != null) owner.showEntity(plugin, marker);
+    }
+
+    private void removeMarker(UUID itemId) {
+        ItemDisplay marker = markers.remove(itemId);
+        if (marker != null) marker.remove();
+    }
+
+    /** Removes every glowing copy (on plugin disable). */
+    public void shutdown() {
+        markers.values().forEach(Entity::remove);
+        markers.clear();
     }
 
     // ------------------------------------------------------------------ extra time before despawning
@@ -126,18 +176,27 @@ public final class RecoveryListener implements Listener {
             Item item = it.next();
             if (!item.isValid()) { // picked up, removed or its chunk unloaded
                 it.remove();
+                removeMarker(item.getUniqueId());
                 continue;
             }
             int tier = tier(item);
             if (tier <= 0) {
                 it.remove();
+                removeMarker(item.getUniqueId());
                 continue;
+            }
+            ItemDisplay marker = markers.get(item.getUniqueId());
+            if (marker != null && marker.isValid()) {
+                Location to = item.getLocation().add(0, MARKER_HEIGHT, 0);
+                if (to.distanceSquared(marker.getLocation()) > 0.0025) marker.teleport(to);
             }
             if (tier >= 3 && item.getLocation().getY() < item.getWorld().getMinHeight()) {
                 it.remove();
+                removeMarker(item.getUniqueId());
                 ItemStack stack = item.getItemStack();
                 item.remove();
-                returnToOwner(stack);
+                // Next tick: giving it back may drop an item, which would change `tracked` while we loop over it.
+                plugin.getServer().getScheduler().runTask(plugin, () -> returnToOwner(stack));
                 continue;
             }
             Integer left = item.getPersistentDataContainer().get(extraLeftKey, PersistentDataType.INTEGER);
@@ -145,6 +204,7 @@ public final class RecoveryListener implements Listener {
             left -= (int) TASK_PERIOD_TICKS;
             if (left <= 0) {
                 it.remove();
+                removeMarker(item.getUniqueId());
                 item.remove();
             } else {
                 item.getPersistentDataContainer().set(extraLeftKey, PersistentDataType.INTEGER, left);
@@ -188,7 +248,7 @@ public final class RecoveryListener implements Listener {
             } else {
                 int seconds = Settings.forTier(plugin.settings().recoverySeconds, tier);
                 player.sendMessage(ToolShopPlugin.PREFIX.append(Component.text("Your " + name + " dropped at "
-                        + where(at) + ". It's glowing, and Recovery keeps it " + formatSeconds(seconds)
+                        + where(at) + ". It glows for you (only you can see it), and Recovery keeps it " + formatSeconds(seconds)
                         + " longer than normal items.", NamedTextColor.GOLD)));
             }
         }
@@ -232,6 +292,13 @@ public final class RecoveryListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        Player joined = event.getPlayer();
+        for (Map.Entry<UUID, ItemDisplay> e : markers.entrySet()) {
+            Item item = tracked.get(e.getKey());
+            if (item != null && item.isValid() && joined.getUniqueId().equals(plugin.legendary().owner(item.getItemStack()))) {
+                joined.showEntity(plugin, e.getValue());
+            }
+        }
         List<ItemStack> items = pendingReturns.remove(event.getPlayer().getUniqueId());
         if (items == null) return;
         saveReturns();
