@@ -42,6 +42,7 @@ Abilities work while sneaking. Everything above is set in `config.yml`.
 | `/toolshop mode` | Everyone | Switch a legendary pickaxe between Drill and Vein Mining |
 | `/toolshop give <player> <pickaxe\|axe\|shovel> [iron\|diamond\|netherite]` | Ops | Give a new legendary tool |
 | `/toolshop upgrade <player> <upgrade> <tier>` | Ops | Set an upgrade on the player's held legendary tool |
+| `/toolshop reset <player> [pickaxe\|axe\|shovel\|all]` | Ops | Remove a player's legendary tools so they can start over |
 | `/toolshop reload` | Ops | Reload `config.yml` |
 
 Creations, upgrades and admin actions are logged to `plugins/ToolShop/purchases.log`.

@@ -94,22 +94,15 @@ public final class ToolShopPlugin extends JavaPlugin {
         for (Player player : getServer().getOnlinePlayers()) {
             PlayerInventory inv = player.getInventory();
             ItemStack[] contents = inv.getContents();
-            boolean strippedAny = false;
             for (int slot = 0; slot < contents.length; slot++) {
                 ItemStack item = contents[slot];
                 if (item == null || item.isEmpty()) continue;
                 if (legendary.isLegacyRental(item)) {
-                    legendary.stripLegacyRental(item);
+                    legendary.stripLegacyRental(item); // quietly turn old 1.x rentals back into normal tools
                     inv.setItem(slot, item);
-                    strippedAny = true;
                 } else if (legendary.refresh(item)) {
                     inv.setItem(slot, item);
                 }
-            }
-            if (strippedAny) {
-                player.sendMessage(PREFIX.append(Component.text("ToolShop changed! Rented upgrades are gone; "
-                        + "tools are now made legendary and upgraded for good. Open /toolshop to start.",
-                        NamedTextColor.YELLOW)));
             }
         }
     }

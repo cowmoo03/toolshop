@@ -42,6 +42,26 @@ public final class Registry {
         save(); // rare and important, save right away
     }
 
+    /** Forgets a player's legendary tool of this kind (or all kinds if null), retiring it. Returns the IDs removed. */
+    public java.util.List<String> clear(UUID player, ToolKind kind) {
+        java.util.List<String> removed = new java.util.ArrayList<>();
+        EnumMap<ToolKind, String> m = active.get(player);
+        if (m == null) return removed;
+        for (ToolKind k : ToolKind.values()) {
+            if ((kind == null || kind == k) && m.containsKey(k)) {
+                String id = m.remove(k);
+                removed.add(id);
+                blocks.remove(id);
+            }
+        }
+        if (m.isEmpty()) active.remove(player);
+        if (!removed.isEmpty()) {
+            dirty = true;
+            save();
+        }
+        return removed;
+    }
+
     public long blocks(String toolId) {
         return blocks.getOrDefault(toolId, 0L);
     }

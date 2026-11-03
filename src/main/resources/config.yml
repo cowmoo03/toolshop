@@ -139,7 +139,7 @@ join-announcement:
     - ""
     - "<gold><bold>⚒ New update: mcMMO + Legendary Tools!</bold></gold>"
     - "<gray>Everything you do now levels up skills. See yours with <yellow><click:run_command:'/mcstats'><hover:show_text:'<gray>Show your skills'>/mcstats</hover></click></yellow>.</gray>"
-    - "<gray>Rented tool upgrades are gone. Make your own <gold>legendary</gold> pickaxe, axe and shovel and upgrade them for good with mcMMO levels + items: Drill, Vein Mining, Timber, Excavator and more.</gray>"
+    - "<gray>Make your own <gold>legendary</gold> pickaxe, axe and shovel and upgrade them for good with mcMMO levels + items: Drill, Vein Mining, Timber, Excavator and more.</gray>"
     - "<red>Careful: a legendary tool can be lost! Protect it with Last Stand, Fireproof and Soulbound.</red>"
     - "<green><click:run_command:'/toolshop'><hover:show_text:'<gray>Open the Tool Shop'><u>Click here</u> or type /toolshop</hover></click></green> <gray>while holding an iron, diamond or netherite tool.</gray>"
     - ""

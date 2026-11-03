@@ -155,6 +155,22 @@ public final class Legendary {
         item.setItemMeta(meta);
     }
 
+    /** Removes all legendary data, name and description, leaving a plain tool (enchantments and damage stay). */
+    public void strip(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.remove(idKey);
+        pdc.remove(ownerKey);
+        pdc.remove(kindKey);
+        pdc.remove(modeKey);
+        pdc.remove(savesKey);
+        for (NamespacedKey k : tierKeys.values()) pdc.remove(k);
+        meta.lore(null);
+        meta.itemName(null);
+        meta.setEnchantmentGlintOverride(null);
+        item.setItemMeta(meta);
+    }
+
     // ------------------------------------------------------------------ old 1.x rentals
 
     public boolean isLegacyRental(ItemStack item) {

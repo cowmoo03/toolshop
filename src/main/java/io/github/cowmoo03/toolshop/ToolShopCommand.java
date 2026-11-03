@@ -21,6 +21,7 @@ import java.util.Locale;
  * /toolshop mode                                   switch your legendary pickaxe between Drill and Vein Mining
  * /toolshop give <player> <pickaxe|axe|shovel> [iron|diamond|netherite]   admin: give a new legendary tool
  * /toolshop upgrade <player> <upgrade> <tier>      admin: set an upgrade on the player's held legendary tool
+ * /toolshop reset <player> [pickaxe|axe|shovel|all]  admin: remove a player's legendary tools
  * /toolshop reload                                 admin: reload config.yml
  */
 public final class ToolShopCommand implements BasicCommand {
@@ -61,8 +62,9 @@ public final class ToolShopCommand implements BasicCommand {
             }
             case "give" -> give(sender, args);
             case "upgrade" -> upgrade(sender, args);
+            case "reset" -> reset(sender, args);
             default -> send(sender, "Usage: /toolshop [mode | give <player> <pickaxe|axe|shovel> [material]"
-                    + " | upgrade <player> <upgrade> <tier> | reload]", NamedTextColor.RED);
+                    + " | upgrade <player> <upgrade> <tier> | reset <player> [kind|all] | reload]", NamedTextColor.RED);
         }
     }
 
@@ -142,6 +144,66 @@ public final class ToolShopCommand implements BasicCommand {
         send(sender, "Set " + target.getName() + "'s " + upgrade.displayName() + " to tier " + tier + ".", NamedTextColor.GREEN);
     }
 
+    /**
+     * Retires a player's legendary tools (all, or one kind) so they can start over. Tools in their inventory, if
+     * they're online, turn back into plain tools; copies anywhere else (chests, dropped) stop working.
+     */
+    private void reset(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            send(sender, "Usage: /toolshop reset <player> [pickaxe|axe|shovel|all]", NamedTextColor.RED);
+            return;
+        }
+        org.bukkit.OfflinePlayer target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) target = Bukkit.getOfflinePlayerIfCached(args[1]);
+        if (target == null) {
+            send(sender, "No player called " + args[1] + " has played here.", NamedTextColor.RED);
+            return;
+        }
+        ToolKind kind = null;
+        if (args.length >= 3 && !args[2].equalsIgnoreCase("all")) {
+            kind = ToolKind.fromId(args[2]);
+            if (kind == null) {
+                send(sender, "Tool must be pickaxe, axe, shovel or all.", NamedTextColor.RED);
+                return;
+            }
+        }
+        java.util.List<String> removed = plugin.registry().clear(target.getUniqueId(), kind);
+
+        int stripped = 0;
+        Player online = target.getPlayer();
+        if (online != null) {
+            Legendary lt = plugin.legendary();
+            ItemStack[] contents = online.getInventory().getContents();
+            for (int slot = 0; slot < contents.length; slot++) {
+                ItemStack item = contents[slot];
+                if (!lt.isLegendary(item) || !online.getUniqueId().equals(lt.owner(item))) continue;
+                if (kind != null && lt.kind(item) != kind) continue;
+                lt.strip(item);
+                online.getInventory().setItem(slot, item);
+                stripped++;
+            }
+            if (stripped > 0 || !removed.isEmpty()) {
+                send(online, "An admin reset your legendary " + (kind == null ? "tools" : kind.id())
+                        + ". You can make a new one in /toolshop.", NamedTextColor.YELLOW);
+            }
+        }
+        String who = target.getName() == null ? args[1] : target.getName();
+        if (removed.isEmpty() && stripped == 0) {
+            send(sender, who + " had no legendary " + (kind == null ? "tools" : kind.id()) + ".", NamedTextColor.YELLOW);
+            return;
+        }
+        if (online != null) {
+            plugin.log(online, "ADMIN_RESET " + (kind == null ? "all" : kind.id()) + " by " + sender.getName(),
+                    String.join(",", removed));
+        } else {
+            plugin.getLogger().info("ADMIN_RESET " + who + " " + (kind == null ? "all" : kind.id())
+                    + " by " + sender.getName() + " (" + String.join(",", removed) + ")");
+        }
+        send(sender, "Reset " + who + "'s legendary " + (kind == null ? "tools" : kind.id()) + ": "
+                + removed.size() + " retired" + (online != null ? ", " + stripped + " turned back into plain tools" : "")
+                + ". Copies anywhere else no longer work.", NamedTextColor.GREEN);
+    }
+
     private static String upgradeIds() {
         return String.join(", ", Arrays.stream(Upgrade.values()).map(Upgrade::id).toList());
     }
@@ -153,13 +215,16 @@ public final class ToolShopCommand implements BasicCommand {
         List<String> options = new ArrayList<>();
         if (args.length <= 1) {
             options.add("mode");
-            if (admin) options.addAll(List.of("give", "upgrade", "reload"));
-        } else if (admin && args.length == 2 && (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("upgrade"))) {
+            if (admin) options.addAll(List.of("give", "upgrade", "reset", "reload"));
+        } else if (admin && args.length == 2 && (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("upgrade")
+                || args[0].equalsIgnoreCase("reset"))) {
             Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
         } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("give")) {
             options.addAll(List.of("pickaxe", "axe", "shovel"));
         } else if (admin && args.length == 4 && args[0].equalsIgnoreCase("give")) {
             options.addAll(List.of("iron", "diamond", "netherite"));
+        } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("reset")) {
+            options.addAll(List.of("all", "pickaxe", "axe", "shovel"));
         } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("upgrade")) {
             Arrays.stream(Upgrade.values()).forEach(u -> options.add(u.id()));
         } else if (admin && args.length == 4 && args[0].equalsIgnoreCase("upgrade")) {
