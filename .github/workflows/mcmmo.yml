@@ -1,0 +1,54 @@
+# Builds mcMMO from its official source code (https://github.com/mcMMO-Dev/mcMMO, GPLv3)
+# at a finished release, and publishes the jar as the "mcmmo-<version>" release of this repo.
+# Official builds are sold on SpigotMC/Polymart; buying one supports the mcMMO developers.
+name: Build mcMMO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/mcmmo.yml]
+
+permissions:
+  contents: write
+
+env:
+  MCMMO_VERSION: "2.3.002"
+  # Commit "2.3.002" in mcMMO-Dev/mcMMO (the release, not later development work).
+  MCMMO_COMMIT: "25474dc0ef902bcd53a5ac3f23d9f05059a9857d"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: mcMMO-Dev/mcMMO
+          ref: ${{ env.MCMMO_COMMIT }}
+          path: mcmmo
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build mcMMO
+        working-directory: mcmmo
+        run: mvn -B -DskipTests package
+
+      - name: Check the jar
+        run: |
+          ls -la mcmmo/target/*.jar
+          unzip -p mcmmo/target/mcMMO.jar plugin.yml | grep -E "^(name|version):"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="mcmmo-${MCMMO_VERSION}"
+          gh release delete "$TAG" --yes --cleanup-tag -R "$GITHUB_REPOSITORY" || true
+          gh release create "$TAG" mcmmo/target/mcMMO.jar -R "$GITHUB_REPOSITORY" \
+            --title "mcMMO ${MCMMO_VERSION} (built from source)" \
+            --notes "Built from https://github.com/mcMMO-Dev/mcMMO/commit/${MCMMO_COMMIT} (GPLv3). Source: https://github.com/mcMMO-Dev/mcMMO. Official builds: https://www.spigotmc.org/resources/official-mcmmo-original-author-returns.64348/" \
+            --latest=false
