@@ -34,6 +34,7 @@ public final class ToolShopPlugin extends JavaPlugin {
         saveDefaultConfig();
         reloadConfig();
         getConfig().options().copyDefaults(true);
+        replaceOutdatedAnnouncement();
         saveConfig();
         reloadSettings();
 
@@ -75,6 +76,15 @@ public final class ToolShopPlugin extends JavaPlugin {
             }
         } catch (IOException e) {
             getLogger().warning("Couldn't check the old config: " + e.getMessage());
+        }
+    }
+
+    /** 2.2.0 shipped an announcement that mentioned the old rentals; swap it for the current default text. */
+    private void replaceOutdatedAnnouncement() {
+        java.util.List<String> lines = getConfig().getStringList("join-announcement.lines");
+        if (lines.stream().anyMatch(l -> l.contains("Rented tool upgrades are gone")) && getConfig().getDefaults() != null) {
+            getConfig().set("join-announcement.lines", getConfig().getDefaults().getStringList("join-announcement.lines"));
+            getLogger().info("Updated the join announcement text (removed the old rental line).");
         }
     }
 
