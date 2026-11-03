@@ -14,7 +14,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * OreWatch: flags likely x-ray users by comparing valuable ore veins found to stone mined.
+ * OreWatch: flags likely x-ray users by comparing buried ore veins found to stone mined, and by how often their
+ * breakthroughs into caves lead straight to a valuable find.
  * It only alerts staff; it never punishes anyone on its own.
  */
 public final class OreWatchPlugin extends JavaPlugin {
@@ -24,6 +25,7 @@ public final class OreWatchPlugin extends JavaPlugin {
     private Rules rules;
     private Stats stats;
     private PlacedOres placed;
+    private MiningListener listener;
 
     @Override
     public void onEnable() {
@@ -37,12 +39,14 @@ public final class OreWatchPlugin extends JavaPlugin {
         placed = new PlacedOres(getDataFolder(), getLogger());
         stats.prune(rules.historyDays);
 
-        getServer().getPluginManager().registerEvents(new MiningListener(this), this);
+        listener = new MiningListener(this);
+        getServer().getPluginManager().registerEvents(listener, this);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
                 event.registrar().register("orewatch", "X-ray detection stats", new OreWatchCommand(this)));
 
         getServer().getScheduler().runTaskTimer(this, () -> {
             stats.prune(rules.historyDays);
+            listener.cleanup();
             stats.saveIfDirty();
             placed.saveIfDirty();
         }, SAVE_INTERVAL_TICKS, SAVE_INTERVAL_TICKS);

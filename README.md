@@ -80,20 +80,27 @@ sudo update-toolshop --rollback   # go back to the previous version
 
 ## OreWatch (separate plugin, `orewatch/`)
 
-Flags likely x-ray users. It compares how many valuable ore **veins** each player finds (diamond, ancient debris,
-emerald, gold) to how much stone or netherrack they mine. If someone finds far more veins than normal mining
-produces, staff get an alert. It never punishes anyone on its own.
+Flags likely x-ray users. It never punishes anyone on its own; it alerts staff and you decide.
 
+- **Buried veins vs stone mined.** For each resource (diamond, ancient debris, emerald, gold) it compares the veins a
+  player reached only through their own digging ("buried") to how much stone or netherrack they mined. Veins sitting
+  in caves are shown but don't count, so cave explorers don't look suspicious.
+- **Cave breakthroughs.** When a player tunnels from their own tunnel into a natural cave, that's a breakthrough.
+  Honest strip miners hit caves by chance; x-rayers tunnel to ores they can see in caves. If most of a player's
+  breakthroughs lead straight to a valuable cave find nearby, staff get an alert.
 - Counts veins, not blocks, so Vein Mining, the Drill and big veins don't make honest players look suspicious.
 - Ignores ore blocks players placed themselves.
-- Alerts staff in chat (with a cooldown) when a player's last-24h rate is over the limit; logs to `alerts.log`.
-- Rare-find messages for staff ("Steve found diamond ore (6) at ...") and `finds.log`.
+- Alerts staff in chat (with a cooldown) and logs to `alerts.log`.
+- Rare-find messages for staff ("Steve found diamond ore (6, buried) at ... [tp]") and `finds.log`.
+- The last 30 finds per player are saved, so staff can teleport to each one and look at the tunnel.
 - Limits and block lists are in `plugins/OreWatch/config.yml`.
 
 | Command | What |
 |---|---|
-| `/orewatch <player>` | A player's veins, ores and stone mined (24h, 7 days, all time) and their rates |
+| `/orewatch <player>` | Buried and cave veins, stone mined, rates and breakthroughs (24h, 7 days, all time) |
 | `/orewatch top [24h\|7d\|all]` | Players ranked by how close they are to the limits |
+| `/orewatch finds <player>` | The player's recent finds with clickable `[tp]` links |
+| `/orewatch tp <player> <n>` | Teleport to find number `n` (creative or spectator only) |
 | `/orewatch notify` | Turn rare-find messages on or off for yourself |
 | `/orewatch reset <player>` | Clear a player's stats |
 | `/orewatch reload` | Reload the config |

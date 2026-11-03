@@ -22,9 +22,31 @@ import java.util.logging.Logger;
 public final class Stats {
     public static final long HOUR_MS = 3_600_000L;
 
+    /** One valuable find, kept so staff can review and teleport to it. */
+    public record Find(long time, String world, int x, int y, int z, String resource, int blocks, boolean buried) {
+        String serialize() {
+            return time + "|" + world + "|" + x + "|" + y + "|" + z + "|" + resource + "|" + blocks + "|" + buried;
+        }
+
+        static Find parse(String s) {
+            String[] p = s.split("\\|");
+            if (p.length < 8) return null;
+            try {
+                return new Find(Long.parseLong(p[0]), p[1], Integer.parseInt(p[2]), Integer.parseInt(p[3]),
+                        Integer.parseInt(p[4]), p[5], Integer.parseInt(p[6]), Boolean.parseBoolean(p[7]));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+    }
+
+    public static final int MAX_FINDS = 30;
+
     public static final class PlayerData {
         public String name = "?";
         public final Counts lifetime = new Counts();
+        /** Newest first. */
+        public final java.util.LinkedList<Find> finds = new java.util.LinkedList<>();
         /** Hour index (epoch hours) -> counts in that hour. */
         public final TreeMap<Long, Counts> hours = new TreeMap<>();
 
@@ -86,14 +108,35 @@ public final class Stats {
         dirty = true;
     }
 
-    public void addOre(UUID id, String name, String resource, boolean newVein) {
+    /** Records one ore block. {@code buried} only matters for the first block of a new vein. */
+    public void addOre(UUID id, String name, String resource, boolean newVein, boolean buried) {
         PlayerData d = getOrCreate(id, name);
+        Counts bucket = d.bucket();
         d.lifetime.ores.merge(resource, 1L, Long::sum);
-        d.bucket().ores.merge(resource, 1L, Long::sum);
+        bucket.ores.merge(resource, 1L, Long::sum);
         if (newVein) {
             d.lifetime.veins.merge(resource, 1L, Long::sum);
-            d.bucket().veins.merge(resource, 1L, Long::sum);
+            bucket.veins.merge(resource, 1L, Long::sum);
+            if (buried) {
+                d.lifetime.buried.merge(resource, 1L, Long::sum);
+                bucket.buried.merge(resource, 1L, Long::sum);
+            }
         }
+        dirty = true;
+    }
+
+    /** Records a breakthrough into a natural cave, or that one led to a valuable find. */
+    public void addEvent(UUID id, String name, String event) {
+        PlayerData d = getOrCreate(id, name);
+        d.lifetime.events.merge(event, 1L, Long::sum);
+        d.bucket().events.merge(event, 1L, Long::sum);
+        dirty = true;
+    }
+
+    public void addFind(UUID id, String name, Find find) {
+        PlayerData d = getOrCreate(id, name);
+        d.finds.addFirst(find);
+        while (d.finds.size() > MAX_FINDS) d.finds.removeLast();
         dirty = true;
     }
 
@@ -139,6 +182,10 @@ public final class Stats {
                 if (p == null) continue;
                 PlayerData d = getOrCreate(id, p.getString("name", "?"));
                 readCounts(p.getConfigurationSection("lifetime"), d.lifetime);
+                for (String f : p.getStringList("finds")) {
+                    Find find = Find.parse(f);
+                    if (find != null) d.finds.add(find);
+                }
                 ConfigurationSection hours = p.getConfigurationSection("hours");
                 if (hours != null) {
                     for (String h : hours.getKeys(false)) {
@@ -166,7 +213,9 @@ public final class Stats {
         if (s == null) return;
         readMap(s.getConfigurationSection("filler"), into.filler);
         readMap(s.getConfigurationSection("veins"), into.veins);
+        readMap(s.getConfigurationSection("buried"), into.buried);
         readMap(s.getConfigurationSection("ores"), into.ores);
+        readMap(s.getConfigurationSection("events"), into.events);
     }
 
     private static void readMap(ConfigurationSection s, Map<String, Long> into) {
@@ -184,6 +233,9 @@ public final class Stats {
             String base = "players." + id;
             y.set(base + ".name", d.name);
             writeCounts(y, base + ".lifetime", d.lifetime);
+            List<String> finds = new ArrayList<>();
+            d.finds.forEach(f -> finds.add(f.serialize()));
+            y.set(base + ".finds", finds);
             d.hours.forEach((h, c) -> {
                 if (!c.isEmpty()) writeCounts(y, base + ".hours." + h, c);
             });
@@ -203,6 +255,8 @@ public final class Stats {
     private static void writeCounts(YamlConfiguration y, String path, Counts c) {
         c.filler.forEach((k, v) -> y.set(path + ".filler." + k, v));
         c.veins.forEach((k, v) -> y.set(path + ".veins." + k, v));
+        c.buried.forEach((k, v) -> y.set(path + ".buried." + k, v));
         c.ores.forEach((k, v) -> y.set(path + ".ores." + k, v));
+        c.events.forEach((k, v) -> y.set(path + ".events." + k, v));
     }
 }

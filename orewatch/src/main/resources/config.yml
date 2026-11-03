@@ -3,8 +3,10 @@
 # Apply changes with: /orewatch reload
 #
 # How it judges: for each resource below, it looks at the last 24 hours and works out
-# "veins found per 1000 filler blocks mined". If a player has found at least min-veins
+# "BURIED veins found per 1000 filler blocks mined". If a player has found at least min-veins buried veins
 # AND their rate is above max-per-1000, staff get an alert.
+# Buried = the player reached the vein only through their own digging (no cave air, water or lava touching it).
+# Veins sitting in caves are shown in stats but don't count, so cave explorers don't look suspicious.
 # Veins, not blocks, are counted, so Vein Mining or a lucky big vein doesn't inflate anyone's numbers.
 # Tune these after watching normal players for a while: /orewatch top shows everyone's ratios.
 
@@ -48,3 +50,24 @@ notify-delay-seconds: 5
 
 # Days of hourly history kept per player (for the 24h and 7-day numbers).
 history-days: 7
+
+# A vein counts as buried if the air around it is air the player dug themselves within this many minutes.
+exposure:
+  dug-memory-minutes: 30
+
+# Cave breakthroughs: a player tunnels through solid rock into a natural cave. Honest strip miners do this
+# by chance; x-rayers do it on purpose to reach ores they can see in the cave. If a large share of a player's
+# breakthroughs lead straight to a valuable find, staff get an alert.
+breakthroughs:
+  enabled: true
+  # Minimum natural air blocks the opening must lead into (ignores tiny air pockets).
+  min-cave-size: 12
+  # A find counts as "from" a breakthrough if it's within this many blocks and seconds of it.
+  find-radius: 30
+  find-window-seconds: 120
+  # Alert when, in the last 24h, a player has at least min-breakthroughs AND more than
+  # max-productive-percent of them led to a find.
+  min-breakthroughs: 6
+  max-productive-percent: 50
+  # Which resources count as a find for breakthroughs.
+  resources: [diamond, ancient_debris, emerald]

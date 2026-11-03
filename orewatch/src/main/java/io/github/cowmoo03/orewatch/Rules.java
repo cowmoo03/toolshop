@@ -28,6 +28,17 @@ public final class Rules {
     public final int notifyDelaySeconds;
     public final int historyDays;
 
+    /** How long a block a player broke is remembered as "their own digging". */
+    public final long dugMemoryMs;
+
+    public final boolean breakthroughsEnabled;
+    public final int breakthroughMinCave;
+    public final int findRadius;
+    public final long findWindowMs;
+    public final int minBreakthroughs;
+    public final double maxProductivePercent;
+    public final Set<String> breakthroughResources = new java.util.HashSet<>();
+
     public Rules(FileConfiguration c, Logger log) {
         ConfigurationSection filler = c.getConfigurationSection("filler");
         if (filler != null) {
@@ -61,6 +72,19 @@ public final class Rules {
         notifyFinds = c.getBoolean("notify-finds", true);
         notifyDelaySeconds = Math.max(0, c.getInt("notify-delay-seconds", 5));
         historyDays = Math.max(1, c.getInt("history-days", 7));
+
+        dugMemoryMs = Math.max(1, c.getLong("exposure.dug-memory-minutes", 30)) * 60_000L;
+
+        breakthroughsEnabled = c.getBoolean("breakthroughs.enabled", true);
+        breakthroughMinCave = Math.max(1, c.getInt("breakthroughs.min-cave-size", 12));
+        findRadius = Math.max(1, c.getInt("breakthroughs.find-radius", 30));
+        findWindowMs = Math.max(1, c.getLong("breakthroughs.find-window-seconds", 120)) * 1000L;
+        minBreakthroughs = Math.max(1, c.getInt("breakthroughs.min-breakthroughs", 6));
+        maxProductivePercent = Math.max(0, c.getDouble("breakthroughs.max-productive-percent", 50));
+        for (String r : c.getStringList("breakthroughs.resources")) {
+            if (resources.containsKey(r)) breakthroughResources.add(r);
+            else log.warning("breakthroughs.resources: unknown resource '" + r + "'");
+        }
     }
 
     public Resource resourceOf(Material m) {
