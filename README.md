@@ -1,63 +1,77 @@
 # ToolShop
 
-A Paper plugin (Minecraft 26.2) that rents out tool upgrades for netherite.
+A Paper plugin (Minecraft 26.2) for **legendary tools**: each player turns one iron, diamond or netherite
+pickaxe, axe and shovel into their own legendary tool and upgrades it for good, unlocking tiers with
+**mcMMO skill levels plus items**. Upgrades are permanent, but the tool can be lost like any item.
 
-| Upgrade | Ability | Upgrade price | Renewal |
+## Upgrades
+
+| Upgrade | Tool | Tiers | Default unlock (mcMMO level + items) |
 |---|---|---|---|
-| **Timber Axe** | Sneak + break any log to fell the whole tree (touching trees fall together, max 150 logs per chop). With Silk Touch it also collects the tree's leaves | Netherite axe + 2 netherite ingots | 1 ingot |
-| **Vein Pickaxe** | Sneak + break an ore to mine the whole vein (max 64, no ancient debris) | Netherite pickaxe + 3 netherite ingots | 1 ingot |
-| **Excavator Shovel** | Sneak + dig to clear a 3×3 area of dirt, sand, gravel and other shovel blocks | Netherite shovel + 2 netherite ingots | 1 ingot |
+| **Drill** | Pickaxe | 1x2 → 3x3 → 5x5 area of stone | Mining 10 + 16 iron · 30 + 8 diamonds · 60 + 2 netherite ingots |
+| **Vein Mining** | Pickaxe | up to 8 → 16 → 32 ores (switch modes with `/toolshop mode`) | Mining 15 / 35 / 65 |
+| **Timber** | Axe | up to 16 → 64 → 150 logs; Silk Touch collects leaves at tier 3 | Woodcutting 10 / 30 / 60 |
+| **Excavator** | Shovel | 1x2 → 3x3 → 5x5 area of dirt, sand, gravel | Excavation 10 / 30 / 60 |
+| **Magnet** | Any | drops go straight into your inventory | 25 + 4 diamonds, 4 ender pearls |
+| **Durability Saver** | Any | 5% → 10% → 20% chance to use no durability | 20 / 40 / 70 |
+| **Last Stand** | Any | stops at 1 durability instead of breaking | 30 + 8 diamonds |
+| **Fireproof** | Iron/diamond | survives lava and fire | 40 + 4 netherite scrap |
+| **Soulbound** | Any | kept when you die | 50 + 1 totem of undying |
+
+Abilities work while sneaking. Everything above is set in `config.yml`.
 
 ## How it works
 
-- Players hold the netherite tool and buy the upgrade in **`/toolshop`**. Purchases need a second click to confirm.
-- Upgrades last **7 real days** and count down while the player is offline. The tool's description shows the time left.
-- Players are warned 24 hours and 1 hour before it runs out.
-- When it expires, the tool turns back into a normal netherite tool (it is never taken away).
-- For **24 hours** after it expires, it can be renewed for the renewal price. After that, the full upgrade price applies again.
-- Renewing early adds another 7 days on top of the time left.
-- Durability works like vanilla (1 per block), with Fortune, Silk Touch, Unbreaking and Mending all applying normally.
-- Repair upgraded tools with Mending or an anvil (upgraded tool in the left slot). Crafting-grid merges, grindstones and putting an upgraded tool in the anvil's right slot are blocked, because they would throw the upgrade away.
-- The Timber Axe only fells trees with natural leaves, so log builds are safe. With Silk Touch, leaves no longer attached to any log are collected as leaf blocks (neighbouring trees keep theirs); without it, leaves decay the vanilla way.
-- A leftover stump (when a tree was split before it was chopped) can be chopped in one go too.
-- Abilities play a sound and show break particles, and cleared leaves rustle and burst into leaf particles (turn off with `effects: false`).
-
-All prices, times and limits are in `config.yml`.
+- Hold the tool and open **`/toolshop`**. Click **Make it Legendary**, then buy upgrades. Every purchase needs a second click to confirm.
+- One legendary tool of each type per player. Making a new one **retires** the old one wherever it is.
+- Only the owner can use a legendary tool's abilities.
+- The tool's description shows its upgrades, owner, and a rank based on blocks broken (Rusty → Seasoned → Veteran → Legendary).
+- Repair with Mending or an anvil (legendary tool in the left slot). Crafting-grid merges, grindstones and putting a legendary tool in an anvil's right slot are blocked.
+- Players get a warning when a legendary tool is low on durability.
+- The Drill never breaks ancient debris, obsidian, containers or machines. Vein Mining never touches ancient debris.
+- Timber only fells trees with natural leaves (log builds are safe); trees whose logs touch fall together, and leftover stumps can be chopped in one go.
+- Only the block the player hits gives mcMMO XP; the extra blocks an ability breaks don't.
+- Without mcMMO installed, level requirements are skipped (items only).
 
 ## Commands
 
 | Command | Who | What |
 |---|---|---|
 | `/toolshop` | Everyone | Open the shop |
-| `/toolshop give <player> <timber\|vein\|excavator> [days]` | Ops | Give a new upgraded tool for free |
+| `/toolshop mode` | Everyone | Switch a legendary pickaxe between Drill and Vein Mining |
+| `/toolshop give <player> <pickaxe\|axe\|shovel> [iron\|diamond\|netherite]` | Ops | Give a new legendary tool |
+| `/toolshop upgrade <player> <upgrade> <tier>` | Ops | Set an upgrade on the player's held legendary tool |
 | `/toolshop reload` | Ops | Reload `config.yml` |
 
-Every purchase, renewal and admin give is written to `plugins/ToolShop/purchases.log`.
+Creations, upgrades and admin actions are logged to `plugins/ToolShop/purchases.log`.
 
 ## How it's built
 
-- Upgrade data (type, expiry timestamp, warning flags) lives in each item's `PersistentDataContainer`, so it survives restarts, chests and anvils, and can't be reset.
-- Extra blocks are broken with `Player#breakBlock`, so drops, enchantments, durability and protection plugins behave exactly as if the player broke them by hand.
+- Tool data (owner, ID, upgrade tiers, pickaxe mode) lives in the item's `PersistentDataContainer`.
+  Each player's current tool IDs and blocks-broken counts live in `plugins/ToolShop/players.yml`.
+- Extra blocks are broken with `Player#breakBlock`, so drops, enchantments, durability and protection plugins behave
+  as if the player broke them by hand. Before each one, mcMMO's `UserBlockTracker.setIneligible` marks it so mcMMO gives no XP.
+- mcMMO is reached through its public API by reflection, so ToolShop builds and runs without it.
 - GitHub Actions builds the jar on every push and publishes it as the `latest` release.
 
-## Install
+## mcMMO build
+
+`.github/workflows/mcmmo.yml` builds [mcMMO](https://github.com/mcMMO-Dev/mcMMO) 2.3.002 from its official GPLv3 source
+and publishes it as the `mcmmo-2.3.002` release. Official builds are sold on
+[SpigotMC](https://www.spigotmc.org/resources/official-mcmmo-original-author-returns.64348/); buying one supports the developers.
+
+## Install and update
 
 ```bash
 curl -fL -o plugins/ToolShop.jar https://github.com/cowmoo03/toolshop/releases/download/latest/ToolShop.jar
 ```
 
-Then restart the server.
-
-## Updating
-
-`scripts/update-toolshop.sh` downloads the latest build, checks it's a valid ToolShop jar, compares versions,
-keeps the current jar as a backup, restarts the server and confirms the new version started.
+`scripts/update-toolshop.sh` downloads the latest build, checks it, keeps the current jar as a backup,
+restarts the server and confirms the new version started.
 
 ```bash
-# one-time setup on the server
 sudo curl -fsSL -o /usr/local/bin/update-toolshop https://raw.githubusercontent.com/cowmoo03/toolshop/main/scripts/update-toolshop.sh
 sudo chmod 755 /usr/local/bin/update-toolshop
-
 sudo update-toolshop              # update (asks before restarting)
 sudo update-toolshop --rollback   # go back to the previous version
 ```
