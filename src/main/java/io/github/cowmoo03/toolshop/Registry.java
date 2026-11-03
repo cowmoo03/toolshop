@@ -21,6 +21,8 @@ public final class Registry {
     private final Logger log;
     private final Map<UUID, EnumMap<ToolKind, String>> active = new HashMap<>();
     private final Map<String, Long> blocks = new HashMap<>();
+    /** The join announcement ID each player has already seen. */
+    private final Map<UUID, String> seenAnnouncement = new HashMap<>();
     private boolean dirty;
 
     public Registry(File dataFolder, Logger log) {
@@ -49,6 +51,15 @@ public final class Registry {
         dirty = true;
     }
 
+    public String seenAnnouncement(UUID player) {
+        return seenAnnouncement.get(player);
+    }
+
+    public void markAnnouncementSeen(UUID player, String id) {
+        seenAnnouncement.put(player, id);
+        dirty = true;
+    }
+
     private void load() {
         if (!file.exists()) return;
         YamlConfiguration y = YamlConfiguration.loadConfiguration(file);
@@ -74,6 +85,16 @@ public final class Registry {
         if (b != null) {
             for (String toolId : b.getKeys(false)) blocks.put(toolId, b.getLong(toolId));
         }
+        ConfigurationSection seen = y.getConfigurationSection("seen-announcement");
+        if (seen != null) {
+            for (String key : seen.getKeys(false)) {
+                try {
+                    seenAnnouncement.put(UUID.fromString(key), seen.getString(key));
+                } catch (IllegalArgumentException ignored) {
+                    // not a UUID
+                }
+            }
+        }
     }
 
     public void saveIfDirty() {
@@ -85,6 +106,7 @@ public final class Registry {
         active.forEach((player, kinds) ->
                 kinds.forEach((kind, toolId) -> y.set("players." + player + "." + kind.id(), toolId)));
         blocks.forEach((toolId, n) -> y.set("blocks." + toolId, n));
+        seenAnnouncement.forEach((player, id) -> y.set("seen-announcement." + player, id));
         try {
             file.getParentFile().mkdirs();
             y.save(file);

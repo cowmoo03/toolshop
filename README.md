@@ -32,6 +32,7 @@ Abilities work while sneaking. Everything above is set in `config.yml`.
 - Timber only fells trees with natural leaves (log builds are safe); trees whose logs touch fall together, and leftover stumps can be chopped in one go.
 - Only the block the player hits gives mcMMO XP; the extra blocks an ability breaks don't.
 - Without mcMMO installed, level requirements are skipped (items only).
+- A one-time chat announcement greets each player after an update (`join-announcement` in the config; change its `id` to show a new one).
 
 ## Commands
 

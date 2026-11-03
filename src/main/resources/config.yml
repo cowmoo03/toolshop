@@ -128,6 +128,22 @@ soulbound:
   # "empty" = only once all saves are used up, "anytime" = whenever they're below the maximum.
   recharge: empty
 
+# Chat message shown once to each player when they join after an update.
+# To show a new message after a future update: change the lines AND change the id.
+# Lines use MiniMessage formatting (https://docs.advntr.dev/minimessage/format.html).
+join-announcement:
+  enabled: true
+  id: "2.0"
+  delay-seconds: 3
+  lines:
+    - ""
+    - "<gold><bold>⚒ New update: mcMMO + Legendary Tools!</bold></gold>"
+    - "<gray>Everything you do now levels up skills. See yours with <yellow><click:run_command:'/mcstats'><hover:show_text:'<gray>Show your skills'>/mcstats</hover></click></yellow>.</gray>"
+    - "<gray>Rented tool upgrades are gone. Make your own <gold>legendary</gold> pickaxe, axe and shovel and upgrade them for good with mcMMO levels + items: Drill, Vein Mining, Timber, Excavator and more.</gray>"
+    - "<red>Careful: a legendary tool can be lost! Protect it with Last Stand, Fireproof and Soulbound.</red>"
+    - "<green><click:run_command:'/toolshop'><hover:show_text:'<gray>Open the Tool Shop'><u>Click here</u> or type /toolshop</hover></click></green> <gray>while holding an iron, diamond or netherite tool.</gray>"
+    - ""
+
 # Cosmetic ranks shown on the tool, by blocks broken with it.
 ranks:
   0: Rusty

@@ -43,6 +43,10 @@ public final class Settings {
     public final int[] soulboundSaves;
     /** True = saves can be refilled whenever below max; false = only once all are used up. */
     public final boolean soulboundRechargeAnytime;
+    public final boolean announcementEnabled;
+    public final String announcementId;
+    public final int announcementDelaySeconds;
+    public final List<String> announcementLines;
     /** Blocks broken -> rank name, sorted. */
     public final TreeMap<Long, String> ranks = new TreeMap<>();
 
@@ -100,6 +104,11 @@ public final class Settings {
         fireproofSeconds = readTierInts(c.getIntegerList("fireproof.seconds"), new int[]{60, 180, 300});
         soulboundSaves = readTierInts(c.getIntegerList("soulbound.saves"), new int[]{3, 5, 8});
         soulboundRechargeAnytime = "anytime".equalsIgnoreCase(c.getString("soulbound.recharge", "empty"));
+
+        announcementEnabled = c.getBoolean("join-announcement.enabled", true);
+        announcementId = c.getString("join-announcement.id", "");
+        announcementDelaySeconds = Math.max(0, c.getInt("join-announcement.delay-seconds", 3));
+        announcementLines = List.copyOf(c.getStringList("join-announcement.lines"));
 
         ConfigurationSection rankSection = c.getConfigurationSection("ranks");
         if (rankSection != null) {
