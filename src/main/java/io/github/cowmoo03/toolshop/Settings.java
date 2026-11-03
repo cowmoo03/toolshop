@@ -97,7 +97,7 @@ public final class Settings {
         timberMinLeaves = Math.max(0, c.getInt("timber.min-natural-leaves", 3));
         excavatorExhaustion = (float) Math.max(0, c.getDouble("excavator.exhaustion-per-block", 0.05));
         durabilityChance = readTierInts(c.getIntegerList("durability.chance"), new int[]{5, 10, 20});
-        fireproofSeconds = readTierInts(c.getIntegerList("fireproof.seconds"), new int[]{60, 300, 600});
+        fireproofSeconds = readTierInts(c.getIntegerList("fireproof.seconds"), new int[]{60, 180, 300});
         soulboundSaves = readTierInts(c.getIntegerList("soulbound.saves"), new int[]{3, 5, 8});
         soulboundRechargeAnytime = "anytime".equalsIgnoreCase(c.getString("soulbound.recharge", "empty"));
 
