@@ -12,7 +12,7 @@ public enum Upgrade {
     DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block to use no durability"),
     LAST_STAND("last-stand", "Last Stand", null, 1, "Stops at 1 durability instead of breaking"),
     FIREPROOF("fireproof", "Fireproof", null, 3, "Survives lava and fire for a while when dropped"),
-    RECOVERY("recovery", "Recovery", null, 3, "A dropped tool glows for you, lasts longer, and survives explosions and the void"),
+    RECOVERY("recovery", "Recovery", null, 4, "A dropped tool glows for you, lasts longer, survives explosions and the void, and can be tracked"),
     SOULBOUND("soulbound", "Soulbound", null, 3, "Saves the tool when you die, a set number of times");
 
     private final String id;

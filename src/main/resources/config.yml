@@ -61,6 +61,7 @@ upgrades:
     - { level: 40, cost: { NETHERITE_SCRAP: 2 } }
     - { level: 60, cost: { NETHERITE_SCRAP: 4 } }
     - { level: 80, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 90, cost: { NETHERITE_INGOT: 2 } }
   soulbound:
     - { level: 50, cost: { TOTEM_OF_UNDYING: 1 } }
     - { level: 70, cost: { TOTEM_OF_UNDYING: 2 } }
@@ -127,10 +128,13 @@ fireproof:
   seconds: [60, 180, 300]
 
 recovery:
-  # Netherite tools only. When dropped, the tool glows through walls (only its owner sees the glow), and on death the owner is told where it is.
-  # Extra seconds before it despawns, on top of the normal 5 minutes, for tier 1, 2 and 3 (counted in game time).
+  # Netherite tools only. When dropped, the tool glows through walls (only its owner sees the glow).
+  # Extra seconds before it despawns, on top of the normal 5 minutes, for tier 1, 2 and 3 (tier 4 uses tier 3's).
+  # Counted in game time.
   # Tier 2+: explosions and cactus can't destroy it.
-  # Tier 3: if it falls into the void it goes back to the owner (inventory, ender chest, or when they next join).
+  # Tier 3+: if it falls into the void it goes back to the owner (inventory, ender chest, or when they next join).
+  # Tier 4 (Tracker): death message with coordinates, an action bar arrow + distance while it's on the ground,
+  # and /toolshop find.
   extra-seconds: [60, 180, 300]
 
 soulbound:
