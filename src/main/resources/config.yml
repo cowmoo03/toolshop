@@ -1,65 +1,81 @@
-# ToolShop configuration
+# ToolShop 2.0: legendary tools
 # Apply changes in-game with: /toolshop reload
+#
+# Each player can turn one iron, diamond or netherite pickaxe, axe and shovel into a legendary tool,
+# then upgrade it in /toolshop. Upgrades are permanent, but the tool can be lost like any item
+# (it breaks, burns, or despawns), unless it has the matching safety upgrade.
 
-# How long an upgrade stays active after buying or renewing (real time, counts while offline).
-duration-days: 7
-
-# After it expires, players can still renew at the cheap renewal price for this many hours.
-# After that, re-activating costs the full upgrade price again.
-grace-hours: 24
-
-# Item used to pay.
-currency: NETHERITE_INGOT
-
-prices:
-  timber:
-    upgrade: 2   # netherite axe + this many ingots
-    renew: 1     # while active or during the grace period
-  vein:
-    upgrade: 3   # netherite pickaxe + this many ingots
-    renew: 1
-  excavator:
-    upgrade: 2   # netherite shovel + this many ingots
-    renew: 1
-
-# Sounds and break particles when an ability goes off.
+# Sounds and particles when abilities go off.
 effects: true
 
-# true = upgraded tools never lose durability while active.
-# false = normal durability (1 per block broken, Unbreaking and Mending work as usual).
-unbreakable-while-active: false
+# Players must hold Shift (sneak) for Drill, Vein Mining, Timber and Excavator.
+require-sneak: true
 
-timber:
-  # Players must hold Shift (sneak) while breaking a log.
-  require-sneak: true
-  # Most logs felled per chop. Trees whose logs touch come down together, so this
-  # stops a whole tree farm being cleared in one swing. The closest logs go first.
-  # 150 covers a whole giant 2x2 spruce or jungle tree.
-  max-logs: 150
-  # How far sideways (in blocks) from the chopped log felling can reach. 0 = no limit.
-  max-radius: 0
-  # A tree only falls if at least this many natural (not player-placed) leaves touch its logs.
-  # This protects log cabins and other builds.
-  min-natural-leaves: 3
-  # With a Silk Touch axe, the felled tree's leaves are collected as leaf blocks right away.
-  # Without Silk Touch, leaves are left to decay the normal way (dropping saplings and apples).
-  # Leaves still attached to a neighbouring tree are never touched.
-  clear-leaves: true
+# Warn the holder (action bar) when a legendary tool drops to this % durability or less.
+low-durability-warning-percent: 10
 
-excavator:
-  # Players must hold Shift (sneak) while digging.
-  require-sneak: true
-  # Extra hunger for each extra block dug. 4.0 = one hunger point.
-  exhaustion-per-block: 0.05
+mcmmo:
+  # Upgrades need an mcMMO skill level (Mining for pickaxes, Woodcutting for axes,
+  # Excavation for shovels). If mcMMO isn't installed, level requirements are skipped.
+  require-levels: true
+  # Only the block the player actually hits gives mcMMO XP, not the extra blocks an ability breaks.
+  # Without this, a 5x5 Drill swing would give 25 blocks' worth of XP.
+  xp-only-for-hit-block: true
+
+# Cost of turning a tool into a legendary tool. Leave empty ({}) for free.
+create-cost: {}
+
+# Requirements for each tier: the mcMMO level needed and the items it costs.
+# Items use Minecraft names, e.g. DIAMOND, IRON_INGOT, NETHERITE_INGOT, ENDER_PEARL.
+upgrades:
+  drill:
+    - { level: 10, cost: { IRON_INGOT: 16 } }
+    - { level: 30, cost: { DIAMOND: 8 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+  vein:
+    - { level: 15, cost: { IRON_INGOT: 16 } }
+    - { level: 35, cost: { DIAMOND: 8 } }
+    - { level: 65, cost: { NETHERITE_INGOT: 2 } }
+  timber:
+    - { level: 10, cost: { IRON_INGOT: 16 } }
+    - { level: 30, cost: { DIAMOND: 8 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+  excavator:
+    - { level: 10, cost: { IRON_INGOT: 16 } }
+    - { level: 30, cost: { DIAMOND: 8 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+  magnet:
+    - { level: 25, cost: { DIAMOND: 4, ENDER_PEARL: 4 } }
+  durability:
+    - { level: 20, cost: { IRON_INGOT: 16 } }
+    - { level: 40, cost: { DIAMOND: 8 } }
+    - { level: 70, cost: { NETHERITE_INGOT: 1 } }
+  last-stand:
+    - { level: 30, cost: { DIAMOND: 8 } }
+  fireproof:
+    - { level: 40, cost: { NETHERITE_SCRAP: 4 } }
+  soulbound:
+    - { level: 50, cost: { TOTEM_OF_UNDYING: 1 } }
+
+drill:
+  # Tier 1 = 1x2 (player height), tier 2 = 3x3, tier 3 = 5x5.
+  # Hardest block the Drill will break. Stone 1.5, deepslate 3, deepslate ores 4.5, obsidian 50.
+  max-hardness: 5.0
+  # Never broken by the Drill. Containers and machines (chests, furnaces, hoppers...) are always skipped.
+  never-break:
+    - ANCIENT_DEBRIS
+    - OBSIDIAN
+    - CRYING_OBSIDIAN
+    - RESPAWN_ANCHOR
+    - REINFORCED_DEEPSLATE
+    - BUDDING_AMETHYST
 
 vein:
-  # Players must hold Shift (sneak) while breaking an ore.
-  require-sneak: true
-  # Most ore blocks mined at once (including the first one).
-  max-blocks: 64
-  # Extra hunger for each extra block mined. 4.0 = one hunger point (half a drumstick).
+  # Most ores per swing for tier 1, 2 and 3.
+  max-blocks: [8, 16, 32]
+  # Extra hunger per extra ore. 4.0 = one hunger point.
   exhaustion-per-block: 0.15
-  # Ores the Vein Pickaxe works on. Ancient debris is left out on purpose.
+  # Ancient debris is never allowed here.
   ores:
     - COAL_ORE
     - DEEPSLATE_COAL_ORE
@@ -79,3 +95,26 @@ vein:
     - DEEPSLATE_EMERALD_ORE
     - NETHER_GOLD_ORE
     - NETHER_QUARTZ_ORE
+
+timber:
+  # Most logs per chop for tier 1, 2 and 3. Trees whose logs touch fall together.
+  max-logs: [16, 64, 150]
+  # From this tier, a Silk Touch axe also collects the tree's leaves as leaf blocks.
+  silk-leaves-from-tier: 3
+  # A tree only falls if at least this many natural leaves touch it (protects log builds).
+  min-natural-leaves: 3
+
+excavator:
+  # Tier 1 = 1x2, tier 2 = 3x3, tier 3 = 5x5. Only shovel blocks (dirt, sand, gravel...).
+  exhaustion-per-block: 0.05
+
+durability:
+  # Chance (%) for a block to use no durability, for tier 1, 2 and 3. Stacks with Unbreaking.
+  chance: [5, 10, 20]
+
+# Cosmetic ranks shown on the tool, by blocks broken with it.
+ranks:
+  0: Rusty
+  1000: Seasoned
+  10000: Veteran
+  50000: Legendary

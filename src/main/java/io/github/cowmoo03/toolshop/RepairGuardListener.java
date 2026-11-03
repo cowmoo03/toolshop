@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Stops repairs that would throw away a paid upgrade:
+ * Stops repairs that would destroy a legendary tool's upgrades:
  * - crafting-grid merges (they create a brand new tool without the upgrade)
  * - grindstones (they rebuild the tool and may drop the upgrade)
  * - anvils with the upgraded tool in the right slot (that tool gets used up)
@@ -40,7 +40,7 @@ public final class RepairGuardListener implements Listener {
             if (isUpgraded(item)) {
                 event.getInventory().setResult(null);
                 warn(event.getView().getPlayer(),
-                        "Upgraded tools can't be merged in a crafting grid. Repair them with an anvil or Mending.");
+                        "Legendary tools can't be merged in a crafting grid. Repair them with an anvil or Mending.");
                 return;
             }
         }
@@ -52,7 +52,7 @@ public final class RepairGuardListener implements Listener {
         if (isUpgraded(inv.getItem(0)) || isUpgraded(inv.getItem(1))) {
             event.setResult(null);
             warn(event.getView().getPlayer(),
-                    "Upgraded tools can't go in a grindstone. Repair them with an anvil or Mending.");
+                    "Legendary tools can't go in a grindstone. Repair them with an anvil or Mending.");
         }
     }
 
@@ -62,21 +62,21 @@ public final class RepairGuardListener implements Listener {
         if (!isUpgraded(inv.getItem(1))) return;
         event.setResult(null);
         if (isUpgraded(inv.getItem(0))) {
-            ToolType left = plugin.toolData().getType(inv.getItem(0));
-            ToolType right = plugin.toolData().getType(inv.getItem(1));
+            ToolKind left = plugin.legendary().kind(inv.getItem(0));
+            ToolKind right = plugin.legendary().kind(inv.getItem(1));
             String both = left == right
-                    ? "Both tools in the anvil are upgraded " + left.displayName() + "s."
-                    : "Both tools in the anvil are upgraded (" + left.displayName() + " + " + right.displayName() + ").";
+                    ? "Both tools in the anvil are " + left.displayName() + "s."
+                    : "Both tools in the anvil are legendary (" + left.displayName() + " + " + right.displayName() + ").";
             warn(event.getView().getPlayer(), both
-                    + " Two upgraded tools can't be combined. Repair it with netherite ingots or a plain netherite tool instead.");
+                    + " Two legendary tools can't be combined. Repair it with ingots or a plain tool of the same type instead.");
         } else {
             warn(event.getView().getPlayer(),
-                    "Put the upgraded tool in the LEFT anvil slot, or it gets used up.");
+                    "Put the legendary tool in the LEFT anvil slot, or it gets used up.");
         }
     }
 
     private boolean isUpgraded(ItemStack item) {
-        return plugin.toolData().getType(item) != null;
+        return plugin.legendary().isLegendary(item);
     }
 
     /** Prepare events fire many times while a window is open, so only message every few seconds. */

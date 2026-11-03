@@ -2,13 +2,18 @@ name: ToolShop
 version: '${version}'
 main: io.github.cowmoo03.toolshop.ToolShopPlugin
 api-version: '26.2'
-description: Timber Axe and Vein Pickaxe upgrades that are rented with netherite and expire after a set time.
+description: Legendary tools - one upgradeable pickaxe, axe and shovel per player, unlocked with mcMMO levels and items.
 authors:
   - cowmoo03
+dependencies:
+  server:
+    mcMMO:
+      load: BEFORE
+      required: false
 permissions:
   toolshop.use:
-    description: Open /toolshop and use upgraded tools
+    description: Open /toolshop and use legendary tools
     default: true
   toolshop.admin:
-    description: Give upgraded tools and reload the config
+    description: Give legendary tools, set upgrades and reload the config
     default: op

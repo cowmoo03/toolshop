@@ -2,6 +2,7 @@ package io.github.cowmoo03.toolshop;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -12,7 +13,11 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-/** Handles clicks in the /toolshop window and takes payment. */
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/** Handles clicks in the /toolshop window: making tools legendary, buying upgrades, switching pickaxe mode. */
 public final class ShopListener implements Listener {
     private final ToolShopPlugin plugin;
 
@@ -24,26 +29,22 @@ public final class ShopListener implements Listener {
     public void onClick(InventoryClickEvent event) {
         Inventory top = event.getView().getTopInventory();
         if (!(top.getHolder(false) instanceof ShopMenu menu)) return;
-        // Nothing can be moved into, out of, or around while the shop is open.
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)) return;
         if (event.getClickedInventory() != top) return;
 
-        ToolType type = ShopMenu.typeAt(event.getRawSlot());
-        if (type == null) return;
-
+        ShopMenu.Action action = menu.actionAt(event.getRawSlot());
+        if (action == null) return;
         long now = System.currentTimeMillis();
-        if (Offer.forHand(plugin, player, type) == null) {
-            // Not holding the right tool: explain right away, nothing to confirm.
+
+        if (action instanceof ShopMenu.ToggleMode) {
+            toggleMode(player);
+        } else if (menu.isAwaitingConfirm(action, now)) {
             menu.clearConfirm();
-            buy(player, type);
-        } else if (menu.isAwaitingConfirm(type, now)) {
-            // Second click on the same button within the time limit: pay.
-            menu.clearConfirm();
-            buy(player, type);
+            if (action instanceof ShopMenu.Create c) create(player, c.kind());
+            else if (action instanceof ShopMenu.Buy b) buy(player, b.upgrade());
         } else {
-            // First click: ask for a second click before taking any netherite.
-            menu.askConfirm(type, now);
+            menu.askConfirm(action, now);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
         }
         menu.render(player);
@@ -51,40 +52,130 @@ public final class ShopListener implements Listener {
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
-        if (event.getView().getTopInventory().getHolder(false) instanceof ShopMenu) {
-            event.setCancelled(true);
-        }
+        if (event.getView().getTopInventory().getHolder(false) instanceof ShopMenu) event.setCancelled(true);
     }
 
-    private void buy(Player player, ToolType type) {
-        Settings s = plugin.settings();
-        Offer offer = Offer.forHand(plugin, player, type);
-        if (offer == null) {
-            fail(player, "Hold your " + type.baseToolName() + " in your main hand first.");
-            return;
-        }
+    // ------------------------------------------------------------------ actions
 
+    private void create(Player player, ToolKind kind) {
         PlayerInventory inv = player.getInventory();
-        ItemStack payment = ItemStack.of(s.currency, Math.max(1, offer.price()));
-        if (offer.price() > 0 && !inv.containsAtLeast(ItemStack.of(s.currency), offer.price())) {
-            fail(player, "You need " + s.currencyAmount(offer.price()) + " for that.");
+        ItemStack hand = inv.getItemInMainHand();
+        Legendary lt = plugin.legendary();
+        if (ToolKind.of(hand.getType()) != kind || lt.isLegendary(hand)) {
+            fail(player, "Hold the tool you want to make legendary.");
             return;
         }
-        if (offer.price() > 0) {
-            payment.setAmount(offer.price());
-            inv.removeItem(payment);
+        Map<Material, Integer> cost = plugin.settings().createCost;
+        List<String> missing = missingItems(player, cost);
+        if (!missing.isEmpty()) {
+            fail(player, "You still need: " + String.join(", ", missing));
+            return;
         }
+        take(player, cost);
 
-        // Re-read the hand after payment and write the upgraded tool back into it.
-        ItemStack tool = inv.getItemInMainHand();
-        plugin.toolData().activate(tool, type, offer.newExpiry());
+        String oldId = plugin.registry().activeId(player.getUniqueId(), kind);
+        String id = lt.create(hand, player, kind);
+        plugin.registry().setActive(player.getUniqueId(), kind, id);
+        lt.refresh(hand);
+        inv.setItemInMainHand(hand);
+
+        plugin.log(player, "CREATE " + kind.id() + " (" + hand.getType().name().toLowerCase() + ")"
+                + (oldId != null ? ", retired " + oldId : "") + ", paid " + Settings.describeCost(cost), id);
+        ok(player, "This is now your " + kind.displayName() + "! Open /toolshop to upgrade it.");
+        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.6f, 1.2f);
+    }
+
+    private void buy(Player player, Upgrade upgrade) {
+        PlayerInventory inv = player.getInventory();
+        ItemStack hand = inv.getItemInMainHand();
+        Legendary lt = plugin.legendary();
+        if (!lt.usableBy(hand, player)) {
+            fail(player, "Hold your legendary tool to upgrade it.");
+            return;
+        }
+        ToolKind kind = lt.kind(hand);
+        if (!upgrade.appliesTo(kind, hand.getType())) {
+            fail(player, upgrade.displayName() + " can't go on this tool.");
+            return;
+        }
+        int current = lt.tier(hand, upgrade);
+        if (current >= upgrade.maxTier()) {
+            fail(player, upgrade.displayName() + " is already maxed.");
+            return;
+        }
+        int next = current + 1;
+        Settings s = plugin.settings();
+        Settings.Tier req = s.tier(upgrade, next);
+
+        if (plugin.mcmmo().available() && s.requireLevels && req.level() > 0) {
+            int lvl = plugin.mcmmo().level(player, kind.mcmmoSkill());
+            if (lvl < 0) {
+                fail(player, "Couldn't read your mcMMO level yet. Try again in a moment.");
+                return;
+            }
+            if (lvl < req.level()) {
+                fail(player, "You need " + kind.skillName() + " level " + req.level() + " (you're level " + lvl + ").");
+                return;
+            }
+        }
+        List<String> missing = missingItems(player, req.cost());
+        if (!missing.isEmpty()) {
+            fail(player, "You still need: " + String.join(", ", missing));
+            return;
+        }
+        take(player, req.cost());
+
+        ItemStack tool = inv.getItemInMainHand(); // re-read after taking items
+        lt.setTier(tool, upgrade, next);
+        if (upgrade == Upgrade.VEIN && lt.tier(tool, Upgrade.DRILL) == 0) lt.setMode(tool, Legendary.MODE_VEIN);
+        lt.refresh(tool);
         inv.setItemInMainHand(tool);
 
-        plugin.logPurchase(player, offer.action(), type, offer.price(), plugin.toolData().getId(tool));
-        player.sendMessage(ToolShopPlugin.PREFIX.append(Component.text(
-                type.displayName() + " active for " + ToolData.formatDuration(offer.newExpiry() - System.currentTimeMillis())
-                        + ". Paid " + s.currencyAmount(offer.price()) + ".", NamedTextColor.GREEN)));
+        plugin.log(player, "UPGRADE " + upgrade.withTier(next) + ", paid " + Settings.describeCost(req.cost()), lt.id(tool));
+        ok(player, "Upgraded to " + upgrade.withTier(next) + "!");
         player.playSound(player.getLocation(), Sound.BLOCK_SMITHING_TABLE_USE, 1f, 1f);
+    }
+
+    /** Switches a pickaxe that has both Drill and Vein Mining between the two. Also used by /toolshop mode. */
+    public void toggleMode(Player player) {
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        Legendary lt = plugin.legendary();
+        if (!lt.usableBy(hand, player) || lt.kind(hand) != ToolKind.PICKAXE
+                || lt.tier(hand, Upgrade.DRILL) == 0 || lt.tier(hand, Upgrade.VEIN) == 0) {
+            fail(player, "Hold your legendary pickaxe with both Drill and Vein Mining to switch modes.");
+            return;
+        }
+        boolean toVein = !Legendary.MODE_VEIN.equals(lt.mode(hand));
+        lt.setMode(hand, toVein ? Legendary.MODE_VEIN : Legendary.MODE_DRILL);
+        lt.refresh(hand);
+        player.getInventory().setItemInMainHand(hand);
+        player.sendActionBar(Component.text("Mode: " + (toVein ? "Vein Mining" : "Drill"), NamedTextColor.YELLOW));
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, toVein ? 1.4f : 0.9f);
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    private static List<String> missingItems(Player player, Map<Material, Integer> cost) {
+        List<String> missing = new ArrayList<>();
+        cost.forEach((m, n) -> {
+            if (!player.getInventory().containsAtLeast(ItemStack.of(m), n)) missing.add(n + " " + Settings.itemName(m, n));
+        });
+        return missing;
+    }
+
+    private static void take(Player player, Map<Material, Integer> cost) {
+        cost.forEach((m, n) -> {
+            int left = n;
+            while (left > 0) {
+                int chunk = Math.min(left, m.getMaxStackSize());
+                player.getInventory().removeItem(ItemStack.of(m, chunk));
+                left -= chunk;
+            }
+        });
+    }
+
+    private static void ok(Player player, String message) {
+        player.sendMessage(ToolShopPlugin.PREFIX.append(Component.text(message, NamedTextColor.GREEN)));
     }
 
     private static void fail(Player player, String message) {

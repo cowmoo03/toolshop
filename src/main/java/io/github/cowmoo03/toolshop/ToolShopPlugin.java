@@ -8,6 +8,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,29 +19,62 @@ import java.time.format.DateTimeFormatter;
 
 public final class ToolShopPlugin extends JavaPlugin {
     public static final Component PREFIX = Component.text("[ToolShop] ", NamedTextColor.GOLD);
-    private static final long SCAN_INTERVAL_TICKS = 20L * 30; // every 30 seconds
+    private static final long SCAN_INTERVAL_TICKS = 20L * 30;
+    private static final long SAVE_INTERVAL_TICKS = 20L * 60;
 
     private Settings settings;
-    private ToolData toolData;
+    private Legendary legendary;
+    private Registry registry;
+    private McMMOHook mcmmo;
+    private ShopListener shopListener;
 
     @Override
     public void onEnable() {
+        retireOldConfig();
         saveDefaultConfig();
-        // Add any settings introduced by an update to an existing config.yml, keeping the server's values.
         reloadConfig();
         getConfig().options().copyDefaults(true);
         saveConfig();
         reloadSettings();
-        toolData = new ToolData(this);
+
+        legendary = new Legendary(this);
+        registry = new Registry(getDataFolder(), getLogger());
+        mcmmo = new McMMOHook(this); // replaced once the server has finished starting (see below)
+        shopListener = new ShopListener(this);
 
         getServer().getPluginManager().registerEvents(new AbilityListener(this), this);
-        getServer().getPluginManager().registerEvents(new ShopListener(this), this);
+        getServer().getPluginManager().registerEvents(new PerkListener(this), this);
+        getServer().getPluginManager().registerEvents(shopListener, this);
         getServer().getPluginManager().registerEvents(new RepairGuardListener(this), this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
-                event.registrar().register("toolshop", "Buy and renew upgraded tools", new ToolShopCommand(this)));
+                event.registrar().register("toolshop", "Make and upgrade legendary tools", new ToolShopCommand(this)));
 
+        // Connect to mcMMO after every plugin has enabled, so load order doesn't matter.
+        getServer().getScheduler().runTask(this, () -> mcmmo = new McMMOHook(this));
         getServer().getScheduler().runTaskTimer(this, this::scanOnlinePlayers, 40L, SCAN_INTERVAL_TICKS);
+        getServer().getScheduler().runTaskTimer(this, () -> registry.saveIfDirty(), SAVE_INTERVAL_TICKS, SAVE_INTERVAL_TICKS);
+    }
+
+    @Override
+    public void onDisable() {
+        if (registry != null) registry.save();
+    }
+
+    /** ToolShop 1.x used a different config (rental prices). Keep it as a backup and start fresh. */
+    private void retireOldConfig() {
+        File config = new File(getDataFolder(), "config.yml");
+        if (!config.exists()) return;
+        try {
+            String text = Files.readString(config.toPath());
+            if (text.contains("duration-days:")) {
+                File backup = new File(getDataFolder(), "config-1.x-backup.yml");
+                Files.move(config.toPath(), backup.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                getLogger().info("Moved the old ToolShop 1.x config to config-1.x-backup.yml and created a new one.");
+            }
+        } catch (IOException e) {
+            getLogger().warning("Couldn't check the old config: " + e.getMessage());
+        }
     }
 
     public void reloadSettings() {
@@ -49,85 +83,45 @@ public final class ToolShopPlugin extends JavaPlugin {
     }
 
     public Settings settings() { return settings; }
-    public ToolData toolData() { return toolData; }
+    public Legendary legendary() { return legendary; }
+    public Registry registry() { return registry; }
+    public McMMOHook mcmmo() { return mcmmo; }
+    public ShopListener shopListener() { return shopListener; }
 
-    /** Keeps the countdown text up to date and sends expiry warnings for tools in online players' inventories. */
+    /** Keeps legendary tool descriptions up to date and cleans up old 1.x rental upgrades. */
     private void scanOnlinePlayers() {
-        long now = System.currentTimeMillis();
         for (Player player : getServer().getOnlinePlayers()) {
             PlayerInventory inv = player.getInventory();
             ItemStack[] contents = inv.getContents();
+            boolean strippedAny = false;
             for (int slot = 0; slot < contents.length; slot++) {
                 ItemStack item = contents[slot];
-                ToolType type = toolData.getType(item);
-                if (type == null) continue;
-                boolean changed = notify(player, item, type, now);
-                changed |= toolData.refresh(item, now);
-                if (changed) inv.setItem(slot, item);
+                if (item == null || item.isEmpty()) continue;
+                if (legendary.isLegacyRental(item)) {
+                    legendary.stripLegacyRental(item);
+                    inv.setItem(slot, item);
+                    strippedAny = true;
+                } else if (legendary.refresh(item)) {
+                    inv.setItem(slot, item);
+                }
+            }
+            if (strippedAny) {
+                player.sendMessage(PREFIX.append(Component.text("ToolShop changed! Rented upgrades are gone; "
+                        + "tools are now made legendary and upgraded for good. Open /toolshop to start.",
+                        NamedTextColor.YELLOW)));
             }
         }
-    }
-
-    /** Sends each warning once. Returns true if the item's flags changed. */
-    private boolean notify(Player player, ItemStack item, ToolType type, long now) {
-        int flags = toolData.getFlags(item);
-        int newFlags = flags;
-        String message = null;
-        NamedTextColor color = NamedTextColor.YELLOW;
-        long left = toolData.getExpires(item) - now;
-
-        switch (toolData.getState(item, now)) {
-            case ACTIVE -> {
-                if (left <= ToolData.HOUR && (flags & ToolData.WARNED_HOUR) == 0) {
-                    message = "Your " + type.displayName() + " expires in " + ToolData.formatDuration(left)
-                            + ". Renew it at /toolshop.";
-                    color = NamedTextColor.RED;
-                    newFlags |= ToolData.WARNED_DAY | ToolData.WARNED_HOUR;
-                } else if (left <= ToolData.DAY && (flags & ToolData.WARNED_DAY) == 0) {
-                    message = "Your " + type.displayName() + " expires in " + ToolData.formatDuration(left)
-                            + ". Renew it at /toolshop.";
-                    newFlags |= ToolData.WARNED_DAY;
-                }
-            }
-            case GRACE -> {
-                if ((flags & ToolData.NOTIFIED_EXPIRED) == 0) {
-                    message = "Your " + type.displayName() + " has expired. Renew within "
-                            + ToolData.formatDuration(left + settings.graceMs) + " for "
-                            + settings.currencyAmount(settings.renewPrice(type)) + " at /toolshop.";
-                    color = NamedTextColor.RED;
-                    newFlags |= ToolData.WARNED_DAY | ToolData.WARNED_HOUR | ToolData.NOTIFIED_EXPIRED;
-                }
-            }
-            case LAPSED -> {
-                if ((flags & ToolData.NOTIFIED_LAPSED) == 0) {
-                    message = "The renewal window for your " + type.displayName()
-                            + " has ended. Re-upgrading now costs "
-                            + settings.currencyAmount(settings.upgradePrice(type)) + ".";
-                    color = NamedTextColor.GRAY;
-                    newFlags = ToolData.WARNED_DAY | ToolData.WARNED_HOUR
-                            | ToolData.NOTIFIED_EXPIRED | ToolData.NOTIFIED_LAPSED;
-                }
-            }
-        }
-
-        if (message != null) player.sendMessage(PREFIX.append(Component.text(message, color)));
-        if (newFlags == flags) return false;
-        toolData.setFlags(item, newFlags);
-        return true;
     }
 
     /** Appends one line to plugins/ToolShop/purchases.log. */
-    public void logPurchase(Player player, String action, ToolType type, int price, String toolId) {
+    public void log(Player player, String action, String toolId) {
         String line = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                 + " | " + player.getName() + " (" + player.getUniqueId() + ")"
-                + " | " + action + " | " + type.displayName()
-                + " | paid " + settings.currencyAmount(price)
-                + " | tool " + toolId + System.lineSeparator();
+                + " | " + action + " | tool " + toolId + System.lineSeparator();
         try {
             Path file = getDataFolder().toPath().resolve("purchases.log");
             Files.createDirectories(file.getParent());
-            Files.writeString(file, line, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            Files.writeString(file, line, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
             getLogger().warning("Could not write purchases.log: " + e.getMessage());
         }
