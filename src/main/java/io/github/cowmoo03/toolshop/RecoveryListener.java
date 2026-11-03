@@ -15,8 +15,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityPickupItemEvent;
-import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.entity.ItemDespawnEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -46,8 +44,6 @@ import java.util.UUID;
  *   <li>Tier 2+: explosions and cactus can't destroy it.</li>
  *   <li>Tier 3: if it falls into the void it goes back to the owner (inventory, then ender chest, then at their
  *   feet; if they're offline, when they next join).</li>
- *   <li>Tier 4 (Tracker): the owner always knows where it is: the death message gives its coordinates, the action
- *   bar shows direction and distance while it's on the ground (even far away), and /toolshop find lists it.</li>
  * </ul>
  * The extra time counts game ticks while the item's chunk is loaded, like Fireproof.
  * <p>
@@ -59,17 +55,6 @@ public final class RecoveryListener implements Listener {
     /** Dropped items render a little above their position. */
     private static final double MARKER_HEIGHT = 0.5;
     private static final float MARKER_SCALE = 1.8f;
-    /** Tier that adds the Tracker. */
-    public static final int TRACKER_TIER = 4;
-    /** Only show the action bar when the owner is farther than this (blocks). */
-    private static final double TRACKER_MIN_DISTANCE = 4;
-
-    /** Where a dropped Tracker tool was last seen, kept while its chunk is unloaded. */
-    public record Spot(UUID owner, String toolName, UUID world, String worldName, double x, double y, double z) {
-        String coords() {
-            return (int) Math.floor(x) + ", " + (int) Math.floor(y) + ", " + (int) Math.floor(z);
-        }
-    }
 
     private final ToolShopPlugin plugin;
     /** Ticks of extra time left, stored on the item entity so it survives chunk unloads and restarts. */
@@ -81,18 +66,12 @@ public final class RecoveryListener implements Listener {
     private final File returnsFile;
     /** Owner -> tools that fell into the void while the owner was offline. */
     private final Map<UUID, List<ItemStack>> pendingReturns = new HashMap<>();
-    /** Item entity id -> last known spot of a dropped Tracker tool (loaded or not). */
-    private final Map<UUID, Spot> spots = new HashMap<>();
-    private final File spotsFile;
-    private int ticks;
 
     public RecoveryListener(ToolShopPlugin plugin) {
         this.plugin = plugin;
         this.extraLeftKey = new NamespacedKey(plugin, "lt_recovery_left");
         this.returnsFile = new File(plugin.getDataFolder(), "returns.yml");
-        this.spotsFile = new File(plugin.getDataFolder(), "dropped.yml");
         loadReturns();
-        loadSpots();
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, TASK_PERIOD_TICKS, TASK_PERIOD_TICKS);
     }
 
@@ -168,7 +147,6 @@ public final class RecoveryListener implements Listener {
     public void shutdown() {
         markers.values().forEach(Entity::remove);
         markers.clear();
-        saveSpots();
     }
 
     // ------------------------------------------------------------------ extra time before despawning
@@ -190,38 +168,26 @@ public final class RecoveryListener implements Listener {
         Player owner = owner(item.getItemStack());
         if (owner != null) {
             owner.sendMessage(ToolShopPlugin.PREFIX.append(Component.text("Your "
-                    + plugin.legendary().kind(item.getItemStack()).displayName() + " was about to despawn"
-                    + (tier >= TRACKER_TIER ? " at " + where(item.getLocation()) : "") + ". Recovery keeps it for "
-                    + formatSeconds(seconds) + " more.",
+                    + plugin.legendary().kind(item.getItemStack()).displayName()
+                    + " was about to despawn. Recovery keeps it for " + formatSeconds(seconds) + " more.",
                     NamedTextColor.GOLD)));
         }
     }
 
     private void tick() {
-        ticks++;
         Iterator<Item> it = tracked.values().iterator();
         while (it.hasNext()) {
             Item item = it.next();
             if (!item.isValid()) { // picked up, removed or its chunk unloaded
                 it.remove();
                 removeMarker(item.getUniqueId());
-                Location last = item.getLocation();
-                boolean unloaded = !last.getWorld().isChunkLoaded(last.getBlockX() >> 4, last.getBlockZ() >> 4);
-                if (!unloaded) spots.remove(item.getUniqueId()); // really gone; an unloaded one keeps its spot
                 continue;
             }
             int tier = tier(item);
             if (tier <= 0) {
                 it.remove();
                 removeMarker(item.getUniqueId());
-                spots.remove(item.getUniqueId());
                 continue;
-            }
-            if (tier >= TRACKER_TIER) {
-                Location l = item.getLocation();
-                spots.put(item.getUniqueId(), new Spot(plugin.legendary().owner(item.getItemStack()),
-                        plugin.legendary().kind(item.getItemStack()).displayName(), l.getWorld().getUID(),
-                        l.getWorld().getName(), l.getX(), l.getY(), l.getZ()));
             }
             ItemDisplay marker = markers.get(item.getUniqueId());
             if (marker != null && marker.isValid()) {
@@ -231,7 +197,6 @@ public final class RecoveryListener implements Listener {
             if (tier >= 3 && item.getLocation().getY() < item.getWorld().getMinHeight()) {
                 it.remove();
                 removeMarker(item.getUniqueId());
-                spots.remove(item.getUniqueId());
                 ItemStack stack = item.getItemStack();
                 item.remove();
                 // Next tick: giving it back may drop an item, which would change `tracked` while we loop over it.
@@ -244,114 +209,10 @@ public final class RecoveryListener implements Listener {
             if (left <= 0) {
                 it.remove();
                 removeMarker(item.getUniqueId());
-                spots.remove(item.getUniqueId());
                 item.remove();
             } else {
                 item.getPersistentDataContainer().set(extraLeftKey, PersistentDataType.INTEGER, left);
             }
-        }
-        if (ticks % 4 == 0) showTrackers(); // once a second
-    }
-
-    // ------------------------------------------------------------------ Tracker (tier 4)
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPickup(EntityPickupItemEvent event) {
-        spots.remove(event.getItem().getUniqueId());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onHopperPickup(InventoryPickupItemEvent event) {
-        spots.remove(event.getItem().getUniqueId());
-    }
-
-    /** Action bar for each owner: direction, distance and coordinates of their nearest dropped Tracker tool. */
-    private void showTrackers() {
-        if (spots.isEmpty()) return;
-        for (Player p : plugin.getServer().getOnlinePlayers()) {
-            Spot best = null;
-            double bestDist = Double.MAX_VALUE;
-            for (Spot spot : spots.values()) {
-                if (!p.getUniqueId().equals(spot.owner())) continue;
-                double d = spot.world().equals(p.getWorld().getUID())
-                        ? p.getLocation().distance(new Location(p.getWorld(), spot.x(), spot.y(), spot.z()))
-                        : Double.MAX_VALUE / 2;
-                if (best == null || d < bestDist) {
-                    best = spot;
-                    bestDist = d;
-                }
-            }
-            if (best == null || bestDist <= TRACKER_MIN_DISTANCE) continue;
-            p.sendActionBar(Component.text(trackerLine(p, best), NamedTextColor.AQUA));
-        }
-    }
-
-    private static String trackerLine(Player p, Spot spot) {
-        if (!spot.world().equals(p.getWorld().getUID())) {
-            return "⌖ Your " + spot.toolName() + " is in " + spot.worldName() + " at " + spot.coords();
-        }
-        Location from = p.getLocation();
-        double dy = spot.y() - from.getY();
-        String height = Math.abs(dy) < 3 ? "" : " · " + Math.round(Math.abs(dy)) + (dy < 0 ? " below" : " above");
-        long dist = Math.round(from.distance(new Location(p.getWorld(), spot.x(), spot.y(), spot.z())));
-        return "⌖ " + spot.toolName() + " " + arrow(from, spot) + " " + dist + "m" + height + " · " + spot.coords();
-    }
-
-    /** Arrow pointing from where the player is facing toward the spot. */
-    private static String arrow(Location from, Spot spot) {
-        double dx = spot.x() - from.getX();
-        double dz = spot.z() - from.getZ();
-        if (dx * dx + dz * dz < 4) return spot.y() < from.getY() ? "↓" : "↑";
-        double targetYaw = Math.toDegrees(Math.atan2(-dx, dz)); // Minecraft yaw: 0 = south (+Z), 90 = west (-X)
-        double rel = ((targetYaw - from.getYaw()) % 360 + 540) % 360 - 180; // 0 = straight ahead, + = to the right
-        String[] arrows = {"↑", "↗", "→", "↘", "↓", "↙", "←", "↖"};
-        int idx = (int) Math.round(rel / 45.0);
-        return arrows[((idx % 8) + 8) % 8];
-    }
-
-    /** The player's dropped Tracker tools, for /toolshop find. */
-    public List<String> find(Player p) {
-        List<String> out = new ArrayList<>();
-        for (Spot spot : spots.values()) {
-            if (p.getUniqueId().equals(spot.owner())) out.add(trackerLine(p, spot));
-        }
-        return out;
-    }
-
-    private void loadSpots() {
-        if (!spotsFile.exists()) return;
-        YamlConfiguration y = YamlConfiguration.loadConfiguration(spotsFile);
-        for (String key : y.getKeys(false)) {
-            try {
-                org.bukkit.configuration.ConfigurationSection c = y.getConfigurationSection(key);
-                if (c == null) continue;
-                spots.put(UUID.fromString(key), new Spot(UUID.fromString(c.getString("owner", "")),
-                        c.getString("tool", "tool"), UUID.fromString(c.getString("world", "")),
-                        c.getString("world-name", "?"), c.getDouble("x"), c.getDouble("y"), c.getDouble("z")));
-            } catch (IllegalArgumentException ignored) {
-                // skip
-            }
-        }
-    }
-
-    private void saveSpots() {
-        YamlConfiguration y = new YamlConfiguration();
-        spots.forEach((id, spot) -> {
-            if (spot.owner() == null) return;
-            String b = id.toString();
-            y.set(b + ".owner", spot.owner().toString());
-            y.set(b + ".tool", spot.toolName());
-            y.set(b + ".world", spot.world().toString());
-            y.set(b + ".world-name", spot.worldName());
-            y.set(b + ".x", spot.x());
-            y.set(b + ".y", spot.y());
-            y.set(b + ".z", spot.z());
-        });
-        try {
-            plugin.getDataFolder().mkdirs();
-            y.save(spotsFile);
-        } catch (IOException e) {
-            plugin.getLogger().warning("Couldn't save dropped.yml: " + e.getMessage());
         }
     }
 
@@ -390,11 +251,9 @@ public final class RecoveryListener implements Listener {
                         + " out of the void. It's still in your inventory.", NamedTextColor.GOLD)));
             } else {
                 int seconds = Settings.forTier(plugin.settings().recoverySeconds, tier);
-                player.sendMessage(ToolShopPlugin.PREFIX.append(Component.text("Your " + name + " dropped"
-                        + (tier >= TRACKER_TIER ? " at " + where(at) : "")
-                        + ". It glows for you (only you can see it), and Recovery keeps it " + formatSeconds(seconds)
-                        + " longer than normal items." + (tier >= TRACKER_TIER ? " Your action bar points to it." : ""),
-                        NamedTextColor.GOLD)));
+                player.sendMessage(ToolShopPlugin.PREFIX.append(Component.text("Your " + name
+                        + " dropped. It glows for you (only you can see it), and Recovery keeps it "
+                        + formatSeconds(seconds) + " longer than normal items.", NamedTextColor.GOLD)));
             }
         }
     }
@@ -481,10 +340,6 @@ public final class RecoveryListener implements Listener {
         } catch (IOException e) {
             plugin.getLogger().warning("Couldn't save returns.yml: " + e.getMessage());
         }
-    }
-
-    private static String where(Location l) {
-        return l.getWorld().getName() + " " + l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
     }
 
     private static String formatSeconds(int seconds) {

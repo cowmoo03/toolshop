@@ -19,7 +19,6 @@ import java.util.Locale;
 /**
  * /toolshop                                        open the shop
  * /toolshop mode                                   switch your legendary pickaxe between Drill and Vein Mining
- * /toolshop find                                   where your dropped tools with Recovery IV (Tracker) are
  * /toolshop give <player> <pickaxe|axe|shovel> [iron|diamond|netherite]   admin: give a new legendary tool
  * /toolshop upgrade <player> <upgrade> <tier>      admin: set an upgrade on the player's held legendary tool
  * /toolshop reset <player> [pickaxe|axe|shovel|all]  admin: remove a player's legendary tools
@@ -51,19 +50,9 @@ public final class ToolShopCommand implements BasicCommand {
             if (sender instanceof Player player) plugin.shopListener().toggleMode(player);
             return;
         }
-        if (sub.equals("find")) {
-            if (!(sender instanceof Player player)) return;
-            List<String> lines = plugin.recovery().find(player);
-            if (lines.isEmpty()) {
-                send(sender, "None of your tools with Recovery IV (Tracker) are on the ground.", NamedTextColor.YELLOW);
-            } else {
-                lines.forEach(l -> send(sender, l, NamedTextColor.AQUA));
-            }
-            return;
-        }
 
         if (!sender.hasPermission("toolshop.admin")) {
-            send(sender, "Usage: /toolshop [mode | find]", NamedTextColor.RED);
+            send(sender, "Usage: /toolshop [mode]", NamedTextColor.RED);
             return;
         }
         switch (sub) {
@@ -226,7 +215,6 @@ public final class ToolShopCommand implements BasicCommand {
         List<String> options = new ArrayList<>();
         if (args.length <= 1) {
             options.add("mode");
-            options.add("find");
             if (admin) options.addAll(List.of("give", "upgrade", "reset", "reload"));
         } else if (admin && args.length == 2 && (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("upgrade")
                 || args[0].equalsIgnoreCase("reset"))) {
@@ -240,7 +228,7 @@ public final class ToolShopCommand implements BasicCommand {
         } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("upgrade")) {
             Arrays.stream(Upgrade.values()).forEach(u -> options.add(u.id()));
         } else if (admin && args.length == 4 && args[0].equalsIgnoreCase("upgrade")) {
-            options.addAll(List.of("0", "1", "2", "3", "4"));
+            options.addAll(List.of("0", "1", "2", "3"));
         }
         return options.stream().filter(o -> o.toLowerCase(Locale.ROOT).startsWith(last)).toList();
     }

@@ -252,8 +252,7 @@ public final class ShopMenu implements InventoryHolder {
             case DURABILITY -> Settings.forTier(s.durabilityChance, t) + "% chance to save durability";
             case FIREPROOF -> "survives fire and lava for " + shortTime(Settings.forTier(s.fireproofSeconds, t));
             case RECOVERY -> "glows for you when dropped, +" + shortTime(Settings.forTier(s.recoverySeconds, t)) + " before despawning"
-                    + (t >= 4 ? ", survives explosions and cactus, returns from the void, Tracker shows where it is"
-                    : t == 3 ? ", survives explosions and cactus, returns from the void"
+                    + (t >= 3 ? ", survives explosions and cactus, returns from the void"
                     : t == 2 ? ", survives explosions and cactus" : ", death location message");
             case SOULBOUND -> Settings.forTier(s.soulboundSaves, t) + " saves (upgrading refills them)";
             default -> null;

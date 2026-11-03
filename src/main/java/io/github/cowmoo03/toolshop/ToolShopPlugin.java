@@ -102,7 +102,6 @@ public final class ToolShopPlugin extends JavaPlugin {
     public Registry registry() { return registry; }
     public McMMOHook mcmmo() { return mcmmo; }
     public ShopListener shopListener() { return shopListener; }
-    public RecoveryListener recovery() { return recovery; }
 
     /** Keeps legendary tool descriptions up to date and cleans up old 1.x rental upgrades. */
     private void scanOnlinePlayers() {
