@@ -250,10 +250,14 @@ public final class ShopMenu implements InventoryHolder {
             case TIMBER -> "up to " + Settings.forTier(s.timberMaxLogs, t) + " logs"
                     + (t >= s.timberSilkLeavesFromTier ? " + Silk Touch collects leaves" : "");
             case DURABILITY -> Settings.forTier(s.durabilityChance, t) + "% chance to save durability";
-            case FIREPROOF -> "survives fire and lava for " + Settings.forTier(s.fireproofSeconds, t) + "s";
+            case FIREPROOF -> "survives fire and lava for " + shortTime(Settings.forTier(s.fireproofSeconds, t));
             case SOULBOUND -> Settings.forTier(s.soulboundSaves, t) + " saves (upgrading refills them)";
             default -> null;
         };
+    }
+
+    private static String shortTime(int seconds) {
+        return seconds % 60 == 0 ? (seconds / 60) + " min" : seconds + "s";
     }
 
     private static Material iconFor(Upgrade u) {

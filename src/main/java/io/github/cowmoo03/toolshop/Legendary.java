@@ -212,7 +212,8 @@ public final class Legendary {
             if (u == Upgrade.SOULBOUND) {
                 suffix = "  (" + saves(item) + "/" + maxSaves(item) + " saves)";
             } else if (u == Upgrade.FIREPROOF) {
-                suffix = "  (" + Settings.forTier(s.fireproofSeconds, t) + "s)";
+                int secs = Settings.forTier(s.fireproofSeconds, t);
+                suffix = "  (" + (secs % 60 == 0 ? (secs / 60) + " min" : secs + "s") + ")";
             }
             if (u == Upgrade.DRILL || u == Upgrade.VEIN) {
                 boolean both = tier(item, Upgrade.DRILL) > 0 && tier(item, Upgrade.VEIN) > 0;

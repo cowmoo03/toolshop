@@ -12,6 +12,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.ItemDespawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.ItemStack;
@@ -118,8 +119,11 @@ public final class PerkListener implements Listener {
 
     // ------------------------------------------------------------------ Fireproof (timed)
 
-    /** When each dropped legendary tool first touched lava or fire, by item entity. */
-    private final Map<UUID, Long> burningSince = new HashMap<>();
+    /**
+     * For each dropped legendary tool (by item entity), the item's age in ticks when it first touched lava or fire.
+     * Ticks only pass while the item's chunk is loaded, so the window pauses while nobody is nearby.
+     */
+    private final Map<UUID, Integer> burningSinceTick = new HashMap<>();
 
     @EventHandler(ignoreCancelled = true)
     public void onDroppedItemDamage(EntityDamageEvent event) {
@@ -127,39 +131,57 @@ public final class PerkListener implements Listener {
         EntityDamageEvent.DamageCause cause = event.getCause();
         if (cause != EntityDamageEvent.DamageCause.LAVA && cause != EntityDamageEvent.DamageCause.FIRE
                 && cause != EntityDamageEvent.DamageCause.FIRE_TICK) return;
-        if (stillFireproof(item)) event.setCancelled(true);
+        if (stillFireproof(item, true)) event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onDroppedItemBurn(EntityCombustEvent event) {
-        if (event.getEntity() instanceof Item item && stillFireproof(item)) event.setCancelled(true);
+        if (event.getEntity() instanceof Item item && stillFireproof(item, true)) event.setCancelled(true);
+    }
+
+    /** Vanilla items despawn after 5 minutes; a Fireproof tool waiting in lava stays until its window ends. */
+    @EventHandler(ignoreCancelled = true)
+    public void onDespawn(ItemDespawnEvent event) {
+        Item item = event.getEntity();
+        if (burningSinceTick.containsKey(item.getUniqueId()) && stillFireproof(item, false)) event.setCancelled(true);
     }
 
     /**
-     * True while a dropped Fireproof tool is inside its protection window. The window starts the first time
-     * it touches lava or fire and lasts the tier's number of seconds; after that it burns like any item.
+     * True while a dropped Fireproof tool is inside its protection window. The window starts the first time it
+     * touches lava or fire ({@code mayStart}) and lasts the tier's number of seconds of game time.
      */
-    private boolean stillFireproof(Item item) {
+    private boolean stillFireproof(Item item, boolean mayStart) {
         ItemStack stack = item.getItemStack();
         Legendary lt = plugin.legendary();
         if (!lt.isLegendary(stack)) return false;
         int tier = lt.tier(stack, Upgrade.FIREPROOF);
         if (tier <= 0) return false;
-        long limitMs = Settings.forTier(plugin.settings().fireproofSeconds, tier) * 1000L;
-        long now = System.currentTimeMillis();
-        Long since = burningSince.get(item.getUniqueId());
+        int seconds = Settings.forTier(plugin.settings().fireproofSeconds, tier);
+        int age = item.getTicksLived();
+        Integer since = burningSinceTick.get(item.getUniqueId());
         if (since == null) {
-            burningSince.put(item.getUniqueId(), now);
-            since = now;
+            if (!mayStart) return false;
+            burningSinceTick.put(item.getUniqueId(), age);
+            since = age;
             Player owner = lt.owner(stack) == null ? null : plugin.getServer().getPlayer(lt.owner(stack));
             if (owner != null) {
                 owner.sendMessage(ToolShopPlugin.PREFIX.append(Component.text("Your " + lt.kind(stack).displayName()
-                        + " fell into fire or lava! Fireproof protects it for " + (limitMs / 1000) + " seconds.",
-                        NamedTextColor.RED)));
+                        + " fell into fire or lava! Fireproof protects it for " + formatSeconds(seconds)
+                        + " (the timer pauses while nobody is near it).", NamedTextColor.RED)));
             }
-            if (burningSince.size() > 500) burningSince.entrySet().removeIf(e -> now - e.getValue() > 600_000);
+            if (burningSinceTick.size() > 500) {
+                burningSinceTick.keySet().removeIf(id -> plugin.getServer().getEntity(id) == null);
+            }
         }
-        return now - since <= limitMs;
+        return age - since <= seconds * 20;
+    }
+
+    private static String formatSeconds(int seconds) {
+        if (seconds % 60 == 0) {
+            int m = seconds / 60;
+            return m + (m == 1 ? " minute" : " minutes");
+        }
+        return seconds + " seconds";
     }
 
     // ------------------------------------------------------------------ Soulbound (limited saves)

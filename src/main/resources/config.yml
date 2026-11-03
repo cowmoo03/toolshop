@@ -117,8 +117,9 @@ durability:
   chance: [5, 10, 20]
 
 fireproof:
-  # Seconds a dropped tool survives in lava or fire, for tier 1, 2 and 3. Then it burns.
-  seconds: [15, 45, 120]
+  # Seconds a dropped tool survives in lava or fire, for tier 1, 2 and 3 (1 min, 5 min, 10 min). Then it burns.
+  # Counted in game time, so it pauses while nobody is near the item. It also won't despawn during this time.
+  seconds: [60, 300, 600]
 
 soulbound:
   # Deaths the tool survives, for tier 1, 2 and 3. Each death uses one save; with none left it drops normally.
