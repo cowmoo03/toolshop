@@ -40,6 +40,8 @@ public final class Settings {
     public final float excavatorExhaustion;
     public final int[] durabilityChance;
     public final int[] fireproofSeconds;
+    /** Extra seconds a dropped Recovery tool stays before despawning, per tier. */
+    public final int[] recoverySeconds;
     public final int[] soulboundSaves;
     /** True = saves can be refilled whenever below max; false = only once all are used up. */
     public final boolean soulboundRechargeAnytime;
@@ -102,6 +104,7 @@ public final class Settings {
         excavatorExhaustion = (float) Math.max(0, c.getDouble("excavator.exhaustion-per-block", 0.05));
         durabilityChance = readTierInts(c.getIntegerList("durability.chance"), new int[]{5, 10, 20});
         fireproofSeconds = readTierInts(c.getIntegerList("fireproof.seconds"), new int[]{60, 180, 300});
+        recoverySeconds = readTierInts(c.getIntegerList("recovery.extra-seconds"), new int[]{60, 180, 300});
         soulboundSaves = readTierInts(c.getIntegerList("soulbound.saves"), new int[]{3, 5, 8});
         soulboundRechargeAnytime = "anytime".equalsIgnoreCase(c.getString("soulbound.recharge", "empty"));
 

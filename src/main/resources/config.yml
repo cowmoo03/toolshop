@@ -56,6 +56,11 @@ upgrades:
     - { level: 40, cost: { NETHERITE_SCRAP: 2 } }
     - { level: 60, cost: { NETHERITE_SCRAP: 4 } }
     - { level: 80, cost: { NETHERITE_INGOT: 1 } }
+  # Netherite tools only (they can't burn, so they get Recovery instead of Fireproof).
+  recovery:
+    - { level: 40, cost: { NETHERITE_SCRAP: 2 } }
+    - { level: 60, cost: { NETHERITE_SCRAP: 4 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 1 } }
   soulbound:
     - { level: 50, cost: { TOTEM_OF_UNDYING: 1 } }
     - { level: 70, cost: { TOTEM_OF_UNDYING: 2 } }
@@ -120,6 +125,13 @@ fireproof:
   # Seconds a dropped tool survives in lava or fire, for tier 1, 2 and 3 (1 min, 3 min, 5 min). Then it burns.
   # Counted in game time, so it pauses while nobody is near the item. It also won't despawn during this time.
   seconds: [60, 180, 300]
+
+recovery:
+  # Netherite tools only. When dropped, the tool glows through walls, and on death the owner is told where it is.
+  # Extra seconds before it despawns, on top of the normal 5 minutes, for tier 1, 2 and 3 (counted in game time).
+  # Tier 2+: explosions and cactus can't destroy it.
+  # Tier 3: if it falls into the void it goes back to the owner (inventory, ender chest, or when they next join).
+  extra-seconds: [60, 180, 300]
 
 soulbound:
   # Deaths the tool survives, for tier 1, 2 and 3. Each death uses one save; with none left it drops normally.

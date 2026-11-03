@@ -227,8 +227,8 @@ public final class Legendary {
             String suffix = "";
             if (u == Upgrade.SOULBOUND) {
                 suffix = "  (" + saves(item) + "/" + maxSaves(item) + " saves)";
-            } else if (u == Upgrade.FIREPROOF) {
-                int secs = Settings.forTier(s.fireproofSeconds, t);
+            } else if (u == Upgrade.FIREPROOF || u == Upgrade.RECOVERY) {
+                int secs = Settings.forTier(u == Upgrade.FIREPROOF ? s.fireproofSeconds : s.recoverySeconds, t);
                 suffix = "  (" + (secs % 60 == 0 ? (secs / 60) + " min" : secs + "s") + ")";
             }
             if (u == Upgrade.DRILL || u == Upgrade.VEIN) {

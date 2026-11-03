@@ -12,6 +12,7 @@ public enum Upgrade {
     DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block to use no durability"),
     LAST_STAND("last-stand", "Last Stand", null, 1, "Stops at 1 durability instead of breaking"),
     FIREPROOF("fireproof", "Fireproof", null, 3, "Survives lava and fire for a while when dropped"),
+    RECOVERY("recovery", "Recovery", null, 3, "A dropped tool glows, lasts longer, and survives explosions and the void"),
     SOULBOUND("soulbound", "Soulbound", null, 3, "Saves the tool when you die, a set number of times");
 
     private final String id;
@@ -36,8 +37,11 @@ public enum Upgrade {
     /** True if this upgrade can go on a tool of this kind and material. */
     public boolean appliesTo(ToolKind kind, Material material) {
         if (onlyFor != null && onlyFor != kind) return false;
-        // Netherite items never burn anyway, so Fireproof would do nothing for them.
-        return !(this == FIREPROOF && material.name().startsWith("NETHERITE_"));
+        boolean netherite = material.name().startsWith("NETHERITE_");
+        // Netherite items never burn anyway, so Fireproof would do nothing for them; Recovery is their version.
+        if (this == FIREPROOF) return !netherite;
+        if (this == RECOVERY) return netherite;
+        return true;
     }
 
     /** "Drill II", or just "Magnet" for single-tier upgrades. */

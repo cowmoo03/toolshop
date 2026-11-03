@@ -45,6 +45,7 @@ public final class ToolShopPlugin extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new AbilityListener(this), this);
         getServer().getPluginManager().registerEvents(new PerkListener(this), this);
+        getServer().getPluginManager().registerEvents(new RecoveryListener(this), this);
         getServer().getPluginManager().registerEvents(shopListener, this);
         getServer().getPluginManager().registerEvents(new RepairGuardListener(this), this);
         getServer().getPluginManager().registerEvents(new AnnouncementListener(this), this);

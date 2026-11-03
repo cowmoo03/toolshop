@@ -251,6 +251,9 @@ public final class ShopMenu implements InventoryHolder {
                     + (t >= s.timberSilkLeavesFromTier ? " + Silk Touch collects leaves" : "");
             case DURABILITY -> Settings.forTier(s.durabilityChance, t) + "% chance to save durability";
             case FIREPROOF -> "survives fire and lava for " + shortTime(Settings.forTier(s.fireproofSeconds, t));
+            case RECOVERY -> "glows when dropped, +" + shortTime(Settings.forTier(s.recoverySeconds, t)) + " before despawning"
+                    + (t >= 3 ? ", survives explosions and cactus, returns from the void"
+                    : t == 2 ? ", survives explosions and cactus" : ", death location message");
             case SOULBOUND -> Settings.forTier(s.soulboundSaves, t) + " saves (upgrading refills them)";
             default -> null;
         };
@@ -270,6 +273,7 @@ public final class ShopMenu implements InventoryHolder {
             case DURABILITY -> Material.ANVIL;
             case LAST_STAND -> Material.SHIELD;
             case FIREPROOF -> Material.MAGMA_CREAM;
+            case RECOVERY -> Material.RECOVERY_COMPASS;
             case SOULBOUND -> Material.TOTEM_OF_UNDYING;
         };
     }
@@ -285,7 +289,8 @@ public final class ShopMenu implements InventoryHolder {
                 Component.empty(),
                 text("Upgrades are permanent, but if the tool breaks,", NamedTextColor.RED),
                 text("burns or despawns, it's gone. Last Stand stops it", NamedTextColor.RED),
-                text("breaking, Fireproof buys time in lava, and", NamedTextColor.RED),
+                text("breaking, Fireproof buys time in lava (Recovery", NamedTextColor.RED),
+                text("protects netherite tools instead), and", NamedTextColor.RED),
                 text("Soulbound saves it on death a few times.", NamedTextColor.RED));
         return icon(Material.BOOK, text("How it works", NamedTextColor.YELLOW), lore, false);
     }
