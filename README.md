@@ -77,3 +77,25 @@ sudo chmod 755 /usr/local/bin/update-toolshop
 sudo update-toolshop              # update (asks before restarting)
 sudo update-toolshop --rollback   # go back to the previous version
 ```
+
+## OreWatch (separate plugin, `orewatch/`)
+
+Flags likely x-ray users. It compares how many valuable ore **veins** each player finds (diamond, ancient debris,
+emerald, gold) to how much stone or netherrack they mine. If someone finds far more veins than normal mining
+produces, staff get an alert. It never punishes anyone on its own.
+
+- Counts veins, not blocks, so Vein Mining, the Drill and big veins don't make honest players look suspicious.
+- Ignores ore blocks players placed themselves.
+- Alerts staff in chat (with a cooldown) when a player's last-24h rate is over the limit; logs to `alerts.log`.
+- Rare-find messages for staff ("Steve found diamond ore (6) at ...") and `finds.log`.
+- Limits and block lists are in `plugins/OreWatch/config.yml`.
+
+| Command | What |
+|---|---|
+| `/orewatch <player>` | A player's veins, ores and stone mined (24h, 7 days, all time) and their rates |
+| `/orewatch top [24h\|7d\|all]` | Players ranked by how close they are to the limits |
+| `/orewatch notify` | Turn rare-find messages on or off for yourself |
+| `/orewatch reset <player>` | Clear a player's stats |
+| `/orewatch reload` | Reload the config |
+
+All commands are ops-only by default. Download: `https://github.com/cowmoo03/toolshop/releases/download/orewatch-latest/OreWatch.jar`

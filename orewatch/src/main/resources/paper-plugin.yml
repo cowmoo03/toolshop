@@ -1,0 +1,23 @@
+name: OreWatch
+version: '${version}'
+main: io.github.cowmoo03.orewatch.OreWatchPlugin
+api-version: '26.2'
+description: Flags likely x-ray users by comparing valuable ore veins found to stone mined. Alerts staff; never punishes on its own.
+authors:
+  - cowmoo03
+permissions:
+  orewatch.command:
+    description: Use /orewatch to view player stats
+    default: op
+  orewatch.alerts:
+    description: Receive suspicious-mining alerts
+    default: op
+  orewatch.notify:
+    description: Receive rare-find notifications (toggle with /orewatch notify)
+    default: op
+  orewatch.admin:
+    description: Reset stats and reload the config
+    default: op
+  orewatch.exempt:
+    description: Not tracked or flagged
+    default: false

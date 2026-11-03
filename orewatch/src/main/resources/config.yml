@@ -1,0 +1,50 @@
+# OreWatch: flags likely x-ray users by comparing the valuable ore VEINS they find to the stone they mine.
+# It never punishes anyone. It alerts staff, and you decide.
+# Apply changes with: /orewatch reload
+#
+# How it judges: for each resource below, it looks at the last 24 hours and works out
+# "veins found per 1000 filler blocks mined". If a player has found at least min-veins
+# AND their rate is above max-per-1000, staff get an alert.
+# Veins, not blocks, are counted, so Vein Mining or a lucky big vein doesn't inflate anyone's numbers.
+# Tune these after watching normal players for a while: /orewatch top shows everyone's ratios.
+
+resources:
+  diamond:
+    blocks: [DIAMOND_ORE, DEEPSLATE_DIAMOND_ORE]
+    filler: overworld
+    min-veins: 4
+    max-per-1000: 12
+  ancient_debris:
+    blocks: [ANCIENT_DEBRIS]
+    filler: nether
+    min-veins: 4
+    max-per-1000: 8
+  emerald:
+    blocks: [EMERALD_ORE, DEEPSLATE_EMERALD_ORE]
+    filler: overworld
+    min-veins: 3
+    max-per-1000: 6
+  gold:
+    blocks: [GOLD_ORE, DEEPSLATE_GOLD_ORE]
+    filler: overworld
+    min-veins: 6
+    max-per-1000: 25
+
+# What counts as "normal mining" for each filler group.
+filler:
+  overworld: [STONE, DEEPSLATE, TUFF, GRANITE, DIORITE, ANDESITE, CALCITE, DRIPSTONE_BLOCK, SMOOTH_BASALT]
+  nether: [NETHERRACK, BASALT, BLACKSTONE, SOUL_SOIL, SOUL_SAND]
+
+# Ore blocks of the same resource within this many blocks of each other count as one vein.
+vein-distance: 2
+
+# Minutes between repeat alerts for the same player and resource.
+alert-cooldown-minutes: 10
+
+# Rare-find messages to staff ("Steve found diamond ore (6) at ..."). Staff can turn them off with /orewatch notify.
+notify-finds: true
+# Seconds to wait before sending a find message, so the whole vein's block count is included.
+notify-delay-seconds: 5
+
+# Days of hourly history kept per player (for the 24h and 7-day numbers).
+history-days: 7

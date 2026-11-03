@@ -28,8 +28,10 @@ jobs:
 
       - uses: actions/upload-artifact@v5
         with:
-          name: ToolShop
-          path: build/libs/ToolShop.jar
+          name: plugins
+          path: |
+            build/libs/ToolShop.jar
+            orewatch/build/libs/OreWatch.jar
 
       - name: Publish as the "latest" release
         env:
@@ -40,3 +42,14 @@ jobs:
             --title "Latest build" \
             --notes "Built from ${GITHUB_SHA}" \
             --target "${GITHUB_SHA}"
+
+      - name: Publish OreWatch as the "orewatch-latest" release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete orewatch-latest --yes --cleanup-tag || true
+          gh release create orewatch-latest orewatch/build/libs/OreWatch.jar \
+            --title "OreWatch latest build" \
+            --notes "Built from ${GITHUB_SHA}" \
+            --target "${GITHUB_SHA}" \
+            --latest=false
