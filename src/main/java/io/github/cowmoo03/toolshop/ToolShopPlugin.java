@@ -111,6 +111,24 @@ public final class ToolShopPlugin extends JavaPlugin {
     public ShopListener shopListener() { return shopListener; }
     public SkillsListener skills() { return skills; }
 
+    /**
+     * mcMMO level an upgrade tier needs. The config uses the 0-100 (Standard) scale; with mcMMO in Retro Mode
+     * (0-1000) it's multiplied by 10 so the same progress is required either way.
+     */
+    public int requiredLevel(Upgrade upgrade, int tier) {
+        return settings.tier(upgrade, tier).level() * levelScale();
+    }
+
+    public int levelScale() {
+        String scale = getConfig().getString("mcmmo.level-scale", "auto");
+        if (scale.equalsIgnoreCase("auto")) return mcmmo != null && mcmmo.retroMode() ? 10 : 1;
+        try {
+            return Math.max(1, Integer.parseInt(scale.trim()));
+        } catch (NumberFormatException e) {
+            return 1;
+        }
+    }
+
     /** Keeps legendary tool descriptions up to date and cleans up old 1.x rental upgrades. */
     private void scanOnlinePlayers() {
         for (Player player : getServer().getOnlinePlayers()) {

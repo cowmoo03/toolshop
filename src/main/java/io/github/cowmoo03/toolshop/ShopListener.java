@@ -108,14 +108,15 @@ public final class ShopListener implements Listener {
         Settings s = plugin.settings();
         Settings.Tier req = s.tier(upgrade, next);
 
-        if (plugin.mcmmo().available() && s.requireLevels && req.level() > 0) {
+        int needLevel = plugin.requiredLevel(upgrade, next);
+        if (plugin.mcmmo().available() && s.requireLevels && needLevel > 0) {
             int lvl = plugin.mcmmo().level(player, kind.mcmmoSkill());
             if (lvl < 0) {
                 fail(player, "Couldn't read your mcMMO level yet. Try again in a moment.");
                 return;
             }
-            if (lvl < req.level()) {
-                fail(player, "You need " + kind.skillName() + " level " + req.level() + " (you're level " + lvl + ").");
+            if (lvl < needLevel) {
+                fail(player, "You need " + kind.skillName() + " level " + needLevel + " (you're level " + lvl + ").");
                 return;
             }
         }

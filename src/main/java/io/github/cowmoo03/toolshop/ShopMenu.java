@@ -195,10 +195,11 @@ public final class ShopMenu implements InventoryHolder {
         int next = current + 1;
         Settings.Tier req = s.tier(u, next);
         lore.add(text("Next: " + u.withTier(next), NamedTextColor.WHITE).decoration(TextDecoration.BOLD, true));
-        if (plugin.mcmmo().available() && s.requireLevels && req.level() > 0) {
+        int needLevel = plugin.requiredLevel(u, next);
+        if (plugin.mcmmo().available() && s.requireLevels && needLevel > 0) {
             int lvl = plugin.mcmmo().level(player, kind.mcmmoSkill());
-            boolean ok = lvl >= req.level();
-            lore.add(text((ok ? "✔ " : "✘ ") + kind.skillName() + " level " + req.level()
+            boolean ok = lvl >= needLevel;
+            lore.add(text((ok ? "✔ " : "✘ ") + kind.skillName() + " level " + needLevel
                     + " (you: " + (lvl < 0 ? "?" : lvl) + ")", ok ? NamedTextColor.GREEN : NamedTextColor.RED));
         }
         for (Map.Entry<Material, Integer> e : req.cost().entrySet()) {
