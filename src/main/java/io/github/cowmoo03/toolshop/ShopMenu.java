@@ -263,7 +263,7 @@ public final class ShopMenu implements InventoryHolder {
         return seconds % 60 == 0 ? (seconds / 60) + " min" : seconds + "s";
     }
 
-    private static Material iconFor(Upgrade u) {
+    static Material iconFor(Upgrade u) {
         return switch (u) {
             case DRILL -> Material.STONE;
             case VEIN -> Material.DIAMOND_ORE;

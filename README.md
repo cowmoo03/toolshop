@@ -35,11 +35,20 @@ Abilities work while sneaking. Everything above is set in `config.yml`.
 - Without mcMMO installed, level requirements are skipped (items only).
 - A one-time chat announcement greets each player after an update (`join-announcement` in the config; change its `id` to show a new one).
 
+## Skills window
+
+`/skills` (or `/skill`) shows every mcMMO skill with level and XP bar. Clicking a skill lists its abilities with
+plain-language descriptions, whether each is unlocked, its rank, and the level the locked ones need (read from
+mcMMO's own `skillranks.yml`, Standard or Retro Mode). `/mcstats` and mcMMO's per-skill commands (`/mining`,
+`/axes`, ...) open the window instead of printing to chat, and those commands are hidden from players' tab
+completion. Both can be turned off under `skills-menu` in the config.
+
 ## Commands
 
 | Command | Who | What |
 |---|---|---|
 | `/toolshop` | Everyone | Open the shop |
+| `/skills [skill]` | Everyone | Window with every mcMMO skill: level, XP, abilities in plain words, what's unlocked and the ToolShop upgrades each skill unlocks |
 | `/toolshop mode` | Everyone | Switch a legendary pickaxe between Drill and Vein Mining |
 | `/toolshop give <player> <pickaxe\|axe\|shovel> [iron\|diamond\|netherite]` | Ops | Give a new legendary tool |
 | `/toolshop upgrade <player> <upgrade> <tier>` | Ops | Set an upgrade on the player's held legendary tool |

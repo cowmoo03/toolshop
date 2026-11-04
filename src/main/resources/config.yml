@@ -141,6 +141,14 @@ soulbound:
   # "empty" = only once all saves are used up, "anytime" = whenever they're below the maximum.
   recharge: empty
 
+# The /skills window: every mcMMO skill with level, XP and abilities explained in plain words.
+skills-menu:
+  enabled: true
+  # /mcstats and the per-skill commands (/mining, /axes, ...) open the window instead of a wall of chat.
+  replace-mcmmo-commands: true
+  # Hide mcMMO's per-skill and info commands from players' tab completion (ops still see everything).
+  tidy-command-list: true
+
 # Chat message shown once to each player when they join after an update.
 # To show a new message after a future update: change the lines AND change the id.
 # Lines use MiniMessage formatting (https://docs.advntr.dev/minimessage/format.html).

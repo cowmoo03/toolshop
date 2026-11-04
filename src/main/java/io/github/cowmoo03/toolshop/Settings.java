@@ -45,6 +45,9 @@ public final class Settings {
     public final int[] soulboundSaves;
     /** True = saves can be refilled whenever below max; false = only once all are used up. */
     public final boolean soulboundRechargeAnytime;
+    public final boolean skillsMenuEnabled;
+    public final boolean skillsReplaceCommands;
+    public final boolean skillsTidyCommands;
     public final boolean announcementEnabled;
     public final String announcementId;
     public final int announcementDelaySeconds;
@@ -107,6 +110,10 @@ public final class Settings {
         recoverySeconds = readTierInts(c.getIntegerList("recovery.extra-seconds"), new int[]{60, 180, 300});
         soulboundSaves = readTierInts(c.getIntegerList("soulbound.saves"), new int[]{3, 5, 8});
         soulboundRechargeAnytime = "anytime".equalsIgnoreCase(c.getString("soulbound.recharge", "empty"));
+
+        skillsMenuEnabled = c.getBoolean("skills-menu.enabled", true);
+        skillsReplaceCommands = c.getBoolean("skills-menu.replace-mcmmo-commands", true);
+        skillsTidyCommands = c.getBoolean("skills-menu.tidy-command-list", true);
 
         announcementEnabled = c.getBoolean("join-announcement.enabled", true);
         announcementId = c.getString("join-announcement.id", "");

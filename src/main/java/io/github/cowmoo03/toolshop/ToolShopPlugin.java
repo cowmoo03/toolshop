@@ -28,6 +28,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     private McMMOHook mcmmo;
     private ShopListener shopListener;
     private RecoveryListener recovery;
+    private SkillsListener skills;
 
     @Override
     public void onEnable() {
@@ -51,9 +52,15 @@ public final class ToolShopPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(shopListener, this);
         getServer().getPluginManager().registerEvents(new RepairGuardListener(this), this);
         getServer().getPluginManager().registerEvents(new AnnouncementListener(this), this);
+        skills = new SkillsListener(this);
+        getServer().getPluginManager().registerEvents(skills, this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
-                event.registrar().register("toolshop", "Make and upgrade legendary tools", new ToolShopCommand(this)));
+        {
+            event.registrar().register("toolshop", "Make and upgrade legendary tools", new ToolShopCommand(this));
+            event.registrar().register("skills", "Your mcMMO skills and abilities", java.util.List.of("skill"),
+                    new SkillsCommand(this));
+        });
 
         // Connect to mcMMO after every plugin has enabled, so load order doesn't matter.
         getServer().getScheduler().runTask(this, () -> mcmmo = new McMMOHook(this));
@@ -102,6 +109,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     public Registry registry() { return registry; }
     public McMMOHook mcmmo() { return mcmmo; }
     public ShopListener shopListener() { return shopListener; }
+    public SkillsListener skills() { return skills; }
 
     /** Keeps legendary tool descriptions up to date and cleans up old 1.x rental upgrades. */
     private void scanOnlinePlayers() {
