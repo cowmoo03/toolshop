@@ -189,7 +189,7 @@ public final class SkillCatalog {
                         + "ores to come out already smelted when you mine them.", 10))));
 
         add(new Skill("alchemy", "Alchemy", "BREWING_STAND", "Brewing potions", List.of(), null, List.of(
-                pas("Catalysis", "Catalysis", "Brew potions faster.", 0),
+                pas("Catalysis", "Catalysis", "Brew potions faster. The higher your level, the faster.", 0),
                 pas("Concoctions", "Concoctions", "Unlocks more potion ingredients as you level up.", 0))));
     }
 

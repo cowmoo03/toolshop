@@ -206,13 +206,14 @@ public final class SkillsMenu implements InventoryHolder {
         }
         lore.add(Component.empty());
         if (unlocked) {
+            lore.add(text(unlock <= 0 ? "✔ Everyone starts with this" : "✔ Unlocked", NamedTextColor.GREEN));
             if (ranks != null && ranks.size() > 1) {
                 int rank = 0;
                 for (int l : ranks) if (level >= l) rank++;
-                String nextRank = rank < ranks.size() ? " · next at level " + ranks.get(rank) : " · max rank";
-                lore.add(text("✔ Unlocked · rank " + rank + " of " + ranks.size() + nextRank, NamedTextColor.GREEN));
-            } else {
-                lore.add(text("✔ Unlocked", NamedTextColor.GREEN));
+                lore.add(text("Rank " + rank + " of " + ranks.size()
+                        + (rank < ranks.size() ? " · next rank at level " + ranks.get(rank) : " · max rank"), NamedTextColor.GRAY));
+            } else if (a.kind() == SkillCatalog.Kind.PASSIVE) {
+                lore.add(text("Gets stronger as you level up", NamedTextColor.GRAY));
             }
         } else {
             lore.add(text("🔒 Unlocks at level " + unlock + (level >= 0 ? " (you're " + level + ")" : ""), NamedTextColor.RED));
