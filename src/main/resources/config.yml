@@ -49,8 +49,8 @@ upgrades:
     - { level: 65, cost: { NETHERITE_INGOT: 2 } }
   timber:
     - { level: 5, cost: { IRON_INGOT: 8 } }
-    - { level: 20, cost: { DIAMOND: 4 } }
-    - { level: 45, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 30, cost: { DIAMOND: 8 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 2 } }
   excavator:
     - { level: 10, cost: { IRON_INGOT: 16 } }
     - { level: 30, cost: { DIAMOND: 8 } }
