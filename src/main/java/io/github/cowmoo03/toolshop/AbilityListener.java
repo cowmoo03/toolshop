@@ -104,7 +104,8 @@ public final class AbilityListener implements Listener {
     }
 
     /**
-     * Tier 1: a 1x2 cut matching the player's height (or 2 deep when looking straight down/up).
+     * Tier 1: the hit block plus one above or below it: the other body block at body height, the block above
+     * when hitting above your head, below when hitting below your feet (or the other side if that one is open).
      * Tier 2: 3x3. Tier 3: 5x5. The square faces the way the player is looking.
      */
     private void digArea(Player player, Block start, int tier, Predicate<Block> allowed, Sound sound, float exhaustion) {
@@ -112,13 +113,16 @@ public final class AbilityListener implements Listener {
         float pitch = player.getLocation().getPitch();
         boolean vertical = pitch > 45 || pitch < -45;
         if (tier <= 1) {
-            Block partner;
-            if (vertical) {
-                partner = start.getRelative(pitch > 0 ? BlockFace.DOWN : BlockFace.UP);
-            } else {
-                int feetY = player.getLocation().getBlockY();
-                partner = start.getY() > feetY ? start.getRelative(BlockFace.DOWN) : start.getRelative(BlockFace.UP);
-            }
+            BlockFace dir;
+            int feetY = player.getLocation().getBlockY();
+            int y = start.getY();
+            if (vertical) dir = pitch > 0 ? BlockFace.DOWN : BlockFace.UP;
+            else if (y >= feetY + 2) dir = BlockFace.UP;   // above your head: dig upward (stairs up)
+            else if (y < feetY) dir = BlockFace.DOWN;      // below your feet: dig downward (stairs down)
+            else dir = y == feetY ? BlockFace.UP : BlockFace.DOWN; // body height: the other body block
+            Block partner = start.getRelative(dir);
+            // Already dug out (or not stone): take the block on the other side so it still breaks 2.
+            if (!allowed.test(partner)) partner = start.getRelative(dir.getOppositeFace());
             area.add(partner);
         } else {
             int r = tier - 1;
