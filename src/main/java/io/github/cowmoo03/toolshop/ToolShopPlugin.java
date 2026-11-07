@@ -113,10 +113,17 @@ public final class ToolShopPlugin extends JavaPlugin {
 
     /**
      * mcMMO level an upgrade tier needs. The config uses the 0-100 (Standard) scale; with mcMMO in Retro Mode
-     * (0-1000) it's multiplied by 10 so the same progress is required either way.
+     * (0-1000) it's multiplied by 10 so the same progress is required either way. For upgrades that fit every
+     * tool (Magnet, Soulbound...), mcmmo.skill-multiplier then raises or lowers it for one tool's skill; a tool's own
+     * ability (Drill, Timber...) has its own entry in the config and isn't multiplied. Rounded to the nearest 10.
      */
-    public int requiredLevel(Upgrade upgrade, int tier) {
-        return settings.tier(upgrade, tier).level() * levelScale();
+    public int requiredLevel(Upgrade upgrade, int tier, ToolKind kind) {
+        int base = settings.tier(upgrade, tier).level() * levelScale();
+        if (kind == null || upgrade.onlyFor() != null) return base;
+        double mult = settings.skillMultiplier.getOrDefault(kind.mcmmoSkill().toLowerCase(java.util.Locale.ROOT), 1.0);
+        if (mult == 1.0) return base;
+        long scaled = Math.round(base * mult);
+        return (int) (base >= 10 ? Math.round(scaled / 10.0) * 10 : scaled);
     }
 
     public int levelScale() {

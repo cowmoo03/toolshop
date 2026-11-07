@@ -26,6 +26,9 @@ public final class Settings {
     public final int lowDurabilityPercent;
     public final boolean requireLevels;
     public final boolean xpOnlyForHitBlock;
+    /** mcmmo.skill-multiplier, keyed by lower-case mcMMO skill name. */
+    public final java.util.Map<String, Double> skillMultiplier = new java.util.HashMap<>();
+    public final boolean timberXpForAllLogs;
     public final Map<Material, Integer> createCost;
     private final Map<Upgrade, List<Tier>> tiers = new EnumMap<>(Upgrade.class);
 
@@ -61,6 +64,13 @@ public final class Settings {
         lowDurabilityPercent = Math.max(0, c.getInt("low-durability-warning-percent", 10));
         requireLevels = c.getBoolean("mcmmo.require-levels", true);
         xpOnlyForHitBlock = c.getBoolean("mcmmo.xp-only-for-hit-block", true);
+        org.bukkit.configuration.ConfigurationSection mults = c.getConfigurationSection("mcmmo.skill-multiplier");
+        if (mults != null) {
+            for (String key : mults.getKeys(false)) {
+                double m = mults.getDouble(key, 1.0);
+                if (m > 0) skillMultiplier.put(key.toLowerCase(java.util.Locale.ROOT), m);
+            }
+        }
         createCost = readCost(c.getConfigurationSection("create-cost"), "create-cost", log);
 
         for (Upgrade u : Upgrade.values()) {
@@ -104,6 +114,7 @@ public final class Settings {
         timberMaxLogs = readTierInts(c.getIntegerList("timber.max-logs"), new int[]{16, 64, 150});
         timberSilkLeavesFromTier = c.getInt("timber.silk-leaves-from-tier", 3);
         timberMinLeaves = Math.max(0, c.getInt("timber.min-natural-leaves", 3));
+        timberXpForAllLogs = c.getBoolean("timber.xp-for-all-logs", true);
         excavatorExhaustion = (float) Math.max(0, c.getDouble("excavator.exhaustion-per-block", 0.05));
         durabilityChance = readTierInts(c.getIntegerList("durability.chance"), new int[]{5, 10, 20});
         fireproofSeconds = readTierInts(c.getIntegerList("fireproof.seconds"), new int[]{60, 180, 300});

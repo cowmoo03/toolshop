@@ -192,7 +192,7 @@ public final class AbilityListener implements Listener {
         logs.remove(start);
         logs.sort(Comparator.comparingInt(Block::getY)
                 .thenComparingDouble(b -> b.getLocation().distanceSquared(start.getLocation())));
-        breakAll(player, logs);
+        breakAll(player, logs, timberNoXp());
         playSound(start, Sound.BLOCK_WOOD_BREAK, 0.6f);
 
         if (collectLeaves) {
@@ -305,11 +305,16 @@ public final class AbilityListener implements Listener {
         return false;
     }
 
+    /** Timber logs give Woodcutting XP unless timber.xp-for-all-logs is off. */
+    private boolean timberNoXp() {
+        return plugin.settings().xpOnlyForHitBlock && !plugin.settings().timberXpForAllLogs;
+    }
+
     private void fellStump(Player player, Block start, List<Block> logs) {
         List<Block> rest = new ArrayList<>(logs);
         rest.remove(start);
         rest.sort(Comparator.comparingInt(Block::getY));
-        breakAll(player, rest);
+        breakAll(player, rest, timberNoXp());
         playSound(start, Sound.BLOCK_WOOD_BREAK, 0.8f);
         for (Block b : logs) felledColumns.remove(columnKey(b));
     }
@@ -351,10 +356,14 @@ public final class AbilityListener implements Listener {
      * so mcMMO gives no XP for it (only the block the player hit counts). Stops if the tool leaves the hand.
      */
     private int breakAll(Player player, List<Block> blocks) {
+        return breakAll(player, blocks, plugin.settings().xpOnlyForHitBlock);
+    }
+
+    /** Breaks the blocks as the player. noXp: the extra blocks give no mcMMO XP. */
+    private int breakAll(Player player, List<Block> blocks, boolean noXp) {
         UUID id = player.getUniqueId();
         ItemStack tool = player.getInventory().getItemInMainHand();
         String toolId = plugin.legendary().id(tool);
-        boolean noXp = plugin.settings().xpOnlyForHitBlock;
         boolean effects = plugin.settings().effects;
         busy.add(id);
         int broken = 0;

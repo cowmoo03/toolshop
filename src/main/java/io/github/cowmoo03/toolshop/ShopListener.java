@@ -108,7 +108,7 @@ public final class ShopListener implements Listener {
         Settings s = plugin.settings();
         Settings.Tier req = s.tier(upgrade, next);
 
-        int needLevel = plugin.requiredLevel(upgrade, next);
+        int needLevel = plugin.requiredLevel(upgrade, next, kind);
         if (plugin.mcmmo().available() && s.requireLevels && needLevel > 0) {
             int lvl = plugin.mcmmo().level(player, kind.mcmmoSkill());
             if (lvl < 0) {

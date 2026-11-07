@@ -231,7 +231,7 @@ public final class SkillsMenu implements InventoryHolder {
         if (up == Upgrade.RECOVERY) lore.add(text("Netherite tools only", NamedTextColor.DARK_GRAY));
         lore.add(Component.empty());
         for (int t = 1; t <= up.maxTier(); t++) {
-            int need = plugin.requiredLevel(up, t);
+            int need = plugin.requiredLevel(up, t, skill.tool());
             boolean ok = !s.requireLevels || level >= need;
             String label = up.maxTier() == 1 ? "Needs " : Upgrade.roman(t) + ": ";
             lore.add(text((ok ? "✔ " : "🔒 ") + label + skill.name() + " " + need, ok ? NamedTextColor.GREEN : NamedTextColor.RED));

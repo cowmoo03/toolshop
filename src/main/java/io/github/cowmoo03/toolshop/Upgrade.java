@@ -32,6 +32,8 @@ public enum Upgrade {
     public String id() { return id; }
     public String displayName() { return displayName; }
     public int maxTier() { return maxTier; }
+    /** The one tool kind this upgrade is for (Drill, Timber...), or null if it fits every tool. */
+    public ToolKind onlyFor() { return onlyFor; }
     public String summary() { return summary; }
 
     /** True if this upgrade can go on a tool of this kind and material. */

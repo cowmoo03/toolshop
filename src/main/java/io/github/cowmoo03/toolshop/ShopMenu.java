@@ -195,7 +195,7 @@ public final class ShopMenu implements InventoryHolder {
         int next = current + 1;
         Settings.Tier req = s.tier(u, next);
         lore.add(text("Next: " + u.withTier(next), NamedTextColor.WHITE).decoration(TextDecoration.BOLD, true));
-        int needLevel = plugin.requiredLevel(u, next);
+        int needLevel = plugin.requiredLevel(u, next, kind);
         if (plugin.mcmmo().available() && s.requireLevels && needLevel > 0) {
             int lvl = plugin.mcmmo().level(player, kind.mcmmoSkill());
             boolean ok = lvl >= needLevel;
