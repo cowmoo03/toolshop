@@ -223,6 +223,7 @@ public final class PerkListener implements Listener {
         if (player.getGameMode() == GameMode.CREATIVE) return;
         ItemStack tool = player.getInventory().getItemInMainHand();
         Legendary lt = plugin.legendary();
-        if (lt.usableBy(tool, player)) plugin.registry().addBlocks(lt.id(tool), 1);
+        // Swords count kills instead (SwordListener).
+        if (lt.usableBy(tool, player) && lt.kind(tool) != ToolKind.SWORD) plugin.registry().addBlocks(lt.id(tool), 1);
     }
 }

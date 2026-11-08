@@ -102,7 +102,7 @@ public final class SkillCatalog {
                 pas("MagicHunter", "Magic Hunter", "Treasure can come enchanted.", 20),
                 pas("FishermansDiet", "Fisherman's Diet", "Fish fills more hunger.", 20))));
 
-        add(new Skill("swords", "Swords", "DIAMOND_SWORD", "Hitting mobs and players with a sword", List.of(), null, List.of(
+        add(new Skill("swords", "Swords", "DIAMOND_SWORD", "Hitting mobs and players with a sword", List.of(), ToolKind.SWORD, List.of(
                 sup("SerratedStrikes", "Serrated Strikes", "Your hits also damage enemies around your target and can make them bleed.",
                         "Right-click with a sword to ready it, then attack."),
                 pas("Rupture", "Rupture", "Hits can make enemies bleed.", 1),

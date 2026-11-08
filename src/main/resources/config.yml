@@ -1,7 +1,7 @@
 # ToolShop 2.0: legendary tools
 # Apply changes in-game with: /toolshop reload
 #
-# Each player can turn one iron, diamond or netherite pickaxe, axe and shovel into a legendary tool,
+# Each player can turn one iron, diamond or netherite pickaxe, axe, shovel and sword into a legendary tool,
 # then upgrade it in /toolshop. Upgrades are permanent, but the tool can be lost like any item
 # (it breaks, burns, or despawns), unless it has the matching safety upgrade.
 
@@ -29,6 +29,7 @@ mcmmo:
     mining: 1.0
     woodcutting: 1.25
     excavation: 1.0
+    swords: 1.0
   # Only the block the player actually hits gives mcMMO XP, not the extra blocks an ability breaks.
   # Without this, a 5x5 Drill swing would give 25 blocks' worth of XP.
   xp-only-for-hit-block: true
@@ -76,6 +77,19 @@ upgrades:
     - { level: 40, cost: { NETHERITE_SCRAP: 2 } }
     - { level: 60, cost: { NETHERITE_SCRAP: 4 } }
     - { level: 80, cost: { NETHERITE_INGOT: 1 } }
+  # Sword only. Levels are Swords levels.
+  lifesteal:
+    - { level: 15, cost: { GHAST_TEAR: 2 } }
+    - { level: 35, cost: { GHAST_TEAR: 4, DIAMOND: 4 } }
+    - { level: 65, cost: { NETHERITE_INGOT: 2 } }
+  beheading:
+    - { level: 20, cost: { BONE: 32 } }
+    - { level: 40, cost: { DIAMOND: 8 } }
+    - { level: 70, cost: { NETHERITE_INGOT: 1 } }
+  bounty:
+    - { level: 10, cost: { LAPIS_LAZULI: 32 } }
+    - { level: 30, cost: { EMERALD: 16 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 1 } }
   soulbound:
     - { level: 50, cost: { TOTEM_OF_UNDYING: 1 } }
     - { level: 70, cost: { TOTEM_OF_UNDYING: 2 } }
@@ -213,6 +227,26 @@ join-announcement:
     - ""
 
 # Cosmetic ranks shown on the tool, by blocks broken with it.
+# Legendary swords rank up by kills instead of blocks.
+sword-ranks:
+  0: Rusty
+  100: Seasoned
+  1000: Veteran
+  5000: Legendary
+
+# Sword abilities (they work on their own, no sneaking). Per tier I, II, III.
+lifesteal:
+  # Heals this % of the damage you deal with the sword (melee hits).
+  percent: [5, 10, 15]
+beheading:
+  # Chance per kill to drop the mob's head: zombie, skeleton, creeper, piglin, wither skeleton, or a player's head.
+  chance: [3, 6, 10]
+bounty:
+  # Extra XP orbs from kills.
+  extra-percent: [25, 50, 100]
+# Against players, Lifesteal, Beheading and Bounty are multiplied by this (0.5 = half). 0 turns them off in PvP.
+sword-pvp-multiplier: 0.5
+
 ranks:
   0: Rusty
   1000: Seasoned

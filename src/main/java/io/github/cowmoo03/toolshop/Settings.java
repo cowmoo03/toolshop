@@ -59,6 +59,13 @@ public final class Settings {
     public final List<String> announcementLines;
     /** Blocks broken -> rank name, sorted. */
     public final TreeMap<Long, String> ranks = new TreeMap<>();
+    /** Kills -> rank name, for swords. */
+    public final TreeMap<Long, String> swordRanks = new TreeMap<>();
+    public int[] lifestealPercent;
+    public int[] beheadingChance;
+    public int[] bountyPercent;
+    /** Lifesteal, Beheading and Bounty against players are multiplied by this (PvP). */
+    public double swordPvpMultiplier;
 
     public Settings(FileConfiguration c, Logger log) {
         effects = c.getBoolean("effects", true);
@@ -134,6 +141,21 @@ public final class Settings {
         announcementDelaySeconds = Math.max(0, c.getInt("join-announcement.delay-seconds", 3));
         announcementLines = List.copyOf(c.getStringList("join-announcement.lines"));
 
+        ConfigurationSection swordRankSection = c.getConfigurationSection("sword-ranks");
+        if (swordRankSection != null) {
+            for (String key : swordRankSection.getKeys(false)) {
+                try {
+                    swordRanks.put(Long.parseLong(key), swordRankSection.getString(key, key));
+                } catch (NumberFormatException e) {
+                    log.warning("sword-ranks: '" + key + "' isn't a number");
+                }
+            }
+        }
+        if (!swordRanks.containsKey(0L)) swordRanks.put(0L, "Rusty");
+        lifestealPercent = readTierInts(c.getIntegerList("lifesteal.percent"), new int[]{5, 10, 15});
+        beheadingChance = readTierInts(c.getIntegerList("beheading.chance"), new int[]{3, 6, 10});
+        bountyPercent = readTierInts(c.getIntegerList("bounty.extra-percent"), new int[]{25, 50, 100});
+        swordPvpMultiplier = Math.max(0, Math.min(1, c.getDouble("sword-pvp-multiplier", 0.5)));
         ConfigurationSection rankSection = c.getConfigurationSection("ranks");
         if (rankSection != null) {
             for (String key : rankSection.getKeys(false)) {
@@ -150,6 +172,12 @@ public final class Settings {
     /** Requirements for reaching {@code tier} (1-based). */
     public Tier tier(Upgrade upgrade, int tier) {
         return tiers.get(upgrade).get(tier - 1);
+    }
+
+    /** Rank for a tool: swords by kills, the others by blocks broken. */
+    public String rankFor(ToolKind kind, long count) {
+        if (kind == ToolKind.SWORD) return swordRanks.floorEntry(Math.max(0, count)).getValue();
+        return rankFor(count);
     }
 
     public String rankFor(long blocks) {

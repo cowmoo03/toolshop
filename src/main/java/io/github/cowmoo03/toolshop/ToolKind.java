@@ -4,14 +4,16 @@ import org.bukkit.Material;
 
 import java.util.Set;
 
-/** The three tool types that can become legendary. Each player can own one of each. */
+/** The tool types that can become legendary. Each player can own one of each. */
 public enum ToolKind {
     PICKAXE("pickaxe", "Legendary Pickaxe", "MINING", "Mining",
             Set.of(Material.IRON_PICKAXE, Material.DIAMOND_PICKAXE, Material.NETHERITE_PICKAXE)),
     AXE("axe", "Legendary Axe", "WOODCUTTING", "Woodcutting",
             Set.of(Material.IRON_AXE, Material.DIAMOND_AXE, Material.NETHERITE_AXE)),
     SHOVEL("shovel", "Legendary Shovel", "EXCAVATION", "Excavation",
-            Set.of(Material.IRON_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL));
+            Set.of(Material.IRON_SHOVEL, Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL)),
+    SWORD("sword", "Legendary Sword", "SWORDS", "Swords",
+            Set.of(Material.IRON_SWORD, Material.DIAMOND_SWORD, Material.NETHERITE_SWORD));
 
     private final String id;
     private final String displayName;

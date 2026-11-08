@@ -8,6 +8,9 @@ public enum Upgrade {
     VEIN("vein", "Vein Mining", ToolKind.PICKAXE, 3, "Sneak + mine an ore to break the whole vein"),
     TIMBER("timber", "Timber", ToolKind.AXE, 3, "Sneak + chop to fell the whole tree"),
     EXCAVATOR("excavator", "Excavator", ToolKind.SHOVEL, 3, "Sneak + dig to clear an area"),
+    LIFESTEAL("lifesteal", "Lifesteal", ToolKind.SWORD, 3, "Heals you for part of the damage you deal"),
+    BEHEADING("beheading", "Beheading", ToolKind.SWORD, 3, "Chance for a mob's (or player's) head when you kill it"),
+    BOUNTY("bounty", "Bounty", ToolKind.SWORD, 3, "Kills drop more XP orbs"),
     MAGNET("magnet", "Magnet", null, 1, "Drops from blocks you break go straight into your inventory"),
     DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block to use no durability"),
     LAST_STAND("last-stand", "Last Stand", null, 1, "Stops at 1 durability instead of breaking"),
@@ -39,6 +42,7 @@ public enum Upgrade {
     /** True if this upgrade can go on a tool of this kind and material. */
     public boolean appliesTo(ToolKind kind, Material material) {
         if (onlyFor != null && onlyFor != kind) return false;
+        if (this == MAGNET && kind == ToolKind.SWORD) return false; // Magnet is for blocks you break
         boolean netherite = material.name().startsWith("NETHERITE_");
         // Netherite items never burn anyway, so Fireproof would do nothing for them; Recovery is their version.
         if (this == FIREPROOF) return !netherite;
