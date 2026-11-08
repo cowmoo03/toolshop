@@ -170,7 +170,7 @@ skills-menu:
 # To show a new message after a future update: change the lines AND change the id.
 # Lines use MiniMessage formatting (https://docs.advntr.dev/minimessage/format.html).
 # Flight Charm: a crafted item anyone can use (no mcMMO level needed). Right-click it for creative-style flight,
-# e.g. for building. Each charm is used up. Using another while flying adds more time.
+# e.g. for building. Each charm is used up. One flight at a time: a charm can't be used while already flying.
 flight-charm:
   enabled: true
   minutes: 5

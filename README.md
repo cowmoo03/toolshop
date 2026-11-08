@@ -39,7 +39,7 @@ Abilities work while sneaking. Everything above is set in `config.yml`.
 ## Flight Charm
 
 A crafted item anyone can use, no mcMMO level needed. Right-click it for 5 minutes of creative-style flight for building.
-Each charm is used up; using another while flying adds time.
+Each charm is used up. One flight at a time: a charm can't be used (and isn't used up) while a flight is running.
 
 - Recipe: 4 feathers, 4 gold ingots and a diamond in the middle (feather, gold, feather / gold, diamond, gold / feather, gold, feather).
 - A bar at the top counts down; the last 10 seconds tick.

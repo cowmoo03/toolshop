@@ -48,6 +48,7 @@ import java.util.UUID;
 
 /**
  * Flight Charm: a crafted item anyone can use. Right-click for a few minutes of creative-style flight, for building.
+ * One flight at a time: a charm can't be used (and isn't used up) while a flight is running.
  * The flight ends when time runs out, when the player goes too far (sideways) from where they took off, or on PvP
  * damage (given or taken). After it ends the player takes no fall damage on the way down.
  */
@@ -74,7 +75,7 @@ public final class FlightCharm implements Listener {
 
     private static final class Flight {
         final Location start;
-        long endsAt;
+        final long endsAt;
         final BossBar bar;
         boolean warnedDistance;
         long lastCountdownSecond = -1;
@@ -226,29 +227,28 @@ public final class FlightCharm implements Listener {
             tell(player, "You were just in a fight. Wait " + ((combat - now + 999) / 1000) + "s.", NamedTextColor.RED);
             return;
         }
-        Flight flight = flights.get(player.getUniqueId());
-        if (flight == null && player.getAllowFlight()) {
+        Flight active = flights.get(player.getUniqueId());
+        if (active != null) {
+            tell(player, "You're already flying (" + duration((active.endsAt - now + 999) / 1000)
+                    + " left). Use another charm once this flight ends.", NamedTextColor.YELLOW);
+            return;
+        }
+        if (player.getAllowFlight()) {
             tell(player, "You can already fly.", NamedTextColor.YELLOW);
             return;
         }
         item.setAmount(item.getAmount() - 1);
         player.getInventory().setItem(hand, item.getAmount() > 0 ? item : null);
 
-        if (flight != null) {
-            flight.endsAt += flightSeconds * 1000L;
-            flight.lastCountdownSecond = -1;
-            tell(player, "Flight extended: " + duration((flight.endsAt - now) / 1000) + " left.", NamedTextColor.AQUA);
-        } else {
-            BossBar bar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
-            flight = new Flight(player.getLocation().clone(), now + flightSeconds * 1000L, bar);
-            flights.put(player.getUniqueId(), flight);
-            fallSafeUntil.remove(player.getUniqueId());
-            player.setAllowFlight(true);
-            player.setFlying(true);
-            player.showBossBar(bar);
-            tell(player, "You can fly for " + duration(flightSeconds) + ". Stay within " + (int) maxDistance
-                    + " blocks of here.", NamedTextColor.AQUA);
-        }
+        BossBar bar = BossBar.bossBar(Component.empty(), 1f, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
+        Flight flight = new Flight(player.getLocation().clone(), now + flightSeconds * 1000L, bar);
+        flights.put(player.getUniqueId(), flight);
+        fallSafeUntil.remove(player.getUniqueId());
+        player.setAllowFlight(true);
+        player.setFlying(true);
+        player.showBossBar(bar);
+        tell(player, "You can fly for " + duration(flightSeconds) + ". Stay within " + (int) maxDistance
+                + " blocks of here.", NamedTextColor.AQUA);
         player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 0.6f, 1.6f);
         updateBar(flight, now);
     }
