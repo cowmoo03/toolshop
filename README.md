@@ -32,6 +32,7 @@ Abilities work while sneaking. Everything above is set in `config.yml`.
 - The Drill never breaks ancient debris, obsidian, containers or machines. Vein Mining never touches ancient debris.
 - Timber only fells trees with natural leaves (log builds are safe); trees whose logs touch fall together, and leftover stumps can be chopped in one go.
 - Only the block the player hits gives mcMMO XP; the extra blocks an ability breaks don't.
+- Logs that grew from a sapling still give Woodcutting XP after a piston moves them (tree farms). mcMMO's piston rule still blocks XP for logs a player placed (`mcmmo.pushed-logs-give-xp`).
 - Without mcMMO installed, level requirements are skipped (items only).
 - A one-time chat announcement greets each player after an update (`join-announcement` in the config; change its `id` to show a new one).
 

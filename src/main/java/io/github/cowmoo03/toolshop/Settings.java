@@ -29,6 +29,8 @@ public final class Settings {
     /** mcmmo.skill-multiplier, keyed by lower-case mcMMO skill name. */
     public final java.util.Map<String, Double> skillMultiplier = new java.util.HashMap<>();
     public final boolean timberXpForAllLogs;
+    /** mcmmo.pushed-logs-give-xp: grown logs a piston moves still give Woodcutting XP. */
+    public final boolean pushedLogsGiveXp;
     public final Map<Material, Integer> createCost;
     private final Map<Upgrade, List<Tier>> tiers = new EnumMap<>(Upgrade.class);
 
@@ -64,6 +66,7 @@ public final class Settings {
         lowDurabilityPercent = Math.max(0, c.getInt("low-durability-warning-percent", 10));
         requireLevels = c.getBoolean("mcmmo.require-levels", true);
         xpOnlyForHitBlock = c.getBoolean("mcmmo.xp-only-for-hit-block", true);
+        pushedLogsGiveXp = c.getBoolean("mcmmo.pushed-logs-give-xp", true);
         org.bukkit.configuration.ConfigurationSection mults = c.getConfigurationSection("mcmmo.skill-multiplier");
         if (mults != null) {
             for (String key : mults.getKeys(false)) {

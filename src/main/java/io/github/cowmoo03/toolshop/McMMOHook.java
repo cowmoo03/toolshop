@@ -37,6 +37,8 @@ public final class McMMOHook {
     private final Map<String, List<Integer>> rankLevels = new HashMap<>();
     private Method getTracker;
     private Method setIneligible;
+    private Method setEligible;
+    private Method isIneligible;
     private boolean available;
     private boolean warnedLevelError;
 
@@ -58,6 +60,8 @@ public final class McMMOHook {
             getTracker = main.getMethod("getUserBlockTracker");
             Class<?> tracker = Class.forName("com.gmail.nossr50.util.blockmeta.UserBlockTracker", true, loader);
             setIneligible = tracker.getMethod("setIneligible", Block.class);
+            setEligible = tracker.getMethod("setEligible", Block.class);
+            isIneligible = tracker.getMethod("isIneligible", Block.class);
             available = true;
             loadRanks(mcmmo);
             log.info("Hooked into mcMMO " + mcmmo.getPluginMeta().getVersion() + (retroMode ? " (Retro Mode)" : "") + ".");
@@ -163,6 +167,28 @@ public final class McMMOHook {
             if (tracker != null) setIneligible.invoke(tracker, block);
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             // Worst case the player gets a little extra XP.
+        }
+    }
+
+    /** True if mcMMO gives no XP for this block (placed by a player, or marked by an ability or a piston). */
+    public boolean givesNoXp(Block block) {
+        if (!available) return false;
+        try {
+            Object tracker = getTracker.invoke(null);
+            return tracker != null && Boolean.TRUE.equals(isIneligible.invoke(tracker, block));
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return true;
+        }
+    }
+
+    /** Lets mcMMO give XP for this block again, as if it grew there. */
+    public void markGivesXp(Block block) {
+        if (!available) return;
+        try {
+            Object tracker = getTracker.invoke(null);
+            if (tracker != null) setEligible.invoke(tracker, block);
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            // Worst case the log gives no XP, like before.
         }
     }
 }
