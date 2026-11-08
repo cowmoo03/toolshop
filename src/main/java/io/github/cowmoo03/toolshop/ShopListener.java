@@ -17,7 +17,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Handles clicks in the /toolshop window: making tools legendary, buying upgrades, switching pickaxe mode. */
+/**
+ * Handles clicks in the /toolshop window: opening a tool's upgrades, making tools legendary (tool in hand), buying
+ * upgrades and switching pickaxe mode (tool anywhere in the inventory).
+ */
 public final class ShopListener implements Listener {
     private final ToolShopPlugin plugin;
 
@@ -37,13 +40,20 @@ public final class ShopListener implements Listener {
         if (action == null) return;
         long now = System.currentTimeMillis();
 
-        if (action instanceof ShopMenu.ToggleMode) {
-            toggleMode(player);
+        ToolKind page = menu.page();
+        if (action instanceof ShopMenu.Open o) {
+            menu.setPage(o.kind());
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+        } else if (action instanceof ShopMenu.Back) {
+            menu.setPage(null);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 0.9f);
+        } else if (action instanceof ShopMenu.ToggleMode) {
+            if (page != null) toggleMode(player, ShopMenu.findTool(plugin, player, page));
         } else if (menu.isAwaitingConfirm(action, now)) {
             menu.clearConfirm();
             if (action instanceof ShopMenu.Create c) create(player, c.kind());
-            else if (action instanceof ShopMenu.Buy b) buy(player, b.upgrade());
-            else if (action instanceof ShopMenu.Recharge) recharge(player);
+            else if (action instanceof ShopMenu.Buy b && page != null) buy(player, b.upgrade(), page);
+            else if (action instanceof ShopMenu.Recharge && page != null) recharge(player, page);
         } else {
             menu.askConfirm(action, now);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
@@ -82,19 +92,19 @@ public final class ShopListener implements Listener {
 
         plugin.log(player, "CREATE " + kind.id() + " (" + hand.getType().name().toLowerCase() + ")"
                 + (oldId != null ? ", retired " + oldId : "") + ", paid " + Settings.describeCost(cost), id);
-        ok(player, "This is now your " + kind.displayName() + "! Open /toolshop to upgrade it.");
+        ok(player, "This is now your " + kind.displayName() + "! Click it in /toolshop to upgrade it.");
         player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.6f, 1.2f);
     }
 
-    private void buy(Player player, Upgrade upgrade) {
+    private void buy(Player player, Upgrade upgrade, ToolKind kind) {
         PlayerInventory inv = player.getInventory();
-        ItemStack hand = inv.getItemInMainHand();
+        int slot = ShopMenu.findTool(plugin, player, kind);
         Legendary lt = plugin.legendary();
-        if (!lt.usableBy(hand, player)) {
-            fail(player, "Hold your legendary tool to upgrade it.");
+        if (slot < 0) {
+            fail(player, "Your " + kind.displayName() + " has to be in your inventory to upgrade it.");
             return;
         }
-        ToolKind kind = lt.kind(hand);
+        ItemStack hand = inv.getItem(slot);
         if (!upgrade.appliesTo(kind, hand.getType())) {
             fail(player, upgrade.displayName() + " can't go on this tool.");
             return;
@@ -127,11 +137,11 @@ public final class ShopListener implements Listener {
         }
         take(player, req.cost());
 
-        ItemStack tool = inv.getItemInMainHand(); // re-read after taking items
+        ItemStack tool = inv.getItem(slot); // re-read after taking items
         lt.setTier(tool, upgrade, next);
         if (upgrade == Upgrade.VEIN && lt.tier(tool, Upgrade.DRILL) == 0) lt.setMode(tool, Legendary.MODE_VEIN);
         lt.refresh(tool);
-        inv.setItemInMainHand(tool);
+        inv.setItem(slot, tool);
 
         plugin.log(player, "UPGRADE " + upgrade.withTier(next) + ", paid " + Settings.describeCost(req.cost()), lt.id(tool));
         ok(player, "Upgraded to " + upgrade.withTier(next) + "!");
@@ -139,13 +149,14 @@ public final class ShopListener implements Listener {
     }
 
     /** Refills Soulbound saves for the items of the tool's current Soulbound tier (no level needed). */
-    private void recharge(Player player) {
+    private void recharge(Player player, ToolKind kind) {
         PlayerInventory inv = player.getInventory();
-        ItemStack hand = inv.getItemInMainHand();
+        int slot = ShopMenu.findTool(plugin, player, kind);
         Legendary lt = plugin.legendary();
-        int tier = lt.usableBy(hand, player) ? lt.tier(hand, Upgrade.SOULBOUND) : 0;
+        ItemStack hand = slot < 0 ? null : inv.getItem(slot);
+        int tier = hand == null ? 0 : lt.tier(hand, Upgrade.SOULBOUND);
         if (tier <= 0) {
-            fail(player, "Hold your legendary tool with Soulbound to recharge it.");
+            fail(player, "Your " + kind.displayName() + " with Soulbound has to be in your inventory to recharge it.");
             return;
         }
         int saves = lt.saves(hand);
@@ -162,10 +173,10 @@ public final class ShopListener implements Listener {
             return;
         }
         take(player, cost);
-        ItemStack tool = inv.getItemInMainHand();
+        ItemStack tool = inv.getItem(slot);
         lt.setSaves(tool, max);
         lt.refresh(tool);
-        inv.setItemInMainHand(tool);
+        inv.setItem(slot, tool);
         plugin.log(player, "RECHARGE soulbound to " + max + ", paid " + Settings.describeCost(cost), lt.id(tool));
         ok(player, "Soulbound recharged: " + max + "/" + max + " saves.");
         player.playSound(player.getLocation(), Sound.ITEM_TOTEM_USE, 0.5f, 1.2f);
@@ -173,9 +184,14 @@ public final class ShopListener implements Listener {
 
     /** Switches a pickaxe that has both Drill and Vein Mining between the two. Also used by /toolshop mode. */
     public void toggleMode(Player player) {
-        ItemStack hand = player.getInventory().getItemInMainHand();
+        toggleMode(player, player.getInventory().getHeldItemSlot());
+    }
+
+    /** Switches the pickaxe in this inventory slot between Drill and Vein Mining. */
+    public void toggleMode(Player player, int slot) {
+        ItemStack hand = slot < 0 ? null : player.getInventory().getItem(slot);
         Legendary lt = plugin.legendary();
-        if (!lt.usableBy(hand, player) || lt.kind(hand) != ToolKind.PICKAXE
+        if (hand == null || !lt.usableBy(hand, player) || lt.kind(hand) != ToolKind.PICKAXE
                 || lt.tier(hand, Upgrade.DRILL) == 0 || lt.tier(hand, Upgrade.VEIN) == 0) {
             fail(player, "Hold your legendary pickaxe with both Drill and Vein Mining to switch modes.");
             return;
@@ -183,7 +199,7 @@ public final class ShopListener implements Listener {
         boolean toVein = !Legendary.MODE_VEIN.equals(lt.mode(hand));
         lt.setMode(hand, toVein ? Legendary.MODE_VEIN : Legendary.MODE_DRILL);
         lt.refresh(hand);
-        player.getInventory().setItemInMainHand(hand);
+        player.getInventory().setItem(slot, hand);
         player.sendActionBar(Component.text("Mode: " + (toVein ? "Vein Mining" : "Drill"), NamedTextColor.YELLOW));
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, toVein ? 1.4f : 0.9f);
     }

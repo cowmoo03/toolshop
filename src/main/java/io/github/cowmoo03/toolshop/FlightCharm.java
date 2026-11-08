@@ -76,6 +76,8 @@ public final class FlightCharm implements Listener {
     private int unlockConfigLevel;
     private final Map<UUID, Long> lastLockMessage = new HashMap<>();
     private int unlockCheckCountdown;
+    /** e.g. "4 feathers, 4 gold ingots, 1 diamond", for the shop window. */
+    private String recipeText = "";
     private double maxDistance;
     private long pvpCooldownMs;
     private boolean resetStrayFlight;
@@ -164,6 +166,15 @@ public final class FlightCharm implements Listener {
             for (Map.Entry<Character, Material> e : ingredients.entrySet()) {
                 if (shape.stream().anyMatch(row -> row.indexOf(e.getKey()) >= 0)) recipe.setIngredient(e.getKey(), e.getValue());
             }
+            Map<Material, Integer> counts = new LinkedHashMap<>();
+            for (String row : shape) {
+                for (char ch : row.toCharArray()) {
+                    if (ch != ' ') counts.merge(ingredients.get(ch), 1, Integer::sum);
+                }
+            }
+            List<String> parts = new ArrayList<>();
+            counts.forEach((m, n) -> parts.add(n + " " + Settings.itemName(m, n)));
+            recipeText = String.join(", ", parts) + (amount > 1 ? " (makes " + amount + ")" : "");
             return Bukkit.addRecipe(recipe);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return false;
@@ -190,6 +201,14 @@ public final class FlightCharm implements Listener {
         item.setItemMeta(meta);
         return item;
     }
+
+    public boolean enabled() { return enabled; }
+    public int flightSeconds() { return flightSeconds; }
+    public int maxDistance() { return (int) maxDistance; }
+    public String recipeText() { return recipeText; }
+
+    /** "5 minutes", "1:30"... */
+    public static String durationText(long seconds) { return duration(seconds); }
 
     public boolean isCharm(ItemStack item) {
         return item != null && !item.isEmpty() && item.hasItemMeta()

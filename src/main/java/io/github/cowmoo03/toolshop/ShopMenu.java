@@ -11,6 +11,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
@@ -19,12 +20,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The /toolshop window. Players hold a tool in their main hand: a plain iron/diamond/netherite tool can be
- * made legendary, and a legendary tool shows its upgrades. Every purchase needs a second click to confirm.
+ * The /toolshop window. The first page shows the player's three legendary tools, the "Make it Legendary" star
+ * (which needs a plain iron/diamond/netherite tool in hand) and extras like the Flight Charm. Clicking a legendary
+ * tool that's in their inventory opens its upgrades. Every purchase needs a second click to confirm.
  */
 public final class ShopMenu implements InventoryHolder {
     public static final int TOOL_SLOT = 4;
-    public static final int CREATE_SLOT = 22;
+    /** Home page: one slot per tool kind (pickaxe, axe, shovel) and the star. */
+    private static final int[] HOME_TOOL_SLOTS = {11, 13, 15};
+    public static final int CREATE_SLOT = 30;
+    public static final int FLIGHT_SLOT = 32;
+    public static final int BACK_SLOT = 36;
     public static final int MODE_SLOT = 40;
     public static final int RECHARGE_SLOT = 42;
     public static final int INFO_SLOT = 36;
@@ -32,7 +38,9 @@ public final class ShopMenu implements InventoryHolder {
     public static final long CONFIRM_WINDOW_MS = 5000;
 
     /** What a slot does. */
-    public sealed interface Action permits Create, Buy, ToggleMode, Recharge {}
+    public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back {}
+    public record Open(ToolKind kind) implements Action {}
+    public record Back() implements Action {}
     public record Create(ToolKind kind) implements Action {}
     public record Buy(Upgrade upgrade) implements Action {}
     public record ToggleMode() implements Action {}
@@ -43,6 +51,8 @@ public final class ShopMenu implements InventoryHolder {
     private final Map<Integer, Action> actions = new HashMap<>();
     private Action pending;
     private long pendingUntil;
+    /** null: the tools page; otherwise the upgrades page for this tool kind. */
+    private ToolKind page;
 
     public ShopMenu(ToolShopPlugin plugin) {
         this.plugin = plugin;
@@ -71,59 +81,157 @@ public final class ShopMenu implements InventoryHolder {
         pending = null;
     }
 
+    /** The tool kind whose upgrades are showing, or null on the tools page. */
+    public ToolKind page() {
+        return page;
+    }
+
+    public void setPage(ToolKind kind) {
+        page = kind;
+        pending = null;
+    }
+
+    /**
+     * Inventory slot of the player's own current legendary tool of this kind (main hand first, then the rest of the
+     * inventory and the off hand), or -1 if they aren't carrying it.
+     */
+    public static int findTool(ToolShopPlugin plugin, Player player, ToolKind kind) {
+        Legendary lt = plugin.legendary();
+        PlayerInventory inv = player.getInventory();
+        int held = inv.getHeldItemSlot();
+        if (lt.usableBy(inv.getItem(held), player) && lt.kind(inv.getItem(held)) == kind) return held;
+        ItemStack[] contents = inv.getContents();
+        for (int slot = 0; slot < contents.length; slot++) {
+            ItemStack item = contents[slot];
+            if (item != null && lt.usableBy(item, player) && lt.kind(item) == kind) return slot;
+        }
+        return -1;
+    }
+
     public void render(Player player) {
         actions.clear();
         ItemStack filler = icon(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of(), false);
         for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, filler);
+        if (page != null && findTool(plugin, player, page) < 0) page = null; // tool left the inventory
+        if (page == null) renderHome(player);
+        else renderTool(player, page);
+    }
+
+    /** The tools page: the player's three legendary tools and the star. */
+    private void renderHome(Player player) {
         inventory.setItem(INFO_SLOT, infoButton());
+        Legendary lt = plugin.legendary();
+        ToolKind[] kinds = ToolKind.values();
+        for (int k = 0; k < kinds.length && k < HOME_TOOL_SLOTS.length; k++) {
+            ToolKind kind = kinds[k];
+            int slot = HOME_TOOL_SLOTS[k];
+            int invSlot = findTool(plugin, player, kind);
+            if (invSlot >= 0) {
+                ItemStack tool = player.getInventory().getItem(invSlot);
+                lt.refresh(tool);
+                ItemStack shown = tool.clone();
+                ItemMeta meta = shown.getItemMeta();
+                List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
+                lore.add(Component.empty());
+                lore.add(text("Click to see upgrades", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+                meta.lore(lore);
+                meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+                shown.setItemMeta(meta);
+                inventory.setItem(slot, shown);
+                actions.put(slot, new Open(kind));
+            } else if (plugin.registry().activeId(player.getUniqueId(), kind) != null) {
+                inventory.setItem(slot, icon(plainIcon(kind), text(kind.displayName(), NamedTextColor.GRAY), List.of(
+                        text("Not in your inventory.", NamedTextColor.RED),
+                        text("Carry it with you to see and buy its upgrades.", NamedTextColor.GRAY)), false));
+            } else {
+                inventory.setItem(slot, icon(plainIcon(kind), text("No " + kind.displayName() + " yet",
+                        NamedTextColor.GRAY), List.of(
+                        text("Hold an iron, diamond or netherite " + kind.id(), NamedTextColor.GRAY),
+                        text("and click the star below to make it legendary.", NamedTextColor.GRAY)), false));
+            }
+        }
+
+        if (plugin.flight() != null && plugin.flight().enabled()) inventory.setItem(FLIGHT_SLOT, flightButton(player));
 
         ItemStack hand = player.getInventory().getItemInMainHand();
-        Legendary lt = plugin.legendary();
         ToolKind plainKind = ToolKind.of(hand.getType());
-        long now = System.currentTimeMillis();
-
-        if (plainKind == null) {
-            inventory.setItem(TOOL_SLOT, icon(Material.BARRIER, text("Hold a tool", NamedTextColor.YELLOW), List.of(
-                    text("Hold an iron, diamond or netherite", NamedTextColor.GRAY),
-                    text("pickaxe, axe or shovel, then open", NamedTextColor.GRAY),
-                    text("/toolshop again.", NamedTextColor.GRAY)), false));
-            return;
-        }
-
-        if (!lt.isLegendary(hand)) {
-            inventory.setItem(TOOL_SLOT, hand.clone());
+        if (plainKind != null && !lt.isLegendary(hand)) {
             Create create = new Create(plainKind);
             actions.put(CREATE_SLOT, create);
-            inventory.setItem(CREATE_SLOT, createButton(player, plainKind, isAwaitingConfirm(create, now)));
-            return;
-        }
-
-        lt.refresh(hand);
-        inventory.setItem(TOOL_SLOT, hand.clone());
-        if (!lt.usableBy(hand, player)) {
+            inventory.setItem(CREATE_SLOT, createButton(player, plainKind, isAwaitingConfirm(create, System.currentTimeMillis())));
+        } else if (plainKind != null && !lt.usableBy(hand, player)) {
             boolean yours = player.getUniqueId().equals(lt.owner(hand));
-            inventory.setItem(CREATE_SLOT, icon(Material.BARRIER, text(yours ? "Retired tool" : "Not your tool",
+            inventory.setItem(CREATE_SLOT, icon(Material.NETHER_STAR, text(yours ? "Retired tool" : "Not your tool",
                     NamedTextColor.RED), List.of(text(yours
                             ? "You've made a newer legendary tool of this type,"
-                            : "Only its owner can use or upgrade it.", NamedTextColor.GRAY),
-                    text(yours ? "so this one no longer works." : "", NamedTextColor.GRAY)), false));
-            return;
+                            : "The tool in your hand belongs to someone else.", NamedTextColor.GRAY),
+                    text(yours ? "so the one in your hand no longer works." : "Only its owner can use or upgrade it.",
+                            NamedTextColor.GRAY)), false));
+        } else {
+            inventory.setItem(CREATE_SLOT, icon(Material.NETHER_STAR, text("Make a tool Legendary", NamedTextColor.GOLD)
+                    .decoration(TextDecoration.BOLD, true), List.of(
+                    text(plainKind != null ? "The tool in your hand is already legendary." : "Hold a tool to make it legendary:",
+                            NamedTextColor.YELLOW),
+                    text("an iron, diamond or netherite pickaxe,", NamedTextColor.GRAY),
+                    text("axe or shovel, then open /toolshop again.", NamedTextColor.GRAY)), false));
         }
+    }
 
-        ToolKind kind = lt.kind(hand);
+    /** The Flight Charm: what it does, the recipe, and whether this player has unlocked crafting it. */
+    private ItemStack flightButton(Player player) {
+        FlightCharm fc = plugin.flight();
+        List<Component> lore = new ArrayList<>();
+        lore.add(text("Right-click to fly for " + FlightCharm.durationText(fc.flightSeconds()) + ", for building.", NamedTextColor.GRAY));
+        lore.add(text("Leaving " + fc.maxDistance() + " blocks of where you took off", NamedTextColor.GRAY));
+        lore.add(text("pauses it until you come back.", NamedTextColor.GRAY));
+        lore.add(text("Fighting a player ends it. No fall damage.", NamedTextColor.GRAY));
+        lore.add(text("One flight at a time; each charm is used up.", NamedTextColor.GRAY));
+        lore.add(Component.empty());
+        lore.add(text("Craft: " + fc.recipeText(), NamedTextColor.WHITE));
+        lore.add(text("(feathers in the corners, diamond in the middle)", NamedTextColor.DARK_GRAY));
+        lore.add(Component.empty());
+        int need = fc.requiredPowerLevel();
+        boolean unlocked;
+        if (need <= 0) {
+            unlocked = true;
+            lore.add(text("✔ Anyone can craft it", NamedTextColor.GREEN));
+        } else {
+            int have = plugin.mcmmo().powerLevel(player);
+            unlocked = have >= need;
+            lore.add(text((unlocked ? "✔ " : "🔒 ") + "Needs power level " + need + " (you: " + (have < 0 ? "?" : have) + ")",
+                    unlocked ? NamedTextColor.GREEN : NamedTextColor.RED));
+            lore.add(text(unlocked ? "Unlocked: it's in your recipe book." : "Power level is all your skill levels added up.",
+                    NamedTextColor.GRAY));
+        }
+        lore.add(text("Anyone can use a charm they're given.", NamedTextColor.DARK_GRAY));
+        return icon(Material.FEATHER, text("Flight Charm", NamedTextColor.AQUA).decoration(TextDecoration.BOLD, true),
+                lore, unlocked);
+    }
+
+    /** The upgrades page for one of the player's legendary tools (anywhere in their inventory). */
+    private void renderTool(Player player, ToolKind kind) {
+        Legendary lt = plugin.legendary();
+        long now = System.currentTimeMillis();
+        ItemStack tool = player.getInventory().getItem(findTool(plugin, player, kind));
+        lt.refresh(tool);
+        inventory.setItem(TOOL_SLOT, tool.clone());
+        actions.put(BACK_SLOT, new Back());
+        inventory.setItem(BACK_SLOT, icon(Material.ARROW, text("Back", NamedTextColor.YELLOW),
+                List.of(text("Back to your tools", NamedTextColor.GRAY)), false));
+
         int i = 0;
         for (Upgrade u : Upgrade.values()) {
-            if (!u.appliesTo(kind, hand.getType()) || i >= UPGRADE_SLOTS.length) continue;
+            if (!u.appliesTo(kind, tool.getType()) || i >= UPGRADE_SLOTS.length) continue;
             Buy buy = new Buy(u);
             actions.put(UPGRADE_SLOTS[i], buy);
-            inventory.setItem(UPGRADE_SLOTS[i], upgradeButton(player, hand, kind, u, isAwaitingConfirm(buy, now)));
+            inventory.setItem(UPGRADE_SLOTS[i], upgradeButton(player, tool, kind, u, isAwaitingConfirm(buy, now)));
             i++;
         }
 
-        int soulTier = lt.tier(hand, Upgrade.SOULBOUND);
+        int soulTier = lt.tier(tool, Upgrade.SOULBOUND);
         if (soulTier > 0) {
-            int saves = lt.saves(hand);
-            int max = lt.maxSaves(hand);
+            int saves = lt.saves(tool);
+            int max = lt.maxSaves(tool);
             boolean canRecharge = plugin.settings().soulboundRechargeAnytime ? saves < max : saves == 0;
             if (canRecharge) {
                 Recharge recharge = new Recharge();
@@ -139,14 +247,22 @@ public final class ShopMenu implements InventoryHolder {
             }
         }
 
-        if (kind == ToolKind.PICKAXE && lt.tier(hand, Upgrade.DRILL) > 0 && lt.tier(hand, Upgrade.VEIN) > 0) {
-            boolean vein = Legendary.MODE_VEIN.equals(lt.mode(hand));
+        if (kind == ToolKind.PICKAXE && lt.tier(tool, Upgrade.DRILL) > 0 && lt.tier(tool, Upgrade.VEIN) > 0) {
+            boolean vein = Legendary.MODE_VEIN.equals(lt.mode(tool));
             actions.put(MODE_SLOT, new ToggleMode());
             inventory.setItem(MODE_SLOT, icon(vein ? Material.DIAMOND_ORE : Material.STONE,
                     text("Mode: " + (vein ? "Vein Mining" : "Drill"), NamedTextColor.YELLOW), List.of(
                             text("Click to switch to " + (vein ? "Drill" : "Vein Mining") + ".", NamedTextColor.GRAY),
                             text("Also: /toolshop mode", NamedTextColor.DARK_GRAY)), false));
         }
+    }
+
+    private static Material plainIcon(ToolKind kind) {
+        return switch (kind) {
+            case PICKAXE -> Material.IRON_PICKAXE;
+            case AXE -> Material.IRON_AXE;
+            case SHOVEL -> Material.IRON_SHOVEL;
+        };
     }
 
     private ItemStack createButton(Player player, ToolKind kind, boolean confirming) {
@@ -281,9 +397,10 @@ public final class ShopMenu implements InventoryHolder {
 
     private ItemStack infoButton() {
         List<Component> lore = List.of(
-                text("1. Hold an iron, diamond or netherite", NamedTextColor.GRAY),
-                text("   pickaxe, axe or shovel.", NamedTextColor.GRAY),
-                text("2. Make it legendary (one of each per player).", NamedTextColor.GRAY),
+                text("1. Hold an iron, diamond or netherite pickaxe,", NamedTextColor.GRAY),
+                text("   axe or shovel and click the star.", NamedTextColor.GRAY),
+                text("2. That makes it legendary (one of each per player).", NamedTextColor.GRAY),
+                text("   Click a legendary tool here to see its upgrades.", NamedTextColor.GRAY),
                 text("3. Level up the matching mcMMO skill and", NamedTextColor.GRAY),
                 text("   bring the items to buy upgrades.", NamedTextColor.GRAY),
                 text("4. Sneak while breaking to use abilities.", NamedTextColor.GRAY),
