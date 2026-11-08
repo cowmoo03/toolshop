@@ -79,10 +79,17 @@ public final class FlightCharm implements Listener {
 
     private static final class Flight {
         final Location start;
-        final long endsAt;
+        long endsAt;
         final BossBar bar;
         boolean warnedDistance;
         long lastCountdownSecond = -1;
+        /** Out of range: flight is taken away and the clock is stopped until the player is back in range. */
+        boolean paused;
+        long pausedLeftMs;
+
+        long leftMs(long now) {
+            return Math.max(0, paused ? pausedLeftMs : endsAt - now);
+        }
 
         Flight(Location start, long endsAt, BossBar bar) {
             this.start = start;
@@ -235,8 +242,12 @@ public final class FlightCharm implements Listener {
         }
         Flight active = flights.get(player.getUniqueId());
         if (active != null) {
-            tell(player, "You're already flying (" + duration((active.endsAt - now + 999) / 1000)
-                    + " left). Use another charm once this flight ends.", NamedTextColor.YELLOW);
+            String left = duration((active.leftMs(now) + 999) / 1000);
+            tell(player, active.paused
+                    ? "Your flight is paused (" + left + " left). Go back within " + (int) maxDistance
+                        + " blocks of where you took off to get it back."
+                    : "You're already flying (" + left + " left). Use another charm once this flight ends.",
+                    NamedTextColor.YELLOW);
             return;
         }
         if (player.getAllowFlight()) {
@@ -275,32 +286,43 @@ public final class FlightCharm implements Listener {
                 it.remove();
                 continue;
             }
-            String reason = null;
-            if (!player.getAllowFlight()) {
-                reason = "";
-            } else if (!player.getWorld().equals(f.start.getWorld())) {
-                reason = "Your flight ended: you left the world you took off in.";
-            } else {
-                Location loc = player.getLocation();
-                double dx = loc.getX() - f.start.getX();
-                double dz = loc.getZ() - f.start.getZ();
-                double dist = Math.sqrt(dx * dx + dz * dz);
-                if (dist > maxDistance) {
-                    reason = "Your flight ended: you went more than " + (int) maxDistance + " blocks from where you took off.";
-                } else if (dist > maxDistance - 8) {
-                    if (!f.warnedDistance) player.playSound(loc, Sound.BLOCK_NOTE_BLOCK_BASS, 0.8f, 0.7f);
-                    f.warnedDistance = true;
-                    player.sendActionBar(Component.text("Turn back! Flight ends " + (int) Math.max(0, maxDistance - dist)
-                            + " blocks from here.", NamedTextColor.RED));
+            double dist = distance(player, f);
+            boolean inRange = dist <= maxDistance;
+
+            if (f.paused) {
+                if (inRange) {
+                    resume(player, f, now);
                 } else {
-                    f.warnedDistance = false;
+                    String where = dist == Double.MAX_VALUE ? "the world you took off in"
+                            : (int) Math.ceil(dist - maxDistance) + " blocks closer";
+                    player.sendActionBar(Component.text("Flight paused: go back to " + where + " to fly again.",
+                            NamedTextColor.GOLD));
+                    updateBar(f, now);
                 }
-                if (reason == null && now >= f.endsAt) reason = "Your flight ran out. No fall damage on the way down.";
-            }
-            if (reason != null) {
-                toEnd.add(player);
-                reasons.add(reason);
                 continue;
+            }
+
+            if (!player.getAllowFlight()) {
+                toEnd.add(player); // something else took flight away
+                reasons.add("");
+                continue;
+            }
+            if (!inRange) {
+                pause(player, f, now);
+                continue;
+            }
+            if (now >= f.endsAt) {
+                toEnd.add(player);
+                reasons.add("Your flight ran out. No fall damage on the way down.");
+                continue;
+            }
+            if (dist > maxDistance - 8) {
+                if (!f.warnedDistance) player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.8f, 0.7f);
+                f.warnedDistance = true;
+                player.sendActionBar(Component.text("Turn back! Flight pauses " + (int) Math.max(0, maxDistance - dist)
+                        + " blocks from here.", NamedTextColor.RED));
+            } else {
+                f.warnedDistance = false;
             }
             long left = (f.endsAt - now + 999) / 1000;
             if (left <= 10 && left != f.lastCountdownSecond) {
@@ -322,12 +344,57 @@ public final class FlightCharm implements Listener {
         combatUntil.values().removeIf(t -> t < now);
     }
 
+    /** Sideways distance from takeoff, or Double.MAX_VALUE in another world. */
+    private static double distance(Player player, Flight f) {
+        Location loc = player.getLocation();
+        if (!loc.getWorld().equals(f.start.getWorld())) return Double.MAX_VALUE;
+        double dx = loc.getX() - f.start.getX();
+        double dz = loc.getZ() - f.start.getZ();
+        return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    /** Out of range: take flight away, stop the clock, and forgive the fall. */
+    private void pause(Player player, Flight f, long now) {
+        f.paused = true;
+        f.pausedLeftMs = Math.max(0, f.endsAt - now);
+        f.warnedDistance = false;
+        player.setFlying(false);
+        player.setAllowFlight(false);
+        fallSafeUntil.put(player.getUniqueId(), now + FALL_SAFE_MS);
+        removeTimer(player);
+        updateBar(f, now);
+        tell(player, "Flight paused: you went more than " + (int) maxDistance + " blocks from where you took off. "
+                + "Go back and it comes back with " + duration((f.pausedLeftMs + 999) / 1000)
+                + " left. No fall damage on the way down.", NamedTextColor.GOLD);
+        player.playSound(player.getLocation(), Sound.ENTITY_PHANTOM_FLAP, 0.6f, 0.8f);
+    }
+
+    /** Back in range: flight comes back and the clock starts again from where it stopped. */
+    private void resume(Player player, Flight f, long now) {
+        f.paused = false;
+        f.endsAt = now + f.pausedLeftMs;
+        f.lastCountdownSecond = -1;
+        player.setAllowFlight(true);
+        if (!player.isOnGround()) player.setFlying(true); // still falling: catch them
+        updateBar(f, now);
+        showTimer(player, f, now);
+        tell(player, "Back in range: you can fly again (" + duration((f.pausedLeftMs + 999) / 1000) + " left).",
+                NamedTextColor.AQUA);
+        player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 0.6f, 1.6f);
+    }
+
     private void updateBar(Flight f, long now) {
-        long leftMs = Math.max(0, f.endsAt - now);
+        long leftMs = f.leftMs(now);
         float progress = (float) Math.min(1.0, leftMs / (flightSeconds * 1000.0));
         f.bar.progress(progress);
-        f.bar.color(leftMs <= 10_000 ? BossBar.Color.RED : BossBar.Color.BLUE);
-        f.bar.name(Component.text("✈ Flight: " + duration((leftMs + 999) / 1000), NamedTextColor.AQUA));
+        String time = duration((leftMs + 999) / 1000);
+        if (f.paused) {
+            f.bar.color(BossBar.Color.YELLOW);
+            f.bar.name(Component.text("✈ Flight paused: " + time + " left (out of range)", NamedTextColor.GOLD));
+        } else {
+            f.bar.color(leftMs <= 10_000 ? BossBar.Color.RED : BossBar.Color.BLUE);
+            f.bar.name(Component.text("✈ Flight: " + time, NamedTextColor.AQUA));
+        }
     }
 
     /**

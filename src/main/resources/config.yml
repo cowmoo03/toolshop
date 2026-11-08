@@ -174,7 +174,8 @@ skills-menu:
 flight-charm:
   enabled: true
   minutes: 5
-  # The flight ends if you go farther than this many blocks sideways from where you took off. Height isn't limited.
+  # Going farther than this many blocks sideways from where you took off pauses the flight: you drop (no fall
+  # damage) and the clock stops until you're back in range. Height isn't limited.
   max-distance: 64
   # Hitting or being hit by a player ends the flight, and a new one can't start for this many seconds.
   pvp-cooldown-seconds: 10
