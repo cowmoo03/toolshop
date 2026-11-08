@@ -23,7 +23,7 @@ Abilities work while sneaking. Everything above is set in `config.yml`.
 
 ## How it works
 
-- **`/toolshop`** opens without holding anything. It shows your legendary pickaxe, axe and shovel; click one (it has to be somewhere in your inventory) to see and buy its upgrades. It also shows the Flight Charm, its recipe and whether you've unlocked it.
+- **`/toolshop`** opens without holding anything. It shows your legendary pickaxe, axe and shovel; click one (it has to be somewhere in your inventory) to see and buy its upgrades. It also shows the Flight Charm, its recipe and whether you've unlocked it, and an **All Upgrades** page listing every upgrade with what each tier does, the levels and the items.
 - To make a tool legendary, hold it and click the star in `/toolshop`. Every purchase needs a second click to confirm.
 - One legendary tool of each type per player. Making a new one **retires** the old one wherever it is. A tool you've lost can also be retired from `/toolshop` (click it, then click again to confirm).
 - Only the owner can use a legendary tool's abilities.

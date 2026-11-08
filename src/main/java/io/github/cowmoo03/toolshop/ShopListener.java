@@ -44,6 +44,9 @@ public final class ShopListener implements Listener {
         if (action instanceof ShopMenu.Open o) {
             menu.setPage(o.kind());
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+        } else if (action instanceof ShopMenu.Catalog) {
+            menu.showCatalog();
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
         } else if (action instanceof ShopMenu.Back) {
             menu.setPage(null);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 0.9f);

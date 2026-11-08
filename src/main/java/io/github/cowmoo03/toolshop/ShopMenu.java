@@ -30,6 +30,10 @@ public final class ShopMenu implements InventoryHolder {
     private static final int[] HOME_TOOL_SLOTS = {11, 13, 15};
     public static final int CREATE_SLOT = 30;
     public static final int FLIGHT_SLOT = 32;
+    public static final int CATALOG_SLOT = 40;
+    /** All-upgrades page: each tool's own ability on row 2, the upgrades every tool can get on row 4. */
+    private static final int[] CATALOG_TOOL_SLOTS = {10, 12, 14, 16};
+    private static final int[] CATALOG_SHARED_SLOTS = {28, 29, 30, 32, 33, 34};
     public static final int BACK_SLOT = 36;
     public static final int MODE_SLOT = 40;
     public static final int RECHARGE_SLOT = 42;
@@ -38,7 +42,8 @@ public final class ShopMenu implements InventoryHolder {
     public static final long CONFIRM_WINDOW_MS = 5000;
 
     /** What a slot does. */
-    public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire {}
+    public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire, Catalog {}
+    public record Catalog() implements Action {}
     public record Retire(ToolKind kind) implements Action {}
     public record Open(ToolKind kind) implements Action {}
     public record Back() implements Action {}
@@ -54,6 +59,8 @@ public final class ShopMenu implements InventoryHolder {
     private long pendingUntil;
     /** null: the tools page; otherwise the upgrades page for this tool kind. */
     private ToolKind page;
+    /** True while the all-upgrades page is showing. */
+    private boolean catalog;
 
     public ShopMenu(ToolShopPlugin plugin) {
         this.plugin = plugin;
@@ -89,6 +96,14 @@ public final class ShopMenu implements InventoryHolder {
 
     public void setPage(ToolKind kind) {
         page = kind;
+        catalog = false;
+        pending = null;
+    }
+
+    /** Shows the page with every upgrade in the shop. */
+    public void showCatalog() {
+        page = null;
+        catalog = true;
         pending = null;
     }
 
@@ -114,13 +129,21 @@ public final class ShopMenu implements InventoryHolder {
         ItemStack filler = icon(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of(), false);
         for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, filler);
         if (page != null && findTool(plugin, player, page) < 0) page = null; // tool left the inventory
-        if (page == null) renderHome(player);
+        if (catalog) renderCatalog(player);
+        else if (page == null) renderHome(player);
         else renderTool(player, page);
     }
 
     /** The tools page: the player's three legendary tools and the star. */
     private void renderHome(Player player) {
         inventory.setItem(INFO_SLOT, infoButton());
+        actions.put(CATALOG_SLOT, new Catalog());
+        inventory.setItem(CATALOG_SLOT, icon(Material.ENCHANTED_BOOK, text("All Upgrades", NamedTextColor.LIGHT_PURPLE)
+                .decoration(TextDecoration.BOLD, true), List.of(
+                text("Every upgrade in the Tool Shop:", NamedTextColor.GRAY),
+                text("what it does, the levels and items it needs.", NamedTextColor.GRAY),
+                Component.empty(),
+                text("Click to see them", NamedTextColor.GREEN)), false));
         Legendary lt = plugin.legendary();
         ToolKind[] kinds = ToolKind.values();
         for (int k = 0; k < kinds.length && k < HOME_TOOL_SLOTS.length; k++) {
@@ -190,6 +213,65 @@ public final class ShopMenu implements InventoryHolder {
                     text("an iron, diamond or netherite pickaxe,", NamedTextColor.GRAY),
                     text("axe or shovel, then open /toolshop again.", NamedTextColor.GRAY)), false));
         }
+    }
+
+    /** Every upgrade in the shop, with what each tier does, the levels it needs and its items. */
+    private void renderCatalog(Player player) {
+        actions.put(BACK_SLOT, new Back());
+        inventory.setItem(BACK_SLOT, icon(Material.ARROW, text("Back", NamedTextColor.YELLOW),
+                List.of(text("Back to your tools", NamedTextColor.GRAY)), false));
+        inventory.setItem(4, icon(Material.ENCHANTED_BOOK, text("All Upgrades", NamedTextColor.LIGHT_PURPLE)
+                .decoration(TextDecoration.BOLD, true), List.of(
+                text("Top: each tool's own ability.", NamedTextColor.GRAY),
+                text("Bottom: upgrades every tool can get.", NamedTextColor.GRAY),
+                text("Levels are in the tool's mcMMO skill.", NamedTextColor.GRAY),
+                text("Buy them by clicking your tool on the first page.", NamedTextColor.DARK_GRAY)), false));
+        inventory.setItem(22, icon(Material.CRAFTING_TABLE, text("Every tool can get these", NamedTextColor.YELLOW),
+                List.of(text("Pickaxe, axe and shovel", NamedTextColor.GRAY)), false));
+        int tool = 0, shared = 0;
+        for (Upgrade u : Upgrade.values()) {
+            if (u.onlyFor() != null) {
+                if (tool < CATALOG_TOOL_SLOTS.length) inventory.setItem(CATALOG_TOOL_SLOTS[tool++], catalogIcon(player, u));
+            } else if (shared < CATALOG_SHARED_SLOTS.length) {
+                inventory.setItem(CATALOG_SHARED_SLOTS[shared++], catalogIcon(player, u));
+            }
+        }
+    }
+
+    private ItemStack catalogIcon(Player player, Upgrade u) {
+        Settings s = plugin.settings();
+        boolean levels = plugin.mcmmo().available() && s.requireLevels;
+        List<Component> lore = new ArrayList<>();
+        lore.add(text(u.summary(), NamedTextColor.GRAY));
+        if (u.onlyFor() != null) lore.add(text(u.onlyFor().displayName().replace("Legendary ", "") + " only", NamedTextColor.DARK_AQUA));
+        if (u == Upgrade.FIREPROOF) lore.add(text("Iron and diamond tools only (netherite can't burn)", NamedTextColor.DARK_AQUA));
+        if (u == Upgrade.RECOVERY) lore.add(text("Netherite tools only", NamedTextColor.DARK_AQUA));
+        ToolKind[] kinds = u.onlyFor() != null ? new ToolKind[]{u.onlyFor()} : ToolKind.values();
+        for (int t = 1; t <= u.maxTier(); t++) {
+            lore.add(Component.empty());
+            String detail = tierDetail(u, t);
+            String head = u.maxTier() > 1 ? Upgrade.roman(t) + (detail != null ? ": " + detail : "") : (detail != null ? detail : "");
+            if (!head.isEmpty()) lore.add(text(head, NamedTextColor.WHITE));
+            if (levels) {
+                List<String> parts = new ArrayList<>();
+                boolean allOk = true;
+                java.util.Set<Integer> distinct = new java.util.HashSet<>();
+                for (ToolKind k : kinds) distinct.add(plugin.requiredLevel(u, t, k));
+                for (ToolKind k : kinds) {
+                    int need = plugin.requiredLevel(u, t, k);
+                    int have = plugin.mcmmo().level(player, k.mcmmoSkill());
+                    if (have < need) allOk = false;
+                    parts.add(k.skillName() + " " + need);
+                }
+                String line = kinds.length > 1 && distinct.size() == 1
+                        ? "Level " + distinct.iterator().next() + " in the tool's skill"
+                        : String.join(" · ", parts);
+                lore.add(text("  " + line, allOk ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
+            }
+            Map<Material, Integer> cost = s.tier(u, t).cost();
+            lore.add(text("  " + (cost.isEmpty() ? "No items" : Settings.describeCost(cost)), NamedTextColor.GRAY));
+        }
+        return icon(iconFor(u), text(u.displayName(), NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true), lore, false);
     }
 
     /** The Flight Charm: what it does, the recipe, and whether this player has unlocked crafting it. */
