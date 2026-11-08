@@ -19,8 +19,12 @@ import java.util.List;
  * once mcMMO has marked their new spots, it lets them give XP again. Placed logs stay marked.
  */
 public final class PushedLogListener implements Listener {
-    /** mcMMO marks the new spots in a task on the next tick; this runs after it. */
-    private static final long DELAY_TICKS = 2L;
+    /**
+     * mcMMO marks the new spots on the next tick. A pushed block is a moving piston for about 3 ticks before it
+     * lands, so this starts checking after mcMMO and keeps checking each tick until the log is there.
+     */
+    private static final long FIRST_CHECK_TICKS = 2L;
+    private static final int MAX_CHECKS = 10;
 
     private final ToolShopPlugin plugin;
 
@@ -50,11 +54,18 @@ public final class PushedLogListener implements Listener {
             types.add(type);
         }
         if (targets.isEmpty()) return;
+        for (int i = 0; i < targets.size(); i++) waitForLog(targets.get(i), types.get(i), MAX_CHECKS);
+    }
+
+    /** Once the pushed log has landed, lets it give XP again. Gives up if something else ends up there. */
+    private void waitForLog(Block target, Material type, int checksLeft) {
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            for (int i = 0; i < targets.size(); i++) {
-                Block target = targets.get(i);
-                if (target.getType() == types.get(i)) plugin.mcmmo().markGivesXp(target);
+            Material now = target.getType();
+            if (now == type) {
+                plugin.mcmmo().markGivesXp(target);
+            } else if (now == Material.MOVING_PISTON && checksLeft > 1) {
+                waitForLog(target, type, checksLeft - 1);
             }
-        }, DELAY_TICKS);
+        }, checksLeft == MAX_CHECKS ? FIRST_CHECK_TICKS : 1L);
     }
 }
