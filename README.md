@@ -25,7 +25,7 @@ Abilities work while sneaking. Everything above is set in `config.yml`.
 
 - **`/toolshop`** opens without holding anything. It shows your legendary pickaxe, axe and shovel; click one (it has to be somewhere in your inventory) to see and buy its upgrades. It also shows the Flight Charm, its recipe and whether you've unlocked it.
 - To make a tool legendary, hold it and click the star in `/toolshop`. Every purchase needs a second click to confirm.
-- One legendary tool of each type per player. Making a new one **retires** the old one wherever it is.
+- One legendary tool of each type per player. Making a new one **retires** the old one wherever it is. A tool you've lost can also be retired from `/toolshop` (click it, then click again to confirm).
 - Only the owner can use a legendary tool's abilities.
 - The tool's description shows its upgrades, owner, and a rank based on blocks broken (Rusty → Seasoned → Veteran → Legendary).
 - Repair with Mending or an anvil (legendary tool in the left slot). Crafting-grid merges, grindstones and putting a legendary tool in an anvil's right slot are blocked.

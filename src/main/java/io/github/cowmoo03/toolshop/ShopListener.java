@@ -52,6 +52,7 @@ public final class ShopListener implements Listener {
         } else if (menu.isAwaitingConfirm(action, now)) {
             menu.clearConfirm();
             if (action instanceof ShopMenu.Create c) create(player, c.kind());
+            else if (action instanceof ShopMenu.Retire r) retire(player, r.kind());
             else if (action instanceof ShopMenu.Buy b && page != null) buy(player, b.upgrade(), page);
             else if (action instanceof ShopMenu.Recharge && page != null) recharge(player, page);
         } else {
@@ -146,6 +147,22 @@ public final class ShopListener implements Listener {
         plugin.log(player, "UPGRADE " + upgrade.withTier(next) + ", paid " + Settings.describeCost(req.cost()), lt.id(tool));
         ok(player, "Upgraded to " + upgrade.withTier(next) + "!");
         player.playSound(player.getLocation(), Sound.BLOCK_SMITHING_TABLE_USE, 1f, 1f);
+    }
+
+    /** Retires a legendary tool the player isn't carrying (lost, or left somewhere), so it stops working. */
+    private void retire(Player player, ToolKind kind) {
+        if (ShopMenu.findTool(plugin, player, kind) >= 0) {
+            fail(player, "Your " + kind.displayName() + " is in your inventory, so it isn't lost.");
+            return;
+        }
+        List<String> removed = plugin.registry().clear(player.getUniqueId(), kind);
+        if (removed.isEmpty()) {
+            fail(player, "You don't have a " + kind.displayName() + " to retire.");
+            return;
+        }
+        plugin.log(player, "RETIRE " + kind.id() + " (lost)", String.join(",", removed));
+        ok(player, "Your old " + kind.displayName() + " is retired. Hold a tool and click the star to make a new one.");
+        player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 0.8f, 0.9f);
     }
 
     /** Refills Soulbound saves for the items of the tool's current Soulbound tier (no level needed). */

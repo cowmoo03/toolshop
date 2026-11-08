@@ -38,7 +38,8 @@ public final class ShopMenu implements InventoryHolder {
     public static final long CONFIRM_WINDOW_MS = 5000;
 
     /** What a slot does. */
-    public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back {}
+    public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire {}
+    public record Retire(ToolKind kind) implements Action {}
     public record Open(ToolKind kind) implements Action {}
     public record Back() implements Action {}
     public record Create(ToolKind kind) implements Action {}
@@ -140,9 +141,23 @@ public final class ShopMenu implements InventoryHolder {
                 inventory.setItem(slot, shown);
                 actions.put(slot, new Open(kind));
             } else if (plugin.registry().activeId(player.getUniqueId(), kind) != null) {
-                inventory.setItem(slot, icon(plainIcon(kind), text(kind.displayName(), NamedTextColor.GRAY), List.of(
+                Retire retire = new Retire(kind);
+                boolean confirming = isAwaitingConfirm(retire, System.currentTimeMillis());
+                actions.put(slot, retire);
+                List<Component> lore = new ArrayList<>(List.of(
                         text("Not in your inventory.", NamedTextColor.RED),
-                        text("Carry it with you to see and buy its upgrades.", NamedTextColor.GRAY)), false));
+                        text("Carry it with you to see and buy its upgrades.", NamedTextColor.GRAY),
+                        Component.empty(),
+                        text("Lost it for good? You can retire it:", NamedTextColor.GRAY),
+                        text("it stops working wherever it is (even in a", NamedTextColor.GRAY),
+                        text("chest or ender chest) and its upgrades are gone.", NamedTextColor.GRAY),
+                        text("Making a new one retires it anyway.", NamedTextColor.DARK_GRAY),
+                        Component.empty()));
+                lore.add(confirming
+                        ? text("CLICK AGAIN TO RETIRE IT FOREVER", NamedTextColor.RED).decoration(TextDecoration.BOLD, true)
+                        : text("Click to retire it", NamedTextColor.YELLOW));
+                inventory.setItem(slot, icon(confirming ? Material.BARRIER : plainIcon(kind),
+                        text(kind.displayName(), NamedTextColor.GRAY), lore, confirming));
             } else {
                 inventory.setItem(slot, icon(plainIcon(kind), text("No " + kind.displayName() + " yet",
                         NamedTextColor.GRAY), List.of(
