@@ -20,6 +20,7 @@ import java.util.Locale;
  * /toolshop                                        open the shop
  * /toolshop mode                                   switch your legendary pickaxe between Drill and Vein Mining
  * /toolshop give <player> <pickaxe|axe|shovel> [iron|diamond|netherite]   admin: give a new legendary tool
+ * /toolshop give <player> flight [amount]          admin: give Flight Charms
  * /toolshop upgrade <player> <upgrade> <tier>      admin: set an upgrade on the player's held legendary tool
  * /toolshop reset <player> [pickaxe|axe|shovel|all]  admin: remove a player's legendary tools
  * /toolshop reload                                 admin: reload config.yml
@@ -63,14 +64,15 @@ public final class ToolShopCommand implements BasicCommand {
             case "give" -> give(sender, args);
             case "upgrade" -> upgrade(sender, args);
             case "reset" -> reset(sender, args);
-            default -> send(sender, "Usage: /toolshop [mode | give <player> <pickaxe|axe|shovel> [material]"
+            default -> send(sender, "Usage: /toolshop [mode | give <player> <pickaxe|axe|shovel|flight> [material|amount]"
                     + " | upgrade <player> <upgrade> <tier> | reset <player> [kind|all] | reload]", NamedTextColor.RED);
         }
     }
 
     private void give(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            send(sender, "Usage: /toolshop give <player> <pickaxe|axe|shovel> [iron|diamond|netherite]", NamedTextColor.RED);
+            send(sender, "Usage: /toolshop give <player> <pickaxe|axe|shovel|flight> [iron|diamond|netherite|amount]",
+                    NamedTextColor.RED);
             return;
         }
         Player target = Bukkit.getPlayerExact(args[1]);
@@ -78,9 +80,24 @@ public final class ToolShopCommand implements BasicCommand {
             send(sender, "Player " + args[1] + " is not online.", NamedTextColor.RED);
             return;
         }
+        if (args[2].equalsIgnoreCase("flight")) {
+            int amount = 1;
+            try {
+                if (args.length >= 4) amount = Math.max(1, Math.min(64, Integer.parseInt(args[3])));
+            } catch (NumberFormatException e) {
+                send(sender, "Amount must be a number from 1 to 64.", NamedTextColor.RED);
+                return;
+            }
+            target.getInventory().addItem(plugin.flight().create(amount)).values()
+                    .forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
+            plugin.getLogger().info("ADMIN_GIVE " + amount + " Flight Charm(s) to " + target.getName() + " by " + sender.getName());
+            send(sender, "Gave " + target.getName() + " " + amount + " Flight Charm" + (amount == 1 ? "" : "s") + ".",
+                    NamedTextColor.GREEN);
+            return;
+        }
         ToolKind kind = ToolKind.fromId(args[2]);
         if (kind == null) {
-            send(sender, "Tool must be pickaxe, axe or shovel.", NamedTextColor.RED);
+            send(sender, "Must be pickaxe, axe, shovel or flight.", NamedTextColor.RED);
             return;
         }
         String material = args.length >= 4 ? args[3].toUpperCase(Locale.ROOT) : "NETHERITE";
@@ -220,9 +237,9 @@ public final class ToolShopCommand implements BasicCommand {
                 || args[0].equalsIgnoreCase("reset"))) {
             Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
         } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("give")) {
-            options.addAll(List.of("pickaxe", "axe", "shovel"));
+            options.addAll(List.of("pickaxe", "axe", "shovel", "flight"));
         } else if (admin && args.length == 4 && args[0].equalsIgnoreCase("give")) {
-            options.addAll(List.of("iron", "diamond", "netherite"));
+            options.addAll(args[2].equalsIgnoreCase("flight") ? List.of("1", "16", "64") : List.of("iron", "diamond", "netherite"));
         } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("reset")) {
             options.addAll(List.of("all", "pickaxe", "axe", "shovel"));
         } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("upgrade")) {

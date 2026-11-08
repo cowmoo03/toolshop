@@ -36,6 +36,19 @@ Abilities work while sneaking. Everything above is set in `config.yml`.
 - Without mcMMO installed, level requirements are skipped (items only).
 - A one-time chat announcement greets each player after an update (`join-announcement` in the config; change its `id` to show a new one).
 
+## Flight Charm
+
+A crafted item anyone can use, no mcMMO level needed. Right-click it for 5 minutes of creative-style flight for building.
+Each charm is used up; using another while flying adds time.
+
+- Recipe: 4 feathers, 4 gold ingots and a diamond in the middle (feather, gold, feather / gold, diamond, gold / feather, gold, feather).
+- A bar at the top counts down; the last 10 seconds tick.
+- Going more than 64 blocks sideways from where you took off ends the flight (a warning shows 8 blocks before). Height isn't limited.
+- Hitting or being hit by a player ends the flight, and a new one can't start for 10 seconds.
+- However the flight ends, the fall afterwards does no damage.
+- Charms can't be used as feathers in crafting. Ops: `/toolshop give <player> flight [amount]`.
+- All of it is under `flight-charm` in `config.yml`.
+
 ## Skills window
 
 `/skills` (or `/skill`) shows every mcMMO skill with level and XP bar. Clicking a skill lists its abilities with
@@ -52,6 +65,7 @@ completion. Both can be turned off under `skills-menu` in the config.
 | `/skills [skill]` | Everyone | Window with every mcMMO skill: level, XP, abilities in plain words, what's unlocked and the ToolShop upgrades each skill unlocks |
 | `/toolshop mode` | Everyone | Switch a legendary pickaxe between Drill and Vein Mining |
 | `/toolshop give <player> <pickaxe\|axe\|shovel> [iron\|diamond\|netherite]` | Ops | Give a new legendary tool |
+| `/toolshop give <player> flight [amount]` | Ops | Give Flight Charms |
 | `/toolshop upgrade <player> <upgrade> <tier>` | Ops | Set an upgrade on the player's held legendary tool |
 | `/toolshop reset <player> [pickaxe\|axe\|shovel\|all]` | Ops | Remove a player's legendary tools so they can start over |
 | `/toolshop reload` | Ops | Reload `config.yml` |

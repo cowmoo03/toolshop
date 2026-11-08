@@ -29,6 +29,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     private ShopListener shopListener;
     private RecoveryListener recovery;
     private SkillsListener skills;
+    private FlightCharm flight;
 
     @Override
     public void onEnable() {
@@ -55,6 +56,8 @@ public final class ToolShopPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new AnnouncementListener(this), this);
         skills = new SkillsListener(this);
         getServer().getPluginManager().registerEvents(skills, this);
+        flight = new FlightCharm(this);
+        getServer().getPluginManager().registerEvents(flight, this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
         {
@@ -73,6 +76,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     public void onDisable() {
         if (registry != null) registry.save();
         if (recovery != null) recovery.shutdown();
+        if (flight != null) flight.shutdown();
     }
 
     /** ToolShop 1.x used a different config (rental prices). Keep it as a backup and start fresh. */
@@ -103,6 +107,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     public void reloadSettings() {
         reloadConfig();
         settings = new Settings(getConfig(), getLogger());
+        if (flight != null) flight.reload();
     }
 
     public Settings settings() { return settings; }
@@ -111,6 +116,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     public McMMOHook mcmmo() { return mcmmo; }
     public ShopListener shopListener() { return shopListener; }
     public SkillsListener skills() { return skills; }
+    public FlightCharm flight() { return flight; }
 
     /**
      * mcMMO level an upgrade tier needs. The config uses the 0-100 (Standard) scale; with mcMMO in Retro Mode
