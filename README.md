@@ -42,6 +42,7 @@ A crafted item anyone can use, no mcMMO level needed. Right-click it for 5 minut
 Each charm is used up. One flight at a time: a charm can't be used (and isn't used up) while a flight is running.
 
 - Recipe: 4 feathers, 4 gold ingots and a diamond in the middle (feather, gold, feather / gold, diamond, gold / feather, gold, feather).
+- Crafting unlocks at mcMMO power level 100 (1000 in Retro Mode, `unlock-power-level`); the recipe shows in the recipe book once unlocked, with a chat message. Anyone can use a charm they're given.
 - The time left shows like a potion (a Slow Falling effect that lasts exactly as long as the flight) and as a bar at the top; the last 10 seconds tick. Either can be turned off.
 - Going more than 64 blocks sideways from where you took off pauses the flight: you drop (no fall damage) and the clock stops. Back in range, flight comes back with the time that was left. A warning shows 8 blocks before. Height isn't limited.
 - Hitting or being hit by a player ends the flight, and a new one can't start for 10 seconds.

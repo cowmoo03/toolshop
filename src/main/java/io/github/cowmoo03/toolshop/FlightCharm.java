@@ -30,6 +30,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.Keyed;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -71,6 +72,10 @@ public final class FlightCharm implements Listener {
 
     private boolean enabled;
     private int flightSeconds;
+    /** mcMMO power level needed to craft a charm, on the scale mcMMO uses (0 = no lock). */
+    private int unlockConfigLevel;
+    private final Map<UUID, Long> lastLockMessage = new HashMap<>();
+    private int unlockCheckCountdown;
     private double maxDistance;
     private long pvpCooldownMs;
     private boolean resetStrayFlight;
@@ -114,6 +119,7 @@ public final class FlightCharm implements Listener {
         enabled = c == null || c.getBoolean("enabled", true);
         double minutes = c == null ? 5 : c.getDouble("minutes", 5);
         flightSeconds = (int) Math.max(10, Math.round(minutes * 60));
+        unlockConfigLevel = Math.max(0, c == null ? 100 : c.getInt("unlock-power-level", 100));
         maxDistance = Math.max(8, c == null ? 64 : c.getDouble("max-distance", 64));
         pvpCooldownMs = Math.max(0, c == null ? 10 : c.getInt("pvp-cooldown-seconds", 10)) * 1000L;
         resetStrayFlight = c == null || c.getBoolean("reset-stray-flight-on-join", true);
@@ -127,7 +133,7 @@ public final class FlightCharm implements Listener {
             plugin.getLogger().warning("flight-charm.recipe is invalid; using the default recipe.");
             addRecipe(null);
         }
-        for (Player p : Bukkit.getOnlinePlayers()) p.discoverRecipe(recipeKey);
+        for (Player p : Bukkit.getOnlinePlayers()) updateRecipeBook(p, false);
     }
 
     private boolean addRecipe(ConfigurationSection r) {
@@ -203,6 +209,63 @@ public final class FlightCharm implements Listener {
                 return;
             }
         }
+        if (!(event.getRecipe() instanceof Keyed keyed) || !keyed.getKey().equals(recipeKey)) return;
+        if (!(event.getView().getPlayer() instanceof Player player)) return;
+        int need = requiredPowerLevel();
+        int have = need > 0 ? plugin.mcmmo().powerLevel(player) : 0;
+        if (need <= 0 || have >= need) return;
+        event.getInventory().setResult(null);
+        long now = System.currentTimeMillis();
+        if (now - lastLockMessage.getOrDefault(player.getUniqueId(), 0L) > 3000) {
+            lastLockMessage.put(player.getUniqueId(), now);
+            tell(player, have < 0
+                    ? "Your skills are still loading. Try again in a moment."
+                    : "Flight Charms unlock at mcMMO power level " + need + ". You're at " + have
+                        + ". See /skills.", NamedTextColor.RED);
+        }
+    }
+
+    /** A crafter block has no player to check, so it can't make charms while the recipe is locked. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onCrafter(org.bukkit.event.block.CrafterCraftEvent event) {
+        if (event.getRecipe().getKey().equals(recipeKey) && requiredPowerLevel() > 0) event.setCancelled(true);
+    }
+
+    // ---------------------------------------------------------------- unlock by power level
+
+    /** Power level needed to craft, on mcMMO's current scale; 0 when there's no lock or no mcMMO. */
+    public int requiredPowerLevel() {
+        if (unlockConfigLevel <= 0 || plugin.mcmmo() == null || !plugin.mcmmo().available()) return 0;
+        return unlockConfigLevel * plugin.levelScale();
+    }
+
+    /** True if the player may craft charms (false while their mcMMO data is still loading). */
+    public boolean canCraft(Player player) {
+        int need = requiredPowerLevel();
+        return need <= 0 || plugin.mcmmo().powerLevel(player) >= need;
+    }
+
+    /**
+     * Shows the recipe in the recipe book only once the player has unlocked it, and tells them when that happens.
+     * Leaves it alone while their mcMMO data is loading.
+     */
+    private void updateRecipeBook(Player player, boolean announce) {
+        if (!enabled) return;
+        int need = requiredPowerLevel();
+        int have = need > 0 ? plugin.mcmmo().powerLevel(player) : 0;
+        if (need > 0 && have < 0) return;
+        boolean unlocked = need <= 0 || have >= need;
+        boolean known = player.hasDiscoveredRecipe(recipeKey);
+        if (unlocked && !known) {
+            player.discoverRecipe(recipeKey);
+            if (announce && need > 0) {
+                tell(player, "You reached power level " + need + ": Flight Charms unlocked! Craft one with 4 feathers, "
+                        + "4 gold ingots and a diamond (it's in your recipe book).", NamedTextColor.AQUA);
+                player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.6f, 1.4f);
+            }
+        } else if (!unlocked && known) {
+            player.undiscoverRecipe(recipeKey);
+        }
     }
 
     // ---------------------------------------------------------------- using it
@@ -275,6 +338,10 @@ public final class FlightCharm implements Listener {
 
     private void tick() {
         long now = System.currentTimeMillis();
+        if (--unlockCheckCountdown <= 0) {
+            unlockCheckCountdown = 20; // every 10 seconds
+            for (Player p : Bukkit.getOnlinePlayers()) updateRecipeBook(p, true);
+        }
         Iterator<Map.Entry<UUID, Flight>> it = flights.entrySet().iterator();
         List<Player> toEnd = new ArrayList<>();
         List<String> reasons = new ArrayList<>();
@@ -473,12 +540,16 @@ public final class FlightCharm implements Listener {
             fallSafeOnJoin.add(player.getUniqueId());
         }
         combatUntil.remove(player.getUniqueId());
+        lastLockMessage.remove(player.getUniqueId());
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        if (enabled) player.discoverRecipe(recipeKey);
+        // mcMMO loads player data a moment after joining.
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) updateRecipeBook(player, false);
+        }, 60L);
         GameMode mode = player.getGameMode();
         boolean survival = mode == GameMode.SURVIVAL || mode == GameMode.ADVENTURE;
         boolean forgive = fallSafeOnJoin.remove(player.getUniqueId());

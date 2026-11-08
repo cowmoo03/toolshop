@@ -174,6 +174,10 @@ skills-menu:
 flight-charm:
   enabled: true
   minutes: 5
+  # mcMMO power level (all skill levels added up) needed to craft a charm, on the Standard scale like the other
+  # levels here: with Retro Mode it's multiplied by mcmmo.level-scale (100 means 1000). 0 = no lock.
+  # Only crafting is locked: anyone can use a charm they're given. Until then the recipe is hidden from the recipe book.
+  unlock-power-level: 100
   # Going farther than this many blocks sideways from where you took off pauses the flight: you drop (no fall
   # damage) and the clock stops until you're back in range. Height isn't limited.
   max-distance: 64
