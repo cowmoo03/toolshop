@@ -178,6 +178,12 @@ flight-charm:
   max-distance: 64
   # Hitting or being hit by a player ends the flight, and a new one can't start for this many seconds.
   pvp-cooldown-seconds: 10
+  # Show the time left like a potion: a Slow Falling effect lasting exactly as long as the flight (icon top-right,
+  # countdown in the inventory). It ends with the flight, so it changes nothing. A resource pack would be needed
+  # for a custom "Flight" name.
+  show-effect: true
+  # Also show the countdown bar at the top of the screen.
+  boss-bar: true
   # When a survival player joins with flight still switched on (e.g. after a server crash), switch it off and
   # forgive their fall. Turn off if another plugin gives survival players flight.
   reset-stray-flight-on-join: true

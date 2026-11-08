@@ -32,6 +32,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.io.File;
 import java.io.IOException;
@@ -72,6 +74,8 @@ public final class FlightCharm implements Listener {
     private double maxDistance;
     private long pvpCooldownMs;
     private boolean resetStrayFlight;
+    private boolean showEffect;
+    private boolean showBar;
 
     private static final class Flight {
         final Location start;
@@ -106,6 +110,8 @@ public final class FlightCharm implements Listener {
         maxDistance = Math.max(8, c == null ? 64 : c.getDouble("max-distance", 64));
         pvpCooldownMs = Math.max(0, c == null ? 10 : c.getInt("pvp-cooldown-seconds", 10)) * 1000L;
         resetStrayFlight = c == null || c.getBoolean("reset-stray-flight-on-join", true);
+        showEffect = c == null || c.getBoolean("show-effect", true);
+        showBar = c == null || c.getBoolean("boss-bar", true);
 
         Bukkit.removeRecipe(recipeKey);
         if (!enabled) return;
@@ -246,7 +252,8 @@ public final class FlightCharm implements Listener {
         fallSafeUntil.remove(player.getUniqueId());
         player.setAllowFlight(true);
         player.setFlying(true);
-        player.showBossBar(bar);
+        if (showBar) player.showBossBar(bar);
+        showTimer(player, flight, now);
         tell(player, "You can fly for " + duration(flightSeconds) + ". Stay within " + (int) maxDistance
                 + " blocks of here.", NamedTextColor.AQUA);
         player.playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 0.6f, 1.6f);
@@ -302,6 +309,7 @@ public final class FlightCharm implements Listener {
                 if (!f.warnedDistance) player.sendActionBar(Component.text("Flight ends in " + left + "s", NamedTextColor.YELLOW));
             }
             updateBar(f, now);
+            showTimer(player, f, now);
         }
         for (int i = 0; i < toEnd.size(); i++) end(toEnd.get(i), reasons.get(i), true);
 
@@ -330,6 +338,7 @@ public final class FlightCharm implements Listener {
         Flight f = flights.remove(player.getUniqueId());
         if (f == null) return;
         player.hideBossBar(f.bar);
+        removeTimer(player);
         GameMode mode = player.getGameMode();
         if (mode == GameMode.SURVIVAL || mode == GameMode.ADVENTURE) {
             player.setFlying(false);
@@ -382,7 +391,10 @@ public final class FlightCharm implements Listener {
         GameMode to = event.getNewGameMode();
         if (to == GameMode.CREATIVE || to == GameMode.SPECTATOR) {
             Flight f = flights.remove(event.getPlayer().getUniqueId());
-            if (f != null) event.getPlayer().hideBossBar(f.bar);
+            if (f != null) {
+                event.getPlayer().hideBossBar(f.bar);
+                removeTimer(event.getPlayer());
+            }
         }
     }
 
@@ -444,6 +456,28 @@ public final class FlightCharm implements Listener {
             }
         }
         file.delete();
+    }
+
+    // ---------------------------------------------------------------- potion-style timer
+
+    /**
+     * Shows the time left as a Slow Falling effect (icon top-right, countdown in the inventory), the way a potion
+     * does. It lasts exactly as long as the flight. Put back if milk clears it. A real Slow Falling potion the
+     * player drank is left alone.
+     */
+    private void showTimer(Player player, Flight f, long now) {
+        if (!showEffect) return;
+        PotionEffect current = player.getPotionEffect(PotionEffectType.SLOW_FALLING);
+        if (current != null && current.hasParticles()) return; // their own potion
+        int ticks = (int) Math.max(1, (f.endsAt - now) / 50);
+        if (current != null && Math.abs(current.getDuration() - ticks) <= 20) return; // still in step
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, ticks, 0, false, false, true));
+    }
+
+    /** Removes the timer effect, but never a Slow Falling potion the player drank (those have particles). */
+    private void removeTimer(Player player) {
+        PotionEffect current = player.getPotionEffect(PotionEffectType.SLOW_FALLING);
+        if (current != null && !current.hasParticles()) player.removePotionEffect(PotionEffectType.SLOW_FALLING);
     }
 
     // ---------------------------------------------------------------- helpers
