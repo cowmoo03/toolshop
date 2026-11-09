@@ -12,7 +12,7 @@ public enum Upgrade {
     BEHEADING("beheading", "Beheading", ToolKind.SWORD, 3, "Chance for a mob's (or player's) head when you kill it"),
     BOUNTY("bounty", "Bounty", ToolKind.SWORD, 3, "Kills drop more XP orbs"),
     MAGNET("magnet", "Magnet", null, 1, "Drops from blocks you break go straight into your inventory"),
-    DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block to use no durability"),
+    DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block or hit to use no durability"),
     LAST_STAND("last-stand", "Last Stand", null, 1, "Stops at 1 durability instead of breaking"),
     FIREPROOF("fireproof", "Fireproof", null, 3, "Survives lava and fire for a while when dropped"),
     RECOVERY("recovery", "Recovery", null, 3, "A dropped tool glows for you, lasts longer, and survives explosions and the void"),
@@ -38,6 +38,19 @@ public enum Upgrade {
     /** The one tool kind this upgrade is for (Drill, Timber...), or null if it fits every tool. */
     public ToolKind onlyFor() { return onlyFor; }
     public String summary() { return summary; }
+
+    /** The summary worded for this tool (swords hit things instead of breaking blocks). */
+    public String summary(ToolKind kind) {
+        if (kind == null) return summary;
+        if (this == DURABILITY) {
+            return kind == ToolKind.SWORD ? "Chance for a hit to use no durability" : "Chance for a block to use no durability";
+        }
+        if (this == LAST_STAND && kind == ToolKind.SWORD) {
+            return "Stops at 1 durability instead of breaking (can't hit until repaired)";
+        }
+        if (this == LAST_STAND) return "Stops at 1 durability instead of breaking (can't mine until repaired)";
+        return summary;
+    }
 
     /** True if this upgrade can go on a tool of this kind and material. */
     public boolean appliesTo(ToolKind kind, Material material) {

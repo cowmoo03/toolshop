@@ -399,7 +399,7 @@ public final class ShopMenu implements InventoryHolder {
         Legendary lt = plugin.legendary();
         int current = lt.tier(tool, u);
         List<Component> lore = new ArrayList<>();
-        lore.add(text(u.summary(), NamedTextColor.GRAY));
+        lore.add(text(u.summary(kind), NamedTextColor.GRAY));
         for (int t = 1; t <= u.maxTier(); t++) {
             String detail = tierDetail(u, t);
             if (detail == null) continue;

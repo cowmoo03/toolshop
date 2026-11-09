@@ -226,7 +226,7 @@ public final class SkillsMenu implements InventoryHolder {
     private ItemStack upgradeIcon(Upgrade up, SkillCatalog.Skill skill, int level) {
         Settings s = plugin.settings();
         List<Component> lore = new ArrayList<>();
-        for (String line : wrap(up.summary())) lore.add(text(line, NamedTextColor.WHITE));
+        for (String line : wrap(up.summary(skill.tool()))) lore.add(text(line, NamedTextColor.WHITE));
         if (up == Upgrade.FIREPROOF) lore.add(text("Iron and diamond tools only", NamedTextColor.DARK_GRAY));
         if (up == Upgrade.RECOVERY) lore.add(text("Netherite tools only", NamedTextColor.DARK_GRAY));
         lore.add(Component.empty());
