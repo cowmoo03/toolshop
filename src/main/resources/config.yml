@@ -30,6 +30,10 @@ mcmmo:
     woodcutting: 1.25
     excavation: 1.0
     swords: 1.0
+    herbalism: 1.0
+    tridents: 1.0
+    crossbows: 1.0
+    acrobatics: 1.0
   # Only the block the player actually hits gives mcMMO XP, not the extra blocks an ability breaks.
   # Without this, a 5x5 Drill swing would give 25 blocks' worth of XP.
   xp-only-for-hit-block: true
@@ -90,6 +94,50 @@ upgrades:
     - { level: 10, cost: { LAPIS_LAZULI: 32 } }
     - { level: 30, cost: { EMERALD: 16 } }
     - { level: 60, cost: { NETHERITE_INGOT: 1 } }
+  # Hoe only. Levels are Herbalism levels.
+  harvest:
+    - { level: 10, cost: { IRON_INGOT: 16 } }
+    - { level: 30, cost: { DIAMOND: 8 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+  replant:
+    - { level: 20, cost: { DIAMOND: 2, BONE_MEAL: 32 } }
+  tiller:
+    - { level: 5, cost: { IRON_INGOT: 8 } }
+    - { level: 25, cost: { DIAMOND: 4 } }
+    - { level: 50, cost: { NETHERITE_INGOT: 1 } }
+  # Trident only. Levels are Tridents levels.
+  impaler:
+    - { level: 15, cost: { PRISMARINE_SHARD: 16 } }
+    - { level: 35, cost: { DIAMOND: 8 } }
+    - { level: 65, cost: { NETHERITE_INGOT: 2 } }
+  storm-caller:
+    - { level: 25, cost: { COPPER_INGOT: 32 } }
+    - { level: 45, cost: { DIAMOND: 8 } }
+    - { level: 75, cost: { NETHERITE_INGOT: 2 } }
+  # Crossbow only. Levels are Crossbows levels.
+  arrow-saver:
+    - { level: 10, cost: { ARROW: 64 } }
+    - { level: 30, cost: { DIAMOND: 4 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 1 } }
+  volley:
+    - { level: 20, cost: { IRON_INGOT: 16 } }
+    - { level: 40, cost: { DIAMOND: 8 } }
+    - { level: 70, cost: { NETHERITE_INGOT: 2 } }
+  heavy-bolts:
+    - { level: 15, cost: { IRON_BLOCK: 2 } }
+    - { level: 35, cost: { DIAMOND: 8 } }
+    - { level: 65, cost: { NETHERITE_INGOT: 2 } }
+  # Elytra only. Levels are Acrobatics levels.
+  boost:
+    - { level: 10, cost: { FIREWORK_ROCKET: 32 } }
+    - { level: 30, cost: { DIAMOND: 8 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+  rocket-saver:
+    - { level: 15, cost: { GUNPOWDER: 32 } }
+    - { level: 35, cost: { DIAMOND: 8 } }
+    - { level: 65, cost: { NETHERITE_INGOT: 1 } }
+  safe-landing:
+    - { level: 20, cost: { HAY_BLOCK: 16, DIAMOND: 2 } }
   soulbound:
     - { level: 50, cost: { TOTEM_OF_UNDYING: 1 } }
     - { level: 70, cost: { TOTEM_OF_UNDYING: 2 } }
@@ -227,7 +275,7 @@ join-announcement:
     - ""
 
 # Cosmetic ranks shown on the tool, by blocks broken with it.
-# Legendary swords rank up by kills instead of blocks.
+# Legendary swords, tridents and crossbows rank up by kills instead of blocks (the elytra by blocks flown).
 sword-ranks:
   0: Rusty
   100: Seasoned
@@ -244,8 +292,37 @@ beheading:
 bounty:
   # Extra XP orbs from kills.
   extra-percent: [25, 50, 100]
-# Against players, Lifesteal, Beheading and Bounty are multiplied by this (0.5 = half). 0 turns them off in PvP.
+# Against players, sword, trident and crossbow abilities (Lifesteal, Beheading, Bounty, Impaler, Storm Caller,
+# Volley, Heavy Bolts) are multiplied by this (0.5 = half). 0 turns them off in PvP.
 sword-pvp-multiplier: 0.5
+
+# Hoe: Harvest breaks the grown crops in a 3x3 / 5x5 / 7x7 around the one you break (sneaking).
+harvest:
+  # Every crop Harvest breaks gives Herbalism XP (they all grew there). false = only the one you hit.
+  xp-for-all-crops: true
+# Trident abilities, per tier I, II, III.
+impaler:
+  extra-damage: [2, 4, 6]
+storm-caller:
+  # At most one lightning strike per this many seconds.
+  cooldown-seconds: [30, 20, 10]
+  # Lightning damage to what the trident hit (halved on players by sword-pvp-multiplier), plus setting it on fire.
+  damage: 5
+# Crossbow abilities, per tier I, II, III.
+arrow-saver:
+  chance: [20, 35, 50]
+volley:
+  extra-arrows: [1, 2, 4]
+heavy-bolts:
+  extra-percent: [10, 20, 30]
+# Elytra abilities, per tier I, II, III.
+boost:
+  # Boosts per flight; they refill when you land.
+  charges: [1, 2, 3]
+  # How hard each boost pushes (1.0 is about one firework rocket).
+  strength: 1.0
+rocket-saver:
+  chance: [25, 50, 75]
 
 ranks:
   0: Rusty

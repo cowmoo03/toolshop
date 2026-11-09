@@ -26,16 +26,20 @@ import java.util.Map;
  */
 public final class ShopMenu implements InventoryHolder {
     public static final int TOOL_SLOT = 4;
-    /** Home page: one slot per tool kind (pickaxe, axe, shovel, sword) and the star. */
-    private static final int[] HOME_TOOL_SLOTS = {10, 12, 14, 16};
+    /** Home page: one slot per tool kind (tools on row 2, weapons and elytra on row 3) and the star. */
+    private static final int[] HOME_TOOL_SLOTS = {10, 12, 14, 16, 19, 21, 23, 25};
     public static final int CREATE_SLOT = 30;
     public static final int FLIGHT_SLOT = 32;
     public static final int CATALOG_SLOT = 40;
     /** All-upgrades page: each tool's own abilities on rows 2-3, the upgrades every tool can get on row 4. */
     private static final Map<Upgrade, Integer> CATALOG_SLOTS = Map.ofEntries(
-            Map.entry(Upgrade.DRILL, 10), Map.entry(Upgrade.VEIN, 11), Map.entry(Upgrade.TIMBER, 13),
-            Map.entry(Upgrade.EXCAVATOR, 15), Map.entry(Upgrade.LIFESTEAL, 21), Map.entry(Upgrade.BEHEADING, 22),
-            Map.entry(Upgrade.BOUNTY, 23), Map.entry(Upgrade.MAGNET, 28), Map.entry(Upgrade.DURABILITY, 29),
+            Map.entry(Upgrade.DRILL, 9), Map.entry(Upgrade.VEIN, 10), Map.entry(Upgrade.TIMBER, 11),
+            Map.entry(Upgrade.EXCAVATOR, 12), Map.entry(Upgrade.HARVEST, 13), Map.entry(Upgrade.REPLANT, 14),
+            Map.entry(Upgrade.TILLER, 15), Map.entry(Upgrade.LIFESTEAL, 16), Map.entry(Upgrade.BEHEADING, 17),
+            Map.entry(Upgrade.BOUNTY, 18), Map.entry(Upgrade.IMPALER, 19), Map.entry(Upgrade.STORM_CALLER, 20),
+            Map.entry(Upgrade.ARROW_SAVER, 21), Map.entry(Upgrade.VOLLEY, 22), Map.entry(Upgrade.HEAVY_BOLTS, 23),
+            Map.entry(Upgrade.BOOST, 24), Map.entry(Upgrade.ROCKET_SAVER, 25), Map.entry(Upgrade.SAFE_LANDING, 26),
+            Map.entry(Upgrade.MAGNET, 28), Map.entry(Upgrade.DURABILITY, 29),
             Map.entry(Upgrade.LAST_STAND, 30), Map.entry(Upgrade.FIREPROOF, 32), Map.entry(Upgrade.RECOVERY, 33),
             Map.entry(Upgrade.SOULBOUND, 34));
     public static final int BACK_SLOT = 36;
@@ -188,7 +192,7 @@ public final class ShopMenu implements InventoryHolder {
             } else {
                 inventory.setItem(slot, icon(plainIcon(kind), text("No " + kind.displayName() + " yet",
                         NamedTextColor.GRAY), List.of(
-                        text("Hold an iron, diamond or netherite " + kind.id(), NamedTextColor.GRAY),
+                        text("Hold " + kind.hint(), NamedTextColor.GRAY),
                         text("and click the star below to make it legendary.", NamedTextColor.GRAY)), false));
             }
         }
@@ -212,10 +216,11 @@ public final class ShopMenu implements InventoryHolder {
         } else {
             inventory.setItem(CREATE_SLOT, icon(Material.NETHER_STAR, text("Make a tool Legendary", NamedTextColor.GOLD)
                     .decoration(TextDecoration.BOLD, true), List.of(
-                    text(plainKind != null ? "The tool in your hand is already legendary." : "Hold a tool to make it legendary:",
+                    text(plainKind != null ? "The item in your hand is already legendary." : "Hold an item to make it legendary:",
                             NamedTextColor.YELLOW),
-                    text("an iron, diamond or netherite pickaxe,", NamedTextColor.GRAY),
-                    text("axe, shovel or sword, then open /toolshop again.", NamedTextColor.GRAY)), false));
+                    text("an iron, diamond or netherite pickaxe, axe,", NamedTextColor.GRAY),
+                    text("shovel, hoe or sword, or a trident, crossbow", NamedTextColor.GRAY),
+                    text("or elytra, then open /toolshop again.", NamedTextColor.GRAY)), false));
         }
     }
 
@@ -226,13 +231,16 @@ public final class ShopMenu implements InventoryHolder {
                 List.of(text("Back to your tools", NamedTextColor.GRAY)), false));
         inventory.setItem(4, icon(Material.ENCHANTED_BOOK, text("All Upgrades", NamedTextColor.LIGHT_PURPLE)
                 .decoration(TextDecoration.BOLD, true), List.of(
-                text("Top: each tool's own ability.", NamedTextColor.GRAY),
-                text("Bottom: upgrades every tool can get.", NamedTextColor.GRAY),
+                text("Top two rows: each item's own abilities,", NamedTextColor.GRAY),
+                text("in order: pickaxe, axe, shovel, hoe, sword,", NamedTextColor.GRAY),
+                text("trident, crossbow, elytra.", NamedTextColor.GRAY),
+                text("Bottom: upgrades they share.", NamedTextColor.GRAY),
                 text("Levels are in the tool's mcMMO skill.", NamedTextColor.GRAY),
                 text("Buy them by clicking your tool on the first page.", NamedTextColor.DARK_GRAY)), false));
         inventory.setItem(31, icon(Material.CRAFTING_TABLE, text("Every tool can get these", NamedTextColor.YELLOW),
-                List.of(text("Pickaxe, axe, shovel and sword", NamedTextColor.GRAY),
-                        text("(Magnet: not on swords)", NamedTextColor.DARK_GRAY)), false));
+                List.of(text("Where they make sense:", NamedTextColor.GRAY),
+                        text("Magnet only on block-breaking tools,", NamedTextColor.DARK_GRAY),
+                        text("no Last Stand on the elytra.", NamedTextColor.DARK_GRAY)), false));
         for (Upgrade u : Upgrade.values()) {
             Integer slot = CATALOG_SLOTS.get(u);
             if (slot != null) inventory.setItem(slot, catalogIcon(player, u));
@@ -245,11 +253,12 @@ public final class ShopMenu implements InventoryHolder {
         List<Component> lore = new ArrayList<>();
         lore.add(text(u.summary(), NamedTextColor.GRAY));
         if (u.onlyFor() != null) lore.add(text(u.onlyFor().displayName().replace("Legendary ", "") + " only", NamedTextColor.DARK_AQUA));
+        if (u == Upgrade.LAST_STAND) lore.add(text("Not on the elytra", NamedTextColor.DARK_AQUA));
         if (u == Upgrade.FIREPROOF) lore.add(text("Iron and diamond tools only (netherite can't burn)", NamedTextColor.DARK_AQUA));
         if (u == Upgrade.RECOVERY) lore.add(text("Netherite tools only", NamedTextColor.DARK_AQUA));
         ToolKind[] kinds = u.onlyFor() != null ? new ToolKind[]{u.onlyFor()}
                 : java.util.Arrays.stream(ToolKind.values()).filter(k -> appliesToKind(u, k)).toArray(ToolKind[]::new);
-        if (u == Upgrade.MAGNET) lore.add(text("Not on swords", NamedTextColor.DARK_AQUA));
+        if (u == Upgrade.MAGNET) lore.add(text("Pickaxe, axe, shovel and hoe only", NamedTextColor.DARK_AQUA));
         for (int t = 1; t <= u.maxTier(); t++) {
             lore.add(Component.empty());
             String detail = tierDetail(u, t);
@@ -363,6 +372,10 @@ public final class ShopMenu implements InventoryHolder {
             case AXE -> Material.IRON_AXE;
             case SHOVEL -> Material.IRON_SHOVEL;
             case SWORD -> Material.IRON_SWORD;
+            case HOE -> Material.IRON_HOE;
+            case TRIDENT -> Material.TRIDENT;
+            case CROSSBOW -> Material.CROSSBOW;
+            case ELYTRA -> Material.ELYTRA;
         };
     }
 
@@ -481,8 +494,23 @@ public final class ShopMenu implements InventoryHolder {
             case LIFESTEAL -> "heal " + Settings.forTier(s.lifestealPercent, t) + "% of damage dealt" + pvpNote(s);
             case BEHEADING -> Settings.forTier(s.beheadingChance, t) + "% head chance per kill" + pvpNote(s);
             case BOUNTY -> "+" + Settings.forTier(s.bountyPercent, t) + "% XP from kills" + pvpNote(s);
+            case HARVEST -> area(t) + " of grown crops";
+            case REPLANT -> "uses a seed from the drops (or your inventory)";
+            case TILLER -> "tills " + area(t);
+            case IMPALER -> "+" + Settings.forTier(s.impalerDamage, t) + " damage" + pvpNote(s);
+            case STORM_CALLER -> "lightning every " + Settings.forTier(s.stormCallerCooldown, t) + "s at most" + pvpNote(s);
+            case ARROW_SAVER -> Settings.forTier(s.arrowSaverChance, t) + "% chance";
+            case VOLLEY -> "+" + Settings.forTier(s.volleyArrows, t) + " arrow" + (Settings.forTier(s.volleyArrows, t) == 1 ? "" : "s") + pvpNote(s);
+            case HEAVY_BOLTS -> "+" + Settings.forTier(s.heavyBoltsPercent, t) + "% damage" + pvpNote(s);
+            case BOOST -> Settings.forTier(s.boostCharges, t) + " boost" + (Settings.forTier(s.boostCharges, t) == 1 ? "" : "s") + " per flight (refill on landing)";
+            case ROCKET_SAVER -> Settings.forTier(s.rocketSaverChance, t) + "% chance";
             default -> null;
         };
+    }
+
+    private static String area(int tier) {
+        int side = tier * 2 + 1;
+        return side + "x" + side;
     }
 
     private static String pvpNote(Settings s) {
@@ -510,18 +538,30 @@ public final class ShopMenu implements InventoryHolder {
             case LIFESTEAL -> Material.GHAST_TEAR;
             case BEHEADING -> Material.SKELETON_SKULL;
             case BOUNTY -> Material.EXPERIENCE_BOTTLE;
+            case HARVEST -> Material.WHEAT;
+            case REPLANT -> Material.WHEAT_SEEDS;
+            case TILLER -> Material.FARMLAND;
+            case IMPALER -> Material.PRISMARINE_SHARD;
+            case STORM_CALLER -> Material.LIGHTNING_ROD;
+            case ARROW_SAVER -> Material.ARROW;
+            case VOLLEY -> Material.SPECTRAL_ARROW;
+            case HEAVY_BOLTS -> Material.HEAVY_CORE;
+            case BOOST -> Material.PHANTOM_MEMBRANE;
+            case ROCKET_SAVER -> Material.FIREWORK_ROCKET;
+            case SAFE_LANDING -> Material.HAY_BLOCK;
         };
     }
 
     private ItemStack infoButton() {
         List<Component> lore = List.of(
-                text("1. Hold an iron, diamond or netherite pickaxe,", NamedTextColor.GRAY),
-                text("   axe, shovel or sword and click the star.", NamedTextColor.GRAY),
+                text("1. Hold a tool (pickaxe, axe, shovel, hoe), a weapon", NamedTextColor.GRAY),
+                text("   (sword, trident, crossbow) or an elytra and click the star.", NamedTextColor.GRAY),
                 text("2. That makes it legendary (one of each per player).", NamedTextColor.GRAY),
                 text("   Click a legendary tool here to see its upgrades.", NamedTextColor.GRAY),
                 text("3. Level up the matching mcMMO skill and", NamedTextColor.GRAY),
                 text("   bring the items to buy upgrades.", NamedTextColor.GRAY),
-                text("4. Sneak while breaking to use abilities.", NamedTextColor.GRAY),
+                text("4. Tool abilities work while sneaking; weapon and", NamedTextColor.GRAY),
+                text("   elytra abilities work on their own (see each one).", NamedTextColor.GRAY),
                 Component.empty(),
                 text("Upgrades are permanent, but if the tool breaks,", NamedTextColor.RED),
                 text("burns or despawns, it's gone. Last Stand stops it", NamedTextColor.RED),

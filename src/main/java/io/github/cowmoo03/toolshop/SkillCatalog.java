@@ -86,7 +86,7 @@ public final class SkillCatalog {
                         "Right-click with a shovel to ready it, then dig."),
                 pas("Archaeology", "Archaeology", "Find treasure while digging. Better treasure as you level up.", 1))));
 
-        add(new Skill("herbalism", "Herbalism", "DIAMOND_HOE", "Harvesting crops and plants", List.of(), null, List.of(
+        add(new Skill("herbalism", "Herbalism", "DIAMOND_HOE", "Harvesting crops and plants", List.of(), ToolKind.HOE, List.of(
                 sup("GreenTerra", "Green Terra", "Triple crop drops, and right-clicking turns blocks mossy or grassy.",
                         "Right-click with a hoe to ready it, then harvest."),
                 pas("DoubleDrops", "Double Drops", "Chance for crops to drop double.", 1),
@@ -134,12 +134,12 @@ public final class SkillCatalog {
                 new Ability(null, "Daze", Kind.PASSIVE, "Chance to stun players you shoot (PvP).", null, 0),
                 limitBreak("Archery"))));
 
-        add(new Skill("crossbows", "Crossbows", "CROSSBOW", "Hitting mobs and players with a crossbow", List.of(), null, List.of(
+        add(new Skill("crossbows", "Crossbows", "CROSSBOW", "Hitting mobs and players with a crossbow", List.of(), ToolKind.CROSSBOW, List.of(
                 pas("PoweredShot", "Powered Shot", "Bonus crossbow damage.", 1),
                 pas("TrickShot", "Trick Shot", "Arrows bounce off walls when they hit at a steep angle.", 5),
                 limitBreak("Crossbows"))));
 
-        add(new Skill("tridents", "Tridents", "TRIDENT", "Hitting mobs and players with a trident", List.of(), null, List.of(
+        add(new Skill("tridents", "Tridents", "TRIDENT", "Hitting mobs and players with a trident", List.of(), ToolKind.TRIDENT, List.of(
                 pas("Impale", "Impale", "Bonus trident damage.", 5),
                 limitBreak("Tridents"))));
 
@@ -153,7 +153,7 @@ public final class SkillCatalog {
                 pas("SpearMastery", "Spear Mastery", "Bonus spear damage.", 5),
                 limitBreak("Spears"))));
 
-        add(new Skill("acrobatics", "Acrobatics", "FEATHER", "Taking fall damage and dodging attacks", List.of(), null, List.of(
+        add(new Skill("acrobatics", "Acrobatics", "FEATHER", "Taking fall damage and dodging attacks", List.of(), ToolKind.ELYTRA, List.of(
                 new Ability(null, "Roll", Kind.PASSIVE, "Chance to take no fall damage. Sneak as you land for a "
                         + "Graceful Roll, which works twice as well.", null, 0),
                 pas("Dodge", "Dodge", "Chance to take half damage from attacks.", 1))));

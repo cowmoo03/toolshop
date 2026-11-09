@@ -57,6 +57,8 @@ public final class SwordListener implements Listener {
         if (killer == null) return null;
         EntityDamageEvent last = dead.getLastDamageCause();
         if (!(last instanceof EntityDamageByEntityEvent by) || !killer.equals(by.getDamager())) return null;
+        EntityDamageEvent.DamageCause cause = by.getCause();
+        if (cause != EntityDamageEvent.DamageCause.ENTITY_ATTACK && cause != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return null;
         return killer;
     }
 
@@ -82,6 +84,8 @@ public final class SwordListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
+        EntityDamageEvent.DamageCause cause = event.getCause();
+        if (cause != EntityDamageEvent.DamageCause.ENTITY_ATTACK && cause != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return;
         if (!(event.getEntity() instanceof LivingEntity victim) || victim instanceof ArmorStand) return;
         if (player.getGameMode() == GameMode.SPECTATOR || player.isDead()) return;
         ItemStack sword = sword(player);

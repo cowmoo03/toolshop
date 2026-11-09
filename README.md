@@ -1,7 +1,7 @@
 # ToolShop
 
 A Paper plugin (Minecraft 26.2) for **legendary tools**: each player turns one iron, diamond or netherite
-pickaxe, axe, shovel and sword into their own legendary tool and upgrades it for good, unlocking tiers with
+pickaxe, axe, shovel, hoe and sword, trident, crossbow and elytra into their own legendary item and upgrades it for good, unlocking tiers with
 **mcMMO skill levels plus items**. Upgrades are permanent, but the tool can be lost like any item.
 
 ## Upgrades
@@ -15,14 +15,25 @@ pickaxe, axe, shovel and sword into their own legendary tool and upgrades it for
 | **Lifesteal** | Sword | heals 5% → 10% → 15% of the damage you deal | Swords 15 / 35 / 65 |
 | **Beheading** | Sword | 3% → 6% → 10% chance for a zombie, skeleton, creeper, piglin, wither skeleton or player head | Swords 20 / 40 / 70 |
 | **Bounty** | Sword | +25% → +50% → +100% XP orbs from kills | Swords 10 / 30 / 60 |
-| **Magnet** | Pickaxe, axe, shovel | drops go straight into your inventory | 25 + 4 diamonds, 4 ender pearls |
+| **Harvest** | Hoe | sneak-break a grown crop: 3x3 → 5x5 → 7x7 of grown crops | Herbalism 10 / 30 / 60 |
+| **Replant** | Hoe | harvested crops plant themselves again (seed from the drops or inventory) | Herbalism 20 |
+| **Tiller** | Hoe | sneak-till: 3x3 → 5x5 → 7x7 | Herbalism 5 / 25 / 50 |
+| **Impaler** | Trident | +2 → +4 → +6 damage against every mob | Tridents 15 / 35 / 65 |
+| **Storm Caller** | Trident | a thrown trident calls lightning (5 damage + fire) in any weather, every 30 → 20 → 10 s at most | Tridents 25 / 45 / 75 |
+| **Arrow Saver** | Crossbow | 20% → 35% → 50% chance to get the arrow back | Crossbows 10 / 30 / 60 |
+| **Volley** | Crossbow | +1 → +2 → +4 extra arrows in a spread | Crossbows 20 / 40 / 70 |
+| **Heavy Bolts** | Crossbow | +10% → +20% → +30% arrow damage | Crossbows 15 / 35 / 65 |
+| **Boost** | Elytra | sneak while gliding for a push; 1 → 2 → 3 per flight, refilled on landing | Acrobatics 10 / 30 / 60 |
+| **Rocket Saver** | Elytra | 25% → 50% → 75% chance a firework rocket isn't used up | Acrobatics 15 / 35 / 65 |
+| **Safe Landing** | Elytra | no damage from crashing into walls or landing while gliding | Acrobatics 20 |
+| **Magnet** | Pickaxe, axe, shovel, hoe | drops go straight into your inventory | 25 + 4 diamonds, 4 ender pearls |
 | **Durability Saver** | Any | 5% → 10% → 20% chance to use no durability | 20 / 40 / 70 |
 | **Last Stand** | Any | stops at 1 durability instead of breaking | 30 + 8 diamonds |
 | **Fireproof** | Iron/diamond | survives lava and fire for 1 → 3 → 5 min of game time (and doesn't despawn meanwhile), then burns | 40 + 2 netherite scrap · 60 + 4 scrap · 80 + 1 netherite ingot |
 | **Recovery** | Netherite | dropped tool glows (only for its owner) and stays 1 → 3 → 5 extra min · tier 2+: survives explosions and cactus · tier 3: returns from the void | 40 + 2 netherite scrap · 60 + 4 scrap · 80 + 1 netherite ingot |
 | **Soulbound** | Any | survives 3 → 5 → 8 deaths; recharge in /toolshop once used up (or upgrade to refill) | 50 + 1 totem · 70 + 2 totems · 90 + 3 totems |
 
-Pickaxe, axe and shovel abilities work while sneaking; sword abilities work on their own, on melee hits and kills, and at half strength against players (`sword-pvp-multiplier`). Swords rank up by kills instead of blocks. Everything above is set in `config.yml`.
+Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, crossbow and elytra abilities work on their own. Weapon abilities work at half strength against players (`sword-pvp-multiplier`). Weapons rank up by kills and the elytra by blocks flown. The elytra can't get Last Stand (elytras already stop at 1 durability). Everything above is set in `config.yml`.
 
 ## How it works
 

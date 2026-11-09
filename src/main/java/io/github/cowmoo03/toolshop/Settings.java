@@ -64,8 +64,18 @@ public final class Settings {
     public int[] lifestealPercent;
     public int[] beheadingChance;
     public int[] bountyPercent;
-    /** Lifesteal, Beheading and Bounty against players are multiplied by this (PvP). */
+    /** Sword, trident and crossbow abilities against players are multiplied by this (PvP). */
     public double swordPvpMultiplier;
+    public boolean harvestXpForAllCrops;
+    public int[] impalerDamage;
+    public int[] stormCallerCooldown;
+    public double stormCallerDamage;
+    public int[] arrowSaverChance;
+    public int[] volleyArrows;
+    public int[] heavyBoltsPercent;
+    public int[] boostCharges;
+    public double boostStrength;
+    public int[] rocketSaverChance;
 
     public Settings(FileConfiguration c, Logger log) {
         effects = c.getBoolean("effects", true);
@@ -156,6 +166,16 @@ public final class Settings {
         beheadingChance = readTierInts(c.getIntegerList("beheading.chance"), new int[]{3, 6, 10});
         bountyPercent = readTierInts(c.getIntegerList("bounty.extra-percent"), new int[]{25, 50, 100});
         swordPvpMultiplier = Math.max(0, Math.min(1, c.getDouble("sword-pvp-multiplier", 0.5)));
+        harvestXpForAllCrops = c.getBoolean("harvest.xp-for-all-crops", true);
+        impalerDamage = readTierInts(c.getIntegerList("impaler.extra-damage"), new int[]{2, 4, 6});
+        stormCallerCooldown = readTierInts(c.getIntegerList("storm-caller.cooldown-seconds"), new int[]{30, 20, 10});
+        stormCallerDamage = Math.max(0, c.getDouble("storm-caller.damage", 5));
+        arrowSaverChance = readTierInts(c.getIntegerList("arrow-saver.chance"), new int[]{20, 35, 50});
+        volleyArrows = readTierInts(c.getIntegerList("volley.extra-arrows"), new int[]{1, 2, 4});
+        heavyBoltsPercent = readTierInts(c.getIntegerList("heavy-bolts.extra-percent"), new int[]{10, 20, 30});
+        boostCharges = readTierInts(c.getIntegerList("boost.charges"), new int[]{1, 2, 3});
+        boostStrength = Math.max(0.2, Math.min(3, c.getDouble("boost.strength", 1.0)));
+        rocketSaverChance = readTierInts(c.getIntegerList("rocket-saver.chance"), new int[]{25, 50, 75});
         ConfigurationSection rankSection = c.getConfigurationSection("ranks");
         if (rankSection != null) {
             for (String key : rankSection.getKeys(false)) {
@@ -176,7 +196,7 @@ public final class Settings {
 
     /** Rank for a tool: swords by kills, the others by blocks broken. */
     public String rankFor(ToolKind kind, long count) {
-        if (kind == ToolKind.SWORD) return swordRanks.floorEntry(Math.max(0, count)).getValue();
+        if (kind != null && kind.countsKills()) return swordRanks.floorEntry(Math.max(0, count)).getValue();
         return rankFor(count);
     }
 

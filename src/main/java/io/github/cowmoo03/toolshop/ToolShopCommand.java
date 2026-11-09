@@ -19,10 +19,10 @@ import java.util.Locale;
 /**
  * /toolshop                                        open the shop
  * /toolshop mode                                   switch your legendary pickaxe between Drill and Vein Mining
- * /toolshop give <player> <pickaxe|axe|shovel|sword> [iron|diamond|netherite]   admin: give a new legendary tool
+ * /toolshop give <player> <pickaxe|axe|shovel|hoe|sword|trident|crossbow|elytra> [iron|diamond|netherite]   admin: give a new legendary tool
  * /toolshop give <player> flight [amount]          admin: give Flight Charms
  * /toolshop upgrade <player> <upgrade> <tier>      admin: set an upgrade on the player's held legendary tool
- * /toolshop reset <player> [pickaxe|axe|shovel|sword|all]  admin: remove a player's legendary tools
+ * /toolshop reset <player> [pickaxe|axe|shovel|hoe|sword|trident|crossbow|elytra|all]  admin: remove a player's legendary tools
  * /toolshop reload                                 admin: reload config.yml
  */
 public final class ToolShopCommand implements BasicCommand {
@@ -64,14 +64,14 @@ public final class ToolShopCommand implements BasicCommand {
             case "give" -> give(sender, args);
             case "upgrade" -> upgrade(sender, args);
             case "reset" -> reset(sender, args);
-            default -> send(sender, "Usage: /toolshop [mode | give <player> <pickaxe|axe|shovel|sword|flight> [material|amount]"
+            default -> send(sender, "Usage: /toolshop [mode | give <player> <pickaxe|axe|shovel|hoe|sword|trident|crossbow|elytra|flight> [material|amount]"
                     + " | upgrade <player> <upgrade> <tier> | reset <player> [kind|all] | reload]", NamedTextColor.RED);
         }
     }
 
     private void give(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            send(sender, "Usage: /toolshop give <player> <pickaxe|axe|shovel|sword|flight> [iron|diamond|netherite|amount]",
+            send(sender, "Usage: /toolshop give <player> <pickaxe|axe|shovel|hoe|sword|trident|crossbow|elytra|flight> [iron|diamond|netherite|amount]",
                     NamedTextColor.RED);
             return;
         }
@@ -97,11 +97,12 @@ public final class ToolShopCommand implements BasicCommand {
         }
         ToolKind kind = ToolKind.fromId(args[2]);
         if (kind == null) {
-            send(sender, "Must be pickaxe, axe, shovel, sword or flight.", NamedTextColor.RED);
+            send(sender, "Must be pickaxe, axe, shovel, hoe, sword, trident, crossbow, elytra or flight.", NamedTextColor.RED);
             return;
         }
         String material = args.length >= 4 ? args[3].toUpperCase(Locale.ROOT) : "NETHERITE";
-        Material mat = Material.matchMaterial(material + "_" + kind.name());
+        Material mat = kind.materials().size() == 1 ? kind.materials().iterator().next()
+                : Material.matchMaterial(material + "_" + kind.name());
         if (mat == null || !kind.materials().contains(mat)) {
             send(sender, "Material must be iron, diamond or netherite.", NamedTextColor.RED);
             return;
@@ -167,7 +168,7 @@ public final class ToolShopCommand implements BasicCommand {
      */
     private void reset(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            send(sender, "Usage: /toolshop reset <player> [pickaxe|axe|shovel|sword|all]", NamedTextColor.RED);
+            send(sender, "Usage: /toolshop reset <player> [pickaxe|axe|shovel|hoe|sword|trident|crossbow|elytra|all]", NamedTextColor.RED);
             return;
         }
         org.bukkit.OfflinePlayer target = Bukkit.getPlayerExact(args[1]);
@@ -180,7 +181,7 @@ public final class ToolShopCommand implements BasicCommand {
         if (args.length >= 3 && !args[2].equalsIgnoreCase("all")) {
             kind = ToolKind.fromId(args[2]);
             if (kind == null) {
-                send(sender, "Tool must be pickaxe, axe, shovel, sword or all.", NamedTextColor.RED);
+                send(sender, "Must be pickaxe, axe, shovel, hoe, sword, trident, crossbow, elytra or all.", NamedTextColor.RED);
                 return;
             }
         }
@@ -237,11 +238,11 @@ public final class ToolShopCommand implements BasicCommand {
                 || args[0].equalsIgnoreCase("reset"))) {
             Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
         } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("give")) {
-            options.addAll(List.of("pickaxe", "axe", "shovel", "sword", "flight"));
+            options.addAll(List.of("pickaxe", "axe", "shovel", "hoe", "sword", "trident", "crossbow", "elytra", "flight"));
         } else if (admin && args.length == 4 && args[0].equalsIgnoreCase("give")) {
             options.addAll(args[2].equalsIgnoreCase("flight") ? List.of("1", "16", "64") : List.of("iron", "diamond", "netherite"));
         } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("reset")) {
-            options.addAll(List.of("all", "pickaxe", "axe", "shovel", "sword"));
+            options.addAll(List.of("all", "pickaxe", "axe", "shovel", "hoe", "sword", "trident", "crossbow", "elytra"));
         } else if (admin && args.length == 3 && args[0].equalsIgnoreCase("upgrade")) {
             Arrays.stream(Upgrade.values()).forEach(u -> options.add(u.id()));
         } else if (admin && args.length == 4 && args[0].equalsIgnoreCase("upgrade")) {

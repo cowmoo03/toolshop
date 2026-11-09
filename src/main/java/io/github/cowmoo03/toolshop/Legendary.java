@@ -211,8 +211,8 @@ public final class Legendary {
         boolean current = isCurrent(item);
 
         List<Component> lore = new ArrayList<>();
-        lore.add(line("★ " + s.rankFor(kind, blocks) + "  ·  " + roundCount(blocks)
-                + (kind == ToolKind.SWORD ? (blocks == 1 ? " kill" : " kills") : " blocks"), NamedTextColor.GOLD));
+        lore.add(line("★ " + s.rankFor(kind, blocks) + "  ·  " + roundCount(blocks) + " " + kind.countWord(blocks),
+                NamedTextColor.GOLD));
         lore.add(line("Owner: " + ownerName, NamedTextColor.GRAY));
         if (!current) {
             lore.add(line("RETIRED: replaced by a newer legendary tool", NamedTextColor.RED)

@@ -11,6 +11,17 @@ public enum Upgrade {
     LIFESTEAL("lifesteal", "Lifesteal", ToolKind.SWORD, 3, "Heals you for part of the damage you deal"),
     BEHEADING("beheading", "Beheading", ToolKind.SWORD, 3, "Chance for a mob's (or player's) head when you kill it"),
     BOUNTY("bounty", "Bounty", ToolKind.SWORD, 3, "Kills drop more XP orbs"),
+    HARVEST("harvest", "Harvest", ToolKind.HOE, 3, "Sneak + break a grown crop to harvest the grown crops around it"),
+    REPLANT("replant", "Replant", ToolKind.HOE, 1, "Crops you harvest with the hoe plant themselves again"),
+    TILLER("tiller", "Tiller", ToolKind.HOE, 3, "Sneak + till to till an area of dirt"),
+    IMPALER("impaler", "Impaler", ToolKind.TRIDENT, 3, "Extra trident damage against every mob, not just sea creatures"),
+    STORM_CALLER("storm-caller", "Storm Caller", ToolKind.TRIDENT, 3, "A thrown trident calls lightning on what it hits, in any weather"),
+    ARROW_SAVER("arrow-saver", "Arrow Saver", ToolKind.CROSSBOW, 3, "Chance to get the arrow back when you shoot"),
+    VOLLEY("volley", "Volley", ToolKind.CROSSBOW, 3, "Shoots extra arrows in a spread"),
+    HEAVY_BOLTS("heavy-bolts", "Heavy Bolts", ToolKind.CROSSBOW, 3, "Arrows from the crossbow hit harder"),
+    BOOST("boost", "Boost", ToolKind.ELYTRA, 3, "Sneak while gliding for a burst of speed"),
+    ROCKET_SAVER("rocket-saver", "Rocket Saver", ToolKind.ELYTRA, 3, "Chance for a firework rocket not to be used up"),
+    SAFE_LANDING("safe-landing", "Safe Landing", ToolKind.ELYTRA, 1, "No damage from crashing into walls or landing while gliding"),
     MAGNET("magnet", "Magnet", null, 1, "Drops from blocks you break go straight into your inventory"),
     DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block or hit to use no durability"),
     LAST_STAND("last-stand", "Last Stand", null, 1, "Stops at 1 durability instead of breaking"),
@@ -43,10 +54,19 @@ public enum Upgrade {
     public String summary(ToolKind kind) {
         if (kind == null) return summary;
         if (this == DURABILITY) {
-            return kind == ToolKind.SWORD ? "Chance for a hit to use no durability" : "Chance for a block to use no durability";
+            return switch (kind) {
+                case SWORD -> "Chance for a hit to use no durability";
+                case TRIDENT -> "Chance for a hit or throw to use no durability";
+                case CROSSBOW -> "Chance for a shot to use no durability";
+                case ELYTRA -> "Chance for gliding to use no durability";
+                default -> "Chance for a block to use no durability";
+            };
         }
-        if (this == LAST_STAND && kind == ToolKind.SWORD) {
+        if (this == LAST_STAND && (kind == ToolKind.SWORD || kind == ToolKind.TRIDENT)) {
             return "Stops at 1 durability instead of breaking (can't hit until repaired)";
+        }
+        if (this == LAST_STAND && kind == ToolKind.CROSSBOW) {
+            return "Stops at 1 durability instead of breaking (can't shoot until repaired)";
         }
         if (this == LAST_STAND) return "Stops at 1 durability instead of breaking (can't mine until repaired)";
         return summary;
@@ -55,7 +75,10 @@ public enum Upgrade {
     /** True if this upgrade can go on a tool of this kind and material. */
     public boolean appliesTo(ToolKind kind, Material material) {
         if (onlyFor != null && onlyFor != kind) return false;
-        if (this == MAGNET && kind == ToolKind.SWORD) return false; // Magnet is for blocks you break
+        // Magnet is for blocks you break.
+        if (this == MAGNET && kind != ToolKind.PICKAXE && kind != ToolKind.AXE && kind != ToolKind.SHOVEL
+                && kind != ToolKind.HOE) return false;
+        if (this == LAST_STAND && kind == ToolKind.ELYTRA) return false; // elytras already stop at 1 durability
         boolean netherite = material.name().startsWith("NETHERITE_");
         // Netherite items never burn anyway, so Fireproof would do nothing for them; Recovery is their version.
         if (this == FIREPROOF) return !netherite;
