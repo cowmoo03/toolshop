@@ -30,18 +30,7 @@ public final class ShopMenu implements InventoryHolder {
     private static final int[] HOME_TOOL_SLOTS = {10, 12, 14, 16, 19, 21, 23, 25};
     public static final int CREATE_SLOT = 30;
     public static final int FLIGHT_SLOT = 32;
-    public static final int CATALOG_SLOT = 40;
-    /** All-upgrades page: each tool's own abilities on rows 2-3, the upgrades every tool can get on row 4. */
-    private static final Map<Upgrade, Integer> CATALOG_SLOTS = Map.ofEntries(
-            Map.entry(Upgrade.DRILL, 9), Map.entry(Upgrade.VEIN, 10), Map.entry(Upgrade.TIMBER, 11),
-            Map.entry(Upgrade.EXCAVATOR, 12), Map.entry(Upgrade.HARVEST, 13), Map.entry(Upgrade.REPLANT, 14),
-            Map.entry(Upgrade.TILLER, 15), Map.entry(Upgrade.LIFESTEAL, 16), Map.entry(Upgrade.BEHEADING, 17),
-            Map.entry(Upgrade.BOUNTY, 18), Map.entry(Upgrade.IMPALER, 19), Map.entry(Upgrade.STORM_CALLER, 20),
-            Map.entry(Upgrade.ARROW_SAVER, 21), Map.entry(Upgrade.VOLLEY, 22), Map.entry(Upgrade.HEAVY_BOLTS, 23),
-            Map.entry(Upgrade.BOOST, 24), Map.entry(Upgrade.ROCKET_SAVER, 25), Map.entry(Upgrade.SAFE_LANDING, 26),
-            Map.entry(Upgrade.MAGNET, 28), Map.entry(Upgrade.DURABILITY, 29),
-            Map.entry(Upgrade.LAST_STAND, 30), Map.entry(Upgrade.FIREPROOF, 32), Map.entry(Upgrade.RECOVERY, 33),
-            Map.entry(Upgrade.SOULBOUND, 34));
+    public static final int RETIRE_SLOT = 44;
     public static final int BACK_SLOT = 36;
     public static final int MODE_SLOT = 40;
     public static final int RECHARGE_SLOT = 42;
@@ -50,8 +39,9 @@ public final class ShopMenu implements InventoryHolder {
     public static final long CONFIRM_WINDOW_MS = 5000;
 
     /** What a slot does. */
-    public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire, Catalog {}
-    public record Catalog() implements Action {}
+    public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire, Preview {}
+    /** View-only upgrades page for an item the player doesn't have with them (or doesn't own yet). */
+    public record Preview(ToolKind kind) implements Action {}
     public record Retire(ToolKind kind) implements Action {}
     public record Open(ToolKind kind) implements Action {}
     public record Back() implements Action {}
@@ -67,8 +57,8 @@ public final class ShopMenu implements InventoryHolder {
     private long pendingUntil;
     /** null: the tools page; otherwise the upgrades page for this tool kind. */
     private ToolKind page;
-    /** True while the all-upgrades page is showing. */
-    private boolean catalog;
+    /** The item whose upgrades are being previewed (view only), or null. */
+    private ToolKind preview;
 
     public ShopMenu(ToolShopPlugin plugin) {
         this.plugin = plugin;
@@ -104,14 +94,14 @@ public final class ShopMenu implements InventoryHolder {
 
     public void setPage(ToolKind kind) {
         page = kind;
-        catalog = false;
+        preview = null;
         pending = null;
     }
 
-    /** Shows the page with every upgrade in the shop. */
-    public void showCatalog() {
+    /** Shows the view-only upgrades page for this item. */
+    public void showPreview(ToolKind kind) {
         page = null;
-        catalog = true;
+        preview = kind;
         pending = null;
     }
 
@@ -137,7 +127,7 @@ public final class ShopMenu implements InventoryHolder {
         ItemStack filler = icon(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of(), false);
         for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, filler);
         if (page != null && findTool(plugin, player, page) < 0) page = null; // tool left the inventory
-        if (catalog) renderCatalog(player);
+        if (preview != null) renderPreview(player, preview);
         else if (page == null) renderHome(player);
         else renderTool(player, page);
     }
@@ -145,13 +135,6 @@ public final class ShopMenu implements InventoryHolder {
     /** The tools page: the player's three legendary tools and the star. */
     private void renderHome(Player player) {
         inventory.setItem(INFO_SLOT, infoButton());
-        actions.put(CATALOG_SLOT, new Catalog());
-        inventory.setItem(CATALOG_SLOT, icon(Material.ENCHANTED_BOOK, text("All Upgrades", NamedTextColor.LIGHT_PURPLE)
-                .decoration(TextDecoration.BOLD, true), List.of(
-                text("Every upgrade in the Tool Shop:", NamedTextColor.GRAY),
-                text("what it does, the levels and items it needs.", NamedTextColor.GRAY),
-                Component.empty(),
-                text("Click to see them", NamedTextColor.GREEN)), false));
         Legendary lt = plugin.legendary();
         ToolKind[] kinds = ToolKind.values();
         for (int k = 0; k < kinds.length && k < HOME_TOOL_SLOTS.length; k++) {
@@ -171,29 +154,21 @@ public final class ShopMenu implements InventoryHolder {
                 shown.setItemMeta(meta);
                 inventory.setItem(slot, shown);
                 actions.put(slot, new Open(kind));
-            } else if (plugin.registry().activeId(player.getUniqueId(), kind) != null) {
-                Retire retire = new Retire(kind);
-                boolean confirming = isAwaitingConfirm(retire, System.currentTimeMillis());
-                actions.put(slot, retire);
-                List<Component> lore = new ArrayList<>(List.of(
-                        text("Not in your inventory.", NamedTextColor.RED),
-                        text("Carry it with you to see and buy its upgrades.", NamedTextColor.GRAY),
-                        Component.empty(),
-                        text("Lost it for good? You can retire it:", NamedTextColor.GRAY),
-                        text("it stops working wherever it is (even in a", NamedTextColor.GRAY),
-                        text("chest or ender chest) and its upgrades are gone.", NamedTextColor.GRAY),
-                        text("Making a new one retires it anyway.", NamedTextColor.DARK_GRAY),
-                        Component.empty()));
-                lore.add(confirming
-                        ? text("CLICK AGAIN TO RETIRE IT FOREVER", NamedTextColor.RED).decoration(TextDecoration.BOLD, true)
-                        : text("Click to retire it", NamedTextColor.YELLOW));
-                inventory.setItem(slot, icon(confirming ? Material.BARRIER : plainIcon(kind),
-                        text(kind.displayName(), NamedTextColor.GRAY), lore, confirming));
             } else {
-                inventory.setItem(slot, icon(plainIcon(kind), text("No " + kind.displayName() + " yet",
-                        NamedTextColor.GRAY), List.of(
-                        text("Hold " + kind.hint(), NamedTextColor.GRAY),
-                        text("and click the star below to make it legendary.", NamedTextColor.GRAY)), false));
+                boolean owned = plugin.registry().activeId(player.getUniqueId(), kind) != null;
+                actions.put(slot, new Preview(kind));
+                List<Component> lore = new ArrayList<>();
+                if (owned) {
+                    lore.add(text("Not in your inventory.", NamedTextColor.RED));
+                    lore.add(text("Carry it with you to buy its upgrades.", NamedTextColor.GRAY));
+                } else {
+                    lore.add(text("Hold " + kind.hint(), NamedTextColor.GRAY));
+                    lore.add(text("and click the star below to make it legendary.", NamedTextColor.GRAY));
+                }
+                lore.add(Component.empty());
+                lore.add(text("Click to see its upgrades", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+                inventory.setItem(slot, icon(plainIcon(kind), text(owned ? kind.displayName()
+                        : "No " + kind.displayName() + " yet", NamedTextColor.GRAY), lore, false));
             }
         }
 
@@ -224,65 +199,77 @@ public final class ShopMenu implements InventoryHolder {
         }
     }
 
-    /** Every upgrade in the shop, with what each tier does, the levels it needs and its items. */
-    private void renderCatalog(Player player) {
+    /** View-only upgrades for one item: what each does, the levels and items, and retiring a lost one. */
+    private void renderPreview(Player player, ToolKind kind) {
+        boolean owned = plugin.registry().activeId(player.getUniqueId(), kind) != null;
+        List<Component> headLore = new ArrayList<>();
+        headLore.add(text("Upgrades for the " + kind.displayName() + ", unlocked with", NamedTextColor.GRAY));
+        headLore.add(text(kind.skillName() + " levels and items.", NamedTextColor.GRAY));
+        headLore.add(Component.empty());
+        if (owned) {
+            headLore.add(text("Yours isn't in your inventory.", NamedTextColor.RED));
+            headLore.add(text("Carry it with you to buy upgrades.", NamedTextColor.GRAY));
+        } else {
+            headLore.add(text("You don't have one yet. Hold " + kind.hint(), NamedTextColor.YELLOW));
+            headLore.add(text("and click the star on the first page.", NamedTextColor.YELLOW));
+        }
+        inventory.setItem(TOOL_SLOT, icon(plainIcon(kind), text(kind.displayName(), NamedTextColor.GOLD)
+                .decoration(TextDecoration.BOLD, true), headLore, false));
         actions.put(BACK_SLOT, new Back());
         inventory.setItem(BACK_SLOT, icon(Material.ARROW, text("Back", NamedTextColor.YELLOW),
                 List.of(text("Back to your tools", NamedTextColor.GRAY)), false));
-        inventory.setItem(4, icon(Material.ENCHANTED_BOOK, text("All Upgrades", NamedTextColor.LIGHT_PURPLE)
-                .decoration(TextDecoration.BOLD, true), List.of(
-                text("Top two rows: each item's own abilities,", NamedTextColor.GRAY),
-                text("in order: pickaxe, axe, shovel, hoe, sword,", NamedTextColor.GRAY),
-                text("trident, crossbow, elytra.", NamedTextColor.GRAY),
-                text("Bottom: upgrades they share.", NamedTextColor.GRAY),
-                text("Levels are in the tool's mcMMO skill.", NamedTextColor.GRAY),
-                text("Buy them by clicking your tool on the first page.", NamedTextColor.DARK_GRAY)), false));
-        inventory.setItem(31, icon(Material.CRAFTING_TABLE, text("Every tool can get these", NamedTextColor.YELLOW),
-                List.of(text("Where they make sense:", NamedTextColor.GRAY),
-                        text("Magnet only on block-breaking tools,", NamedTextColor.DARK_GRAY),
-                        text("no Last Stand on the elytra.", NamedTextColor.DARK_GRAY)), false));
+
+        int i = 0;
         for (Upgrade u : Upgrade.values()) {
-            Integer slot = CATALOG_SLOTS.get(u);
-            if (slot != null) inventory.setItem(slot, catalogIcon(player, u));
+            if (!appliesToKind(u, kind) || i >= UPGRADE_SLOTS.length) continue;
+            inventory.setItem(UPGRADE_SLOTS[i++], previewIcon(player, u, kind));
+        }
+
+        if (owned) {
+            Retire retire = new Retire(kind);
+            boolean confirming = isAwaitingConfirm(retire, System.currentTimeMillis());
+            actions.put(RETIRE_SLOT, retire);
+            List<Component> lore = new ArrayList<>(List.of(
+                    text("Lost it for good? Retiring it makes it stop", NamedTextColor.GRAY),
+                    text("working wherever it is (even in a chest or", NamedTextColor.GRAY),
+                    text("ender chest), and its upgrades are gone.", NamedTextColor.GRAY),
+                    text("Making a new one retires it anyway.", NamedTextColor.DARK_GRAY),
+                    Component.empty()));
+            lore.add(confirming
+                    ? text("CLICK AGAIN TO RETIRE IT FOREVER", NamedTextColor.RED).decoration(TextDecoration.BOLD, true)
+                    : text("Click to retire it", NamedTextColor.YELLOW));
+            inventory.setItem(RETIRE_SLOT, icon(Material.BARRIER, text("Retire your " + kind.displayName(),
+                    NamedTextColor.RED), lore, confirming));
         }
     }
 
-    private ItemStack catalogIcon(Player player, Upgrade u) {
+    /** One upgrade on a view-only page: what each tier does, the level it needs for this item, and its items. */
+    private ItemStack previewIcon(Player player, Upgrade u, ToolKind kind) {
         Settings s = plugin.settings();
         boolean levels = plugin.mcmmo().available() && s.requireLevels;
+        int have = levels ? plugin.mcmmo().level(player, kind.mcmmoSkill()) : 0;
         List<Component> lore = new ArrayList<>();
-        lore.add(text(u.summary(), NamedTextColor.GRAY));
-        if (u.onlyFor() != null) lore.add(text(u.onlyFor().displayName().replace("Legendary ", "") + " only", NamedTextColor.DARK_AQUA));
-        if (u == Upgrade.LAST_STAND) lore.add(text("Not on the elytra", NamedTextColor.DARK_AQUA));
-        if (u == Upgrade.FIREPROOF) lore.add(text("Iron and diamond tools only (netherite can't burn)", NamedTextColor.DARK_AQUA));
-        if (u == Upgrade.RECOVERY) lore.add(text("Netherite tools only", NamedTextColor.DARK_AQUA));
-        ToolKind[] kinds = u.onlyFor() != null ? new ToolKind[]{u.onlyFor()}
-                : java.util.Arrays.stream(ToolKind.values()).filter(k -> appliesToKind(u, k)).toArray(ToolKind[]::new);
-        if (u == Upgrade.MAGNET) lore.add(text("Pickaxe, axe, shovel and hoe only", NamedTextColor.DARK_AQUA));
+        lore.add(text(u.summary(kind), NamedTextColor.GRAY));
+        if (kind.materials().size() > 1) {
+            if (u == Upgrade.FIREPROOF) lore.add(text("Iron and diamond only (netherite can't burn)", NamedTextColor.DARK_AQUA));
+            if (u == Upgrade.RECOVERY) lore.add(text("Netherite only", NamedTextColor.DARK_AQUA));
+        }
         for (int t = 1; t <= u.maxTier(); t++) {
             lore.add(Component.empty());
             String detail = tierDetail(u, t);
             String head = u.maxTier() > 1 ? Upgrade.roman(t) + (detail != null ? ": " + detail : "") : (detail != null ? detail : "");
             if (!head.isEmpty()) lore.add(text(head, NamedTextColor.WHITE));
             if (levels) {
-                List<String> parts = new ArrayList<>();
-                boolean allOk = true;
-                java.util.Set<Integer> distinct = new java.util.HashSet<>();
-                for (ToolKind k : kinds) distinct.add(plugin.requiredLevel(u, t, k));
-                for (ToolKind k : kinds) {
-                    int need = plugin.requiredLevel(u, t, k);
-                    int have = plugin.mcmmo().level(player, k.mcmmoSkill());
-                    if (have < need) allOk = false;
-                    parts.add(k.skillName() + " " + need);
-                }
-                String line = kinds.length > 1 && distinct.size() == 1
-                        ? "Level " + distinct.iterator().next() + " in the tool's skill"
-                        : String.join(" · ", parts);
-                lore.add(text("  " + line, allOk ? NamedTextColor.GREEN : NamedTextColor.YELLOW));
+                int need = plugin.requiredLevel(u, t, kind);
+                boolean ok = have >= need;
+                lore.add(text("  " + (ok ? "✔ " : "✘ ") + kind.skillName() + " " + need + (have >= 0 ? " (you: " + have + ")" : ""),
+                        ok ? NamedTextColor.GREEN : NamedTextColor.RED));
             }
             Map<Material, Integer> cost = s.tier(u, t).cost();
             lore.add(text("  " + (cost.isEmpty() ? "No items" : Settings.describeCost(cost)), NamedTextColor.GRAY));
         }
+        lore.add(Component.empty());
+        lore.add(text("View only", NamedTextColor.DARK_GRAY));
         return icon(iconFor(u), text(u.displayName(), NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true), lore, false);
     }
 

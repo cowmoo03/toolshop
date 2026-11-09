@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "io.github.cowmoo03"
-version = "2.9.0"
+version = "2.9.1"
 
 repositories {
     mavenCentral()
