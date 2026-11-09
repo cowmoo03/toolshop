@@ -30,6 +30,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     private RecoveryListener recovery;
     private SkillsListener skills;
     private FlightCharm flight;
+    private SpawnerUpgrades spawners;
 
     @Override
     public void onEnable() {
@@ -62,6 +63,8 @@ public final class ToolShopPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(skills, this);
         flight = new FlightCharm(this);
         getServer().getPluginManager().registerEvents(flight, this);
+        spawners = new SpawnerUpgrades(this);
+        getServer().getPluginManager().registerEvents(spawners, this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
         {
@@ -112,6 +115,7 @@ public final class ToolShopPlugin extends JavaPlugin {
         reloadConfig();
         settings = new Settings(getConfig(), getLogger());
         if (flight != null) flight.reload();
+        if (spawners != null) spawners.reload();
     }
 
     public Settings settings() { return settings; }
@@ -121,6 +125,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     public ShopListener shopListener() { return shopListener; }
     public SkillsListener skills() { return skills; }
     public FlightCharm flight() { return flight; }
+    public SpawnerUpgrades spawners() { return spawners; }
 
     /**
      * mcMMO level an upgrade tier needs. The config uses the 0-100 (Standard) scale; with mcMMO in Retro Mode

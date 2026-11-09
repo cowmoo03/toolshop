@@ -28,8 +28,9 @@ public final class ShopMenu implements InventoryHolder {
     public static final int TOOL_SLOT = 4;
     /** Home page: one slot per tool kind (tools on row 2, weapons and elytra on row 3) and the star. */
     private static final int[] HOME_TOOL_SLOTS = {10, 12, 14, 16, 19, 21, 23, 25};
-    public static final int CREATE_SLOT = 30;
-    public static final int FLIGHT_SLOT = 32;
+    public static final int CREATE_SLOT = 29;
+    public static final int FLIGHT_SLOT = 31;
+    public static final int SPAWNER_SLOT = 33;
     public static final int RETIRE_SLOT = 44;
     public static final int BACK_SLOT = 36;
     public static final int MODE_SLOT = 40;
@@ -173,6 +174,7 @@ public final class ShopMenu implements InventoryHolder {
         }
 
         if (plugin.flight() != null && plugin.flight().enabled()) inventory.setItem(FLIGHT_SLOT, flightButton(player));
+        if (plugin.spawners() != null && plugin.spawners().enabled()) inventory.setItem(SPAWNER_SLOT, spawnerButton());
 
         ItemStack hand = player.getInventory().getItemInMainHand();
         ToolKind plainKind = ToolKind.of(hand.getType());
@@ -271,6 +273,28 @@ public final class ShopMenu implements InventoryHolder {
         lore.add(Component.empty());
         lore.add(text("View only", NamedTextColor.DARK_GRAY));
         return icon(iconFor(u), text(u.displayName(), NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true), lore, false);
+    }
+
+    /** How spawner upgrades work, with each tier's speed and cost. */
+    private ItemStack spawnerButton() {
+        SpawnerUpgrades su = plugin.spawners();
+        List<Component> lore = new ArrayList<>();
+        lore.add(text("Right-click a mob spawner to see its tier.", NamedTextColor.GRAY));
+        lore.add(text("Sneak + right-click (twice) to upgrade it.", NamedTextColor.GRAY));
+        lore.add(text("Anyone can upgrade any spawner.", NamedTextColor.GRAY));
+        lore.add(text("It still stops at about 6 mobs nearby", NamedTextColor.DARK_GRAY));
+        lore.add(text("and only runs with a player close by.", NamedTextColor.DARK_GRAY));
+        lore.add(Component.empty());
+        List<SpawnerUpgrades.Tier> tiers = su.tiers();
+        for (int t = 0; t < tiers.size(); t++) {
+            SpawnerUpgrades.Tier tier = tiers.get(t);
+            String need = su.skillName() != null && tier.level() > 0
+                    ? " + " + su.skillName() + " " + tier.level() * plugin.levelScale() : "";
+            lore.add(text(Upgrade.roman(t + 1) + ": " + SpawnerUpgrades.faster(tier.speed()), NamedTextColor.WHITE));
+            lore.add(text("  " + Settings.describeCost(tier.cost()) + need, NamedTextColor.GRAY));
+        }
+        return icon(Material.SPAWNER, text("Spawner Upgrades", NamedTextColor.LIGHT_PURPLE)
+                .decoration(TextDecoration.BOLD, true), lore, false);
     }
 
     /** The Flight Charm: what it does, the recipe, and whether this player has unlocked crafting it. */

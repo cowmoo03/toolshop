@@ -226,7 +226,7 @@ public final class ShopListener implements Listener {
 
     // ------------------------------------------------------------------ helpers
 
-    private static List<String> missingItems(Player player, Map<Material, Integer> cost) {
+    static List<String> missingItems(Player player, Map<Material, Integer> cost) {
         List<String> missing = new ArrayList<>();
         cost.forEach((m, n) -> {
             if (!player.getInventory().containsAtLeast(ItemStack.of(m), n)) missing.add(n + " " + Settings.itemName(m, n));
@@ -234,7 +234,7 @@ public final class ShopListener implements Listener {
         return missing;
     }
 
-    private static void take(Player player, Map<Material, Integer> cost) {
+    static void take(Player player, Map<Material, Integer> cost) {
         cost.forEach((m, n) -> {
             int left = n;
             while (left > 0) {

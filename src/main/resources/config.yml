@@ -261,6 +261,18 @@ flight-charm:
     ingredients: { F: FEATHER, G: GOLD_INGOT, D: DIAMOND }
     amount: 1
 
+# Spawner upgrades: right-click a mob spawner to see its tier, sneak + right-click (twice) to upgrade it.
+# Each tier makes it spawn faster (shorter delay). Its other limits stay vanilla: it stops at about 6 of its mobs
+# nearby and only runs with a player within 16 blocks. Anyone can upgrade any spawner. Breaking it loses the tiers.
+spawner-upgrades:
+  enabled: true
+  # mcMMO skill whose level each tier needs (Standard scale, x10 in Retro Mode), or none.
+  skill: none
+  tiers:
+    - { speed: 1.25, level: 0, cost: { IRON_INGOT: 16, BONE: 8 } }
+    - { speed: 1.5, level: 0, cost: { DIAMOND: 8 } }
+    - { speed: 2.0, level: 0, cost: { NETHERITE_INGOT: 2 } }
+
 join-announcement:
   enabled: true
   id: "2.0"

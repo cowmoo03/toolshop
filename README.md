@@ -51,6 +51,14 @@ Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, 
 - Without mcMMO installed, level requirements are skipped (items only).
 - A one-time chat announcement greets each player after an update (`join-announcement` in the config; change its `id` to show a new one).
 
+## Spawner Upgrades
+
+Right-click a mob spawner to see its tier and the next upgrade; sneak + right-click (twice, to confirm) to buy it.
+Anyone can upgrade any spawner. Tier I spawns 25% faster (16 iron + 8 bones), II 50% faster (8 diamonds),
+III twice as fast (2 netherite ingots). The vanilla limits stay: about 6 of its mobs nearby at most, and a player
+within 16 blocks. Breaking the spawner loses its tiers. Set under `spawner-upgrades` in `config.yml`, optionally
+with an mcMMO skill level per tier. Every upgrade is logged in `purchases.log`.
+
 ## Flight Charm
 
 A crafted item anyone can use, no mcMMO level needed. Right-click it for 5 minutes of creative-style flight for building.
