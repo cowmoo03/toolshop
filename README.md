@@ -51,13 +51,20 @@ Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, 
 - Without mcMMO installed, level requirements are skipped (items only).
 - A one-time chat announcement greets each player after an update (`join-announcement` in the config; change its `id` to show a new one).
 
-## Spawner Upgrades
+## Spawners
 
-Right-click a mob spawner to see its tier and the next upgrade; sneak + right-click (twice, to confirm) to buy it.
-Anyone can upgrade any spawner. Tier I spawns 25% faster (16 iron + 8 bones), II 50% faster (8 diamonds),
-III twice as fast (2 netherite ingots). The vanilla limits stay: about 6 of its mobs nearby at most, and a player
-within 16 blocks. Breaking the spawner loses its tiers. Set under `spawner-upgrades` in `config.yml`, optionally
-with an mcMMO skill level per tier. Every upgrade is logged in `purchases.log`.
+Spawners work like vanilla whether they're claimed or not. Right-click one to see its mob, tier and owner.
+Sneak + right-click (twice, to confirm) to:
+
+- **Claim** an unclaimed spawner: 8 diamonds + power level 500 (Retro Mode). Up to 3 per player.
+- **Upgrade** your own: Tier I spawns 25% faster (16 iron + 8 bones, power 500), II 50% faster (8 diamonds,
+  power 1000), III twice as fast (2 netherite ingots, power 1500). Only the owner can upgrade.
+- **Take over** someone else's: 16 diamonds + power level 500. Nobody gets those items; the old owner is told.
+
+Claimed spawners are listed in `/toolshop` under **Your Spawners**: upgrade from anywhere, turn on/off, unclaim.
+Only the owner (or an op) can break a claimed spawner, and explosions can't. Tiers stay on the spawner when it
+changes hands; breaking it loses them. The vanilla limits stay (about 6 of its mobs nearby, a player within
+16 blocks). Settings under `spawner-upgrades`; data in `plugins/ToolShop/spawners.yml`; actions logged.
 
 ## Flight Charm
 

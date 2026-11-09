@@ -47,8 +47,18 @@ public final class ShopListener implements Listener {
         } else if (action instanceof ShopMenu.Preview pv) {
             menu.showPreview(pv.kind());
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+        } else if (action instanceof ShopMenu.Spawners) {
+            menu.showSpawners();
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+        } else if (action instanceof ShopMenu.OpenSpawner os) {
+            menu.showSpawner(os.key());
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+        } else if (action instanceof ShopMenu.SpawnerToggle st) {
+            SpawnerUpgrades.Record r = plugin.spawners().record(st.key());
+            if (r != null) plugin.spawners().toggle(player, r);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
         } else if (action instanceof ShopMenu.Back) {
-            menu.setPage(null);
+            menu.back();
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 0.9f);
         } else if (action instanceof ShopMenu.ToggleMode) {
             if (page != null) toggleMode(player, ShopMenu.findTool(plugin, player, page));
@@ -56,6 +66,13 @@ public final class ShopListener implements Listener {
             menu.clearConfirm();
             if (action instanceof ShopMenu.Create c) create(player, c.kind());
             else if (action instanceof ShopMenu.Retire r) retire(player, r.kind());
+            else if (action instanceof ShopMenu.SpawnerUpgrade su) {
+                SpawnerUpgrades.Record r = plugin.spawners().record(su.key());
+                if (r != null) plugin.spawners().upgrade(player, r);
+            } else if (action instanceof ShopMenu.SpawnerUnclaim sc) {
+                SpawnerUpgrades.Record r = plugin.spawners().record(sc.key());
+                if (r != null) plugin.spawners().unclaim(player, r);
+            }
             else if (action instanceof ShopMenu.Buy b && page != null) buy(player, b.upgrade(), page);
             else if (action instanceof ShopMenu.Recharge && page != null) recharge(player, page);
         } else {

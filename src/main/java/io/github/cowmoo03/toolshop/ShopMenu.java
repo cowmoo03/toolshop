@@ -40,7 +40,14 @@ public final class ShopMenu implements InventoryHolder {
     public static final long CONFIRM_WINDOW_MS = 5000;
 
     /** What a slot does. */
-    public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire, Preview {}
+    public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire, Preview,
+            Spawners, OpenSpawner, SpawnerUpgrade, SpawnerToggle, SpawnerUnclaim {}
+    /** "Your Spawners" list, one claimed spawner's dashboard, and its buttons. */
+    public record Spawners() implements Action {}
+    public record OpenSpawner(String key) implements Action {}
+    public record SpawnerUpgrade(String key) implements Action {}
+    public record SpawnerToggle(String key) implements Action {}
+    public record SpawnerUnclaim(String key) implements Action {}
     /** View-only upgrades page for an item the player doesn't have with them (or doesn't own yet). */
     public record Preview(ToolKind kind) implements Action {}
     public record Retire(ToolKind kind) implements Action {}
@@ -60,6 +67,10 @@ public final class ShopMenu implements InventoryHolder {
     private ToolKind page;
     /** The item whose upgrades are being previewed (view only), or null. */
     private ToolKind preview;
+    /** True on the "Your Spawners" list; spawnerKey is set on one spawner's dashboard. */
+    private boolean spawnerList;
+    private String spawnerKey;
+    private static final int[] SPAWNER_LIST_SLOTS = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25};
 
     public ShopMenu(ToolShopPlugin plugin) {
         this.plugin = plugin;
@@ -96,14 +107,31 @@ public final class ShopMenu implements InventoryHolder {
     public void setPage(ToolKind kind) {
         page = kind;
         preview = null;
+        spawnerList = false;
+        spawnerKey = null;
         pending = null;
+    }
+
+    public void showSpawners() {
+        setPage(null);
+        spawnerList = true;
+    }
+
+    public void showSpawner(String key) {
+        setPage(null);
+        spawnerKey = key;
+    }
+
+    /** Back: from a spawner's dashboard to the list, from anywhere else to the first page. */
+    public void back() {
+        if (spawnerKey != null) showSpawners();
+        else setPage(null);
     }
 
     /** Shows the view-only upgrades page for this item. */
     public void showPreview(ToolKind kind) {
-        page = null;
+        setPage(null);
         preview = kind;
-        pending = null;
     }
 
     /**
@@ -128,7 +156,13 @@ public final class ShopMenu implements InventoryHolder {
         ItemStack filler = icon(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of(), false);
         for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, filler);
         if (page != null && findTool(plugin, player, page) < 0) page = null; // tool left the inventory
-        if (preview != null) renderPreview(player, preview);
+        if (spawnerKey != null) {
+            SpawnerUpgrades.Record r = plugin.spawners().record(spawnerKey);
+            if (r == null || !player.getUniqueId().equals(r.owner)) { spawnerKey = null; spawnerList = true; }
+        }
+        if (spawnerKey != null) renderSpawner(player, plugin.spawners().record(spawnerKey));
+        else if (spawnerList) renderSpawnerList(player);
+        else if (preview != null) renderPreview(player, preview);
         else if (page == null) renderHome(player);
         else renderTool(player, page);
     }
@@ -174,7 +208,10 @@ public final class ShopMenu implements InventoryHolder {
         }
 
         if (plugin.flight() != null && plugin.flight().enabled()) inventory.setItem(FLIGHT_SLOT, flightButton(player));
-        if (plugin.spawners() != null && plugin.spawners().enabled()) inventory.setItem(SPAWNER_SLOT, spawnerButton());
+        if (plugin.spawners() != null && plugin.spawners().enabled()) {
+            actions.put(SPAWNER_SLOT, new Spawners());
+            inventory.setItem(SPAWNER_SLOT, spawnerButton(player));
+        }
 
         ItemStack hand = player.getInventory().getItemInMainHand();
         ToolKind plainKind = ToolKind.of(hand.getType());
@@ -275,26 +312,121 @@ public final class ShopMenu implements InventoryHolder {
         return icon(iconFor(u), text(u.displayName(), NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true), lore, false);
     }
 
-    /** How spawner upgrades work, with each tier's speed and cost. */
-    private ItemStack spawnerButton() {
+    /** Home page button: how spawner claims work and how many the player has. */
+    private ItemStack spawnerButton(Player player) {
         SpawnerUpgrades su = plugin.spawners();
+        int have = su.claimsOf(player.getUniqueId()).size();
         List<Component> lore = new ArrayList<>();
-        lore.add(text("Right-click a mob spawner to see its tier.", NamedTextColor.GRAY));
-        lore.add(text("Sneak + right-click (twice) to upgrade it.", NamedTextColor.GRAY));
-        lore.add(text("Anyone can upgrade any spawner.", NamedTextColor.GRAY));
-        lore.add(text("It still stops at about 6 mobs nearby", NamedTextColor.DARK_GRAY));
-        lore.add(text("and only runs with a player close by.", NamedTextColor.DARK_GRAY));
+        lore.add(text("Right-click a mob spawner to see it.", NamedTextColor.GRAY));
+        lore.add(text("Sneak + right-click (twice) to claim it,", NamedTextColor.GRAY));
+        lore.add(text("upgrade yours, or take over someone else's.", NamedTextColor.GRAY));
         lore.add(Component.empty());
-        List<SpawnerUpgrades.Tier> tiers = su.tiers();
-        for (int t = 0; t < tiers.size(); t++) {
-            SpawnerUpgrades.Tier tier = tiers.get(t);
-            String need = su.skillName() != null && tier.level() > 0
-                    ? " + " + su.skillName() + " " + tier.level() * plugin.levelScale() : "";
-            lore.add(text(Upgrade.roman(t + 1) + ": " + SpawnerUpgrades.faster(tier.speed()), NamedTextColor.WHITE));
-            lore.add(text("  " + Settings.describeCost(tier.cost()) + need, NamedTextColor.GRAY));
+        lore.add(text("Claim: " + su.describe(su.claimCost()), NamedTextColor.WHITE));
+        lore.add(text("Take over: " + su.describe(su.takeoverCost()), NamedTextColor.WHITE));
+        lore.add(text("Spawners work like normal either way.", NamedTextColor.DARK_GRAY));
+        lore.add(Component.empty());
+        lore.add(text("You have " + have + (su.maxClaims() > 0 ? "/" + su.maxClaims() : "") + " claimed", NamedTextColor.YELLOW));
+        lore.add(text("Click to manage them", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+        return icon(Material.SPAWNER, text("Your Spawners", NamedTextColor.LIGHT_PURPLE)
+                .decoration(TextDecoration.BOLD, true), lore, have > 0);
+    }
+
+    private void backButton(String to) {
+        actions.put(BACK_SLOT, new Back());
+        inventory.setItem(BACK_SLOT, icon(Material.ARROW, text("Back", NamedTextColor.YELLOW),
+                List.of(text(to, NamedTextColor.GRAY)), false));
+    }
+
+    private String speedText(SpawnerUpgrades.Record r) {
+        List<SpawnerUpgrades.Tier> tiers = plugin.spawners().tiers();
+        if (r.tier <= 0 || tiers.isEmpty()) return "not upgraded";
+        return "Tier " + Upgrade.roman(r.tier) + " (" + SpawnerUpgrades.faster(tiers.get(Math.min(r.tier, tiers.size()) - 1).speed()) + ")";
+    }
+
+    private void renderSpawnerList(Player player) {
+        SpawnerUpgrades su = plugin.spawners();
+        backButton("Back to your tools");
+        List<SpawnerUpgrades.Record> mine = su.claimsOf(player.getUniqueId());
+        inventory.setItem(TOOL_SLOT, icon(Material.SPAWNER, text("Your Spawners", NamedTextColor.LIGHT_PURPLE)
+                .decoration(TextDecoration.BOLD, true), List.of(
+                text(mine.size() + (su.maxClaims() > 0 ? "/" + su.maxClaims() : "") + " claimed", NamedTextColor.YELLOW),
+                text("Claim more by finding a spawner and", NamedTextColor.GRAY),
+                text("sneak + right-clicking it (twice).", NamedTextColor.GRAY)), false));
+        if (mine.isEmpty()) {
+            inventory.setItem(22, icon(Material.BARRIER, text("No spawners yet", NamedTextColor.GRAY), List.of(
+                    text("Find a mob spawner and sneak + right-click it", NamedTextColor.GRAY),
+                    text("(twice) to claim it for " + su.describe(su.claimCost()) + ".", NamedTextColor.GRAY)), false));
+            return;
         }
-        return icon(Material.SPAWNER, text("Spawner Upgrades", NamedTextColor.LIGHT_PURPLE)
-                .decoration(TextDecoration.BOLD, true), lore, false);
+        for (int i = 0; i < mine.size() && i < SPAWNER_LIST_SLOTS.length; i++) {
+            SpawnerUpgrades.Record r = mine.get(i);
+            int slot = SPAWNER_LIST_SLOTS[i];
+            actions.put(slot, new OpenSpawner(r.key()));
+            inventory.setItem(slot, icon(Material.SPAWNER, text(r.mob + " spawner", NamedTextColor.GOLD), List.of(
+                    text("At " + r.where(), NamedTextColor.GRAY),
+                    text(speedText(r), NamedTextColor.AQUA),
+                    text(r.enabled ? "● On" : "● Off", r.enabled ? NamedTextColor.GREEN : NamedTextColor.RED),
+                    text(r.spawned + " mobs spawned since you claimed it", NamedTextColor.DARK_GRAY),
+                    Component.empty(),
+                    text("Click to manage", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true)), r.enabled));
+        }
+    }
+
+    /** One claimed spawner: upgrade from anywhere, turn on/off, unclaim. */
+    private void renderSpawner(Player player, SpawnerUpgrades.Record r) {
+        SpawnerUpgrades su = plugin.spawners();
+        long now = System.currentTimeMillis();
+        backButton("Back to your spawners");
+        inventory.setItem(TOOL_SLOT, icon(Material.SPAWNER, text(r.mob + " spawner", NamedTextColor.GOLD)
+                .decoration(TextDecoration.BOLD, true), List.of(
+                text("At " + r.where(), NamedTextColor.GRAY),
+                text(speedText(r), NamedTextColor.AQUA),
+                text(r.enabled ? "● On" : "● Off", r.enabled ? NamedTextColor.GREEN : NamedTextColor.RED),
+                text(r.spawned + " mobs spawned since you claimed it", NamedTextColor.DARK_GRAY)), r.enabled));
+
+        List<SpawnerUpgrades.Tier> tiers = su.tiers();
+        if (r.tier < tiers.size()) {
+            SpawnerUpgrades.Tier next = tiers.get(r.tier);
+            SpawnerUpgrade up = new SpawnerUpgrade(r.key());
+            boolean confirming = isAwaitingConfirm(up, now);
+            String problem = su.costProblem(player, next.cost());
+            List<Component> lore = new ArrayList<>();
+            lore.add(text("Tier " + Upgrade.roman(r.tier + 1) + ": spawns " + SpawnerUpgrades.faster(next.speed()), NamedTextColor.WHITE));
+            lore.add(text("Cost: " + su.describe(next.cost()), NamedTextColor.GRAY));
+            lore.add(text("Works from anywhere.", NamedTextColor.DARK_GRAY));
+            lore.add(Component.empty());
+            if (problem != null) {
+                lore.add(text("✘ " + problem, NamedTextColor.RED));
+            } else {
+                actions.put(22, up);
+                lore.add(confirming
+                        ? text("CLICK AGAIN TO CONFIRM", NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true)
+                        : text("Click to upgrade", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+            }
+            inventory.setItem(22, icon(Material.EXPERIENCE_BOTTLE, text("Upgrade", NamedTextColor.GOLD)
+                    .decoration(TextDecoration.BOLD, true), lore, confirming));
+        } else {
+            inventory.setItem(22, icon(Material.NETHER_STAR, text("Fully upgraded", NamedTextColor.GOLD),
+                    List.of(text(speedText(r), NamedTextColor.AQUA)), true));
+        }
+
+        actions.put(20, new SpawnerToggle(r.key()));
+        inventory.setItem(20, icon(r.enabled ? Material.LIME_DYE : Material.GRAY_DYE,
+                text(r.enabled ? "On" : "Off", r.enabled ? NamedTextColor.GREEN : NamedTextColor.RED), List.of(
+                        text(r.enabled ? "It spawns like normal." : "It spawns nothing right now.", NamedTextColor.GRAY),
+                        Component.empty(),
+                        text("Click to turn it " + (r.enabled ? "off" : "on"), NamedTextColor.YELLOW)), false));
+
+        SpawnerUnclaim unclaim = new SpawnerUnclaim(r.key());
+        boolean confirmingUnclaim = isAwaitingConfirm(unclaim, now);
+        actions.put(RETIRE_SLOT, unclaim);
+        inventory.setItem(RETIRE_SLOT, icon(Material.BARRIER, text("Unclaim", NamedTextColor.RED), List.of(
+                text("Give up this spawner. Its upgrades stay on it,", NamedTextColor.GRAY),
+                text("and anyone can claim it afterwards.", NamedTextColor.GRAY),
+                Component.empty(),
+                confirmingUnclaim
+                        ? text("CLICK AGAIN TO UNCLAIM", NamedTextColor.RED).decoration(TextDecoration.BOLD, true)
+                        : text("Click to unclaim", NamedTextColor.YELLOW)), confirmingUnclaim));
     }
 
     /** The Flight Charm: what it does, the recipe, and whether this player has unlocked crafting it. */

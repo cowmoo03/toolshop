@@ -84,6 +84,7 @@ public final class ToolShopPlugin extends JavaPlugin {
         if (registry != null) registry.save();
         if (recovery != null) recovery.shutdown();
         if (flight != null) flight.shutdown();
+        if (spawners != null) spawners.save();
     }
 
     /** ToolShop 1.x used a different config (rental prices). Keep it as a backup and start fresh. */

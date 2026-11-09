@@ -261,17 +261,28 @@ flight-charm:
     ingredients: { F: FEATHER, G: GOLD_INGOT, D: DIAMOND }
     amount: 1
 
-# Spawner upgrades: right-click a mob spawner to see its tier, sneak + right-click (twice) to upgrade it.
-# Each tier makes it spawn faster (shorter delay). Its other limits stay vanilla: it stops at about 6 of its mobs
-# nearby and only runs with a player within 16 blocks. Anyone can upgrade any spawner. Breaking it loses the tiers.
+# Spawner claims and upgrades. Spawners work like vanilla whether they're claimed or not.
+# Right-click a spawner to see it; sneak + right-click (twice) to claim an unclaimed one, upgrade your own, or take
+# over someone else's. Claimed spawners show up in /toolshop (Your Spawners) where the owner can upgrade them from
+# anywhere, turn them on/off or unclaim them. Only the owner (or an op) can break a claimed spawner; explosions can't.
+# Each tier makes it spawn faster (shorter delay); the vanilla limits stay (about 6 of its mobs nearby, a player
+# within 16 blocks). power-level is the mcMMO power level needed, on the Standard scale (x10 in Retro Mode).
 spawner-upgrades:
   enabled: true
-  # mcMMO skill whose level each tier needs (Standard scale, x10 in Retro Mode), or none.
-  skill: none
+  # Most spawners one player can claim (0 = no limit).
+  max-claims: 3
+  claim:
+    power-level: 50
+    cost: { DIAMOND: 8 }
+  # Taking over someone else's claimed spawner. Nobody gets these items back.
+  takeover:
+    power-level: 50
+    cost: { DIAMOND: 16 }
+  # Only the owner can upgrade, so a spawner has to be claimed first. Tiers stay on the spawner if it changes hands.
   tiers:
-    - { speed: 1.25, level: 0, cost: { IRON_INGOT: 16, BONE: 8 } }
-    - { speed: 1.5, level: 0, cost: { DIAMOND: 8 } }
-    - { speed: 2.0, level: 0, cost: { NETHERITE_INGOT: 2 } }
+    - { speed: 1.25, power-level: 50, cost: { IRON_INGOT: 16, BONE: 8 } }
+    - { speed: 1.5, power-level: 100, cost: { DIAMOND: 8 } }
+    - { speed: 2.0, power-level: 150, cost: { NETHERITE_INGOT: 2 } }
 
 join-announcement:
   enabled: true
