@@ -177,6 +177,7 @@ public final class SkillsMenu implements InventoryHolder {
             for (Upgrade up : Upgrade.values()) {
                 if (u >= UPGRADE_SLOTS.length) break;
                 if (!appliesToKind(up, skill.tool())) continue;
+                if (up == Upgrade.TIMBER) continue; // same idea as mcMMO's Tree Feller, which /skills already shows
                 inventory.setItem(UPGRADE_SLOTS[u++], upgradeIcon(up, skill, level));
             }
         }
