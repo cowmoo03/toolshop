@@ -16,16 +16,16 @@ pickaxe, axe, shovel, hoe and sword, trident, crossbow and elytra into their own
 | **Beheading** | Sword | 3% → 6% → 10% chance for a zombie, skeleton, creeper, piglin, wither skeleton or player head | Swords 20 / 40 / 70 |
 | **Bounty** | Sword | +25% → +50% → +100% XP orbs from kills | Swords 10 / 30 / 60 |
 | **Harvest** | Hoe | sneak-break a grown crop: 3x3 → 5x5 → 7x7 of grown crops | Herbalism 10 / 30 / 60 |
-| **Replant** | Hoe | harvested crops plant themselves again (seed from the drops or inventory) | Herbalism 20 |
+| **Growth Aura** | Hoe | crops within 4 → 6 → 8 blocks grow faster while you hold the hoe | Herbalism 20 / 40 / 70 |
 | **Tiller** | Hoe | sneak-till: 3x3 → 5x5 → 7x7 | Herbalism 5 / 25 / 50 |
-| **Impaler** | Trident | +2 → +4 → +6 damage against every mob | Tridents 15 / 35 / 65 |
+| **Tidal Pull** | Trident | a thrown trident pulls what it hits toward you (gentle → strong → very strong; not bosses) | Tridents 15 / 35 / 65 |
 | **Storm Caller** | Trident | a thrown trident calls lightning (5 damage + fire) in any weather, every 30 → 20 → 10 s at most | Tridents 25 / 45 / 75 |
 | **Arrow Saver** | Crossbow | 20% → 35% → 50% chance to get the arrow back | Crossbows 10 / 30 / 60 |
 | **Volley** | Crossbow | +1 → +2 → +4 extra arrows in a spread | Crossbows 20 / 40 / 70 |
-| **Heavy Bolts** | Crossbow | +10% → +20% → +30% arrow damage | Crossbows 15 / 35 / 65 |
+| **Blast Bolts** | Crossbow | arrows burst on impact: 2 → 3 → 5 damage to mobs around it (no block or item damage) | Crossbows 15 / 35 / 65 |
 | **Boost** | Elytra | sneak while gliding for a push; 1 → 2 → 3 per flight, refilled on landing | Acrobatics 10 / 30 / 60 |
 | **Rocket Saver** | Elytra | 25% → 50% → 75% chance a firework rocket isn't used up | Acrobatics 15 / 35 / 65 |
-| **Safe Landing** | Elytra | no damage from crashing into walls or landing while gliding | Acrobatics 20 |
+| **Crash Guard** | Elytra | no damage from flying into walls, then 3 s of slow falling | Acrobatics 20 |
 | **Magnet** | Pickaxe, axe, shovel, hoe | drops go straight into your inventory | 25 + 4 diamonds, 4 ender pearls |
 | **Durability Saver** | Any | 5% → 10% → 20% chance to use no durability | 20 / 40 / 70 |
 | **Last Stand** | Any | stops at 1 durability instead of breaking | 30 + 8 diamonds |
@@ -33,7 +33,7 @@ pickaxe, axe, shovel, hoe and sword, trident, crossbow and elytra into their own
 | **Recovery** | Netherite | dropped tool glows (only for its owner) and stays 1 → 3 → 5 extra min · tier 2+: survives explosions and cactus · tier 3: returns from the void | 40 + 2 netherite scrap · 60 + 4 scrap · 80 + 1 netherite ingot |
 | **Soulbound** | Any | survives 3 → 5 → 8 deaths; recharge in /toolshop once used up (or upgrade to refill) | 50 + 1 totem · 70 + 2 totems · 90 + 3 totems |
 
-Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, crossbow and elytra abilities work on their own. Weapon abilities work at half strength against players (`sword-pvp-multiplier`). Weapons rank up by kills and the elytra by blocks flown. The elytra can't get Last Stand (elytras already stop at 1 durability). Everything above is set in `config.yml`.
+Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, crossbow and elytra abilities work on their own. Weapon abilities work at half strength against players (`sword-pvp-multiplier`). Weapons rank up by kills and the elytra by blocks flown. The elytra can't get Last Stand (elytras already stop at 1 durability). No upgrade repeats an mcMMO ability: replanting is Green Thumb, bonus trident/crossbow damage is Impale/Powered Shot, fall damage is Roll. Everything above is set in `config.yml`.
 
 ## How it works
 

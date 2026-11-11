@@ -12,7 +12,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
@@ -23,18 +22,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** Legendary elytra: Boost (sneak while gliding), Rocket Saver, Safe Landing, and counting blocks flown. */
+/** Legendary elytra: Boost (sneak while gliding), Rocket Saver, Crash Guard, and counting blocks flown. */
 public final class ElytraListener implements Listener {
     /** Fastest a Boost can push you, in blocks per tick (a firework-boosted glide is about 1.7). */
     private static final double MAX_SPEED = 2.2;
-    /** A landing within this long after gliding stops still counts as a gliding landing. */
-    private static final long LANDING_GRACE_MS = 2000;
 
     private final ToolShopPlugin plugin;
     /** Boosts used since the player last stood on the ground. */
     private final Map<UUID, Integer> boostsUsed = new HashMap<>();
     private final Map<UUID, Long> lastBoost = new HashMap<>();
-    private final Map<UUID, Long> stoppedGliding = new HashMap<>();
     private final Map<UUID, Location> lastPos = new HashMap<>();
     private final Map<UUID, Double> distanceCarry = new HashMap<>();
 
@@ -97,28 +93,16 @@ public final class ElytraListener implements Listener {
         }
     }
 
-    // ---------------------------------------------------------------- Safe Landing
+    // ---------------------------------------------------------------- Crash Guard
 
-    @EventHandler
-    public void onGlide(EntityToggleGlideEvent event) {
-        if (event.getEntity() instanceof Player player && !event.isGliding()) {
-            stoppedGliding.put(player.getUniqueId(), System.currentTimeMillis());
-        }
-    }
-
+    /** Flying into a wall does no damage, and a moment of slow falling keeps the crash from turning into a fall. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
-        EntityDamageEvent.DamageCause cause = event.getCause();
-        if (cause != EntityDamageEvent.DamageCause.FLY_INTO_WALL && cause != EntityDamageEvent.DamageCause.FALL) return;
+    public void onCrash(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player) || event.getCause() != EntityDamageEvent.DamageCause.FLY_INTO_WALL) return;
         ItemStack elytra = elytra(player);
-        if (elytra == null || plugin.legendary().tier(elytra, Upgrade.SAFE_LANDING) <= 0) return;
-        if (cause == EntityDamageEvent.DamageCause.FALL) {
-            boolean gliding = player.isGliding()
-                    || System.currentTimeMillis() - stoppedGliding.getOrDefault(player.getUniqueId(), 0L) <= LANDING_GRACE_MS;
-            if (!gliding) return;
-        }
+        if (elytra == null || plugin.legendary().tier(elytra, Upgrade.CRASH_GUARD) <= 0) return;
         event.setCancelled(true);
+        player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOW_FALLING, 60, 0, false, false, true));
     }
 
     // ---------------------------------------------------------------- every second: refills and blocks flown
@@ -150,7 +134,6 @@ public final class ElytraListener implements Listener {
         UUID id = event.getPlayer().getUniqueId();
         boostsUsed.remove(id);
         lastBoost.remove(id);
-        stoppedGliding.remove(id);
         lastPos.remove(id);
         distanceCarry.remove(id);
     }

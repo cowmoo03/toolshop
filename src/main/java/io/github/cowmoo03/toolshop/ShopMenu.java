@@ -638,13 +638,13 @@ public final class ShopMenu implements InventoryHolder {
             case BEHEADING -> Settings.forTier(s.beheadingChance, t) + "% head chance per kill" + pvpNote(s);
             case BOUNTY -> "+" + Settings.forTier(s.bountyPercent, t) + "% XP from kills" + pvpNote(s);
             case HARVEST -> area(t) + " of grown crops";
-            case REPLANT -> "uses a seed from the drops (or your inventory)";
+            case GROWTH_AURA -> Settings.forTier(s.growthAuraRadius, t) + "-block radius";
             case TILLER -> "tills " + area(t);
-            case IMPALER -> "+" + Settings.forTier(s.impalerDamage, t) + " damage" + pvpNote(s);
+            case TIDAL_PULL -> new String[]{"gentle", "strong", "very strong"}[Math.min(2, t - 1)] + " pull" + pvpNote(s);
             case STORM_CALLER -> "lightning every " + Settings.forTier(s.stormCallerCooldown, t) + "s at most" + pvpNote(s);
             case ARROW_SAVER -> Settings.forTier(s.arrowSaverChance, t) + "% chance";
             case VOLLEY -> "+" + Settings.forTier(s.volleyArrows, t) + " arrow" + (Settings.forTier(s.volleyArrows, t) == 1 ? "" : "s") + pvpNote(s);
-            case HEAVY_BOLTS -> "+" + Settings.forTier(s.heavyBoltsPercent, t) + "% damage" + pvpNote(s);
+            case BLAST_BOLTS -> Settings.forTier(s.blastBoltsDamage, t) + " damage around the hit" + pvpNote(s);
             case BOOST -> Settings.forTier(s.boostCharges, t) + " boost" + (Settings.forTier(s.boostCharges, t) == 1 ? "" : "s") + " per flight (refill on landing)";
             case ROCKET_SAVER -> Settings.forTier(s.rocketSaverChance, t) + "% chance";
             default -> null;
@@ -682,16 +682,16 @@ public final class ShopMenu implements InventoryHolder {
             case BEHEADING -> Material.SKELETON_SKULL;
             case BOUNTY -> Material.EXPERIENCE_BOTTLE;
             case HARVEST -> Material.WHEAT;
-            case REPLANT -> Material.WHEAT_SEEDS;
+            case GROWTH_AURA -> Material.BONE_MEAL;
             case TILLER -> Material.FARMLAND;
-            case IMPALER -> Material.PRISMARINE_SHARD;
+            case TIDAL_PULL -> Material.NAUTILUS_SHELL;
             case STORM_CALLER -> Material.LIGHTNING_ROD;
             case ARROW_SAVER -> Material.ARROW;
             case VOLLEY -> Material.SPECTRAL_ARROW;
-            case HEAVY_BOLTS -> Material.HEAVY_CORE;
+            case BLAST_BOLTS -> Material.TNT;
             case BOOST -> Material.PHANTOM_MEMBRANE;
             case ROCKET_SAVER -> Material.FIREWORK_ROCKET;
-            case SAFE_LANDING -> Material.HAY_BLOCK;
+            case CRASH_GUARD -> Material.HAY_BLOCK;
         };
     }
 

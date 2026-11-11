@@ -6,30 +6,26 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** Legendary hoe: Harvest (area harvest of grown crops), Replant and Tiller (area tilling). */
+/** Legendary hoe: Harvest (area harvest of grown crops), Growth Aura (crops nearby grow faster) and Tiller (area tilling). */
 public final class HoeListener implements Listener {
     /** Crop block -> the item that plants it. */
     private static final Map<Material, Material> SEEDS = Map.of(
@@ -46,6 +42,7 @@ public final class HoeListener implements Listener {
 
     public HoeListener(ToolShopPlugin plugin) {
         this.plugin = plugin;
+        plugin.getServer().getScheduler().runTaskTimer(plugin, this::growthTick, 20L, 20L);
     }
 
     /** The owner's legendary hoe in their main hand, or null. */
@@ -105,55 +102,38 @@ public final class HoeListener implements Listener {
         if (effects) start.getWorld().playSound(start.getLocation(), Sound.BLOCK_CROP_BREAK, 1f, 0.8f);
     }
 
-    // ---------------------------------------------------------------- Replant
+    // ---------------------------------------------------------------- Growth Aura
 
-    /** Runs before Magnet (HIGH) so the seed is taken from the drops before they go into the inventory. */
-    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
-    public void onDrops(BlockDropItemEvent event) {
-        Player player = event.getPlayer();
-        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
-        BlockState state = event.getBlockState();
-        if (!isGrownCrop(state.getBlockData())) return;
-        ItemStack hoe = hoe(player);
-        if (hoe == null || plugin.legendary().tier(hoe, Upgrade.REPLANT) <= 0) return;
-        Material crop = state.getType();
-        Material seed = SEEDS.get(crop);
-        Block block = event.getBlock();
-        Material soil = block.getRelative(BlockFace.DOWN).getType();
-        if (crop == Material.NETHER_WART ? soil != Material.SOUL_SAND : soil != Material.FARMLAND) return;
-
-        if (!takeSeed(event.getItems(), seed) && !player.getInventory().removeItem(ItemStack.of(seed)).isEmpty()) {
-            return; // no seed anywhere
-        }
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Material below = block.getRelative(BlockFace.DOWN).getType();
-            boolean soilOk = crop == Material.NETHER_WART ? below == Material.SOUL_SAND : below == Material.FARMLAND;
-            if (block.getType().isAir() && soilOk) {
-                block.setType(crop); // a fresh crop at age 0
-            } else {
-                // Something else is there now (or the soil changed): give the seed back.
-                player.getInventory().addItem(ItemStack.of(seed)).values()
-                        .forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+    /** Every second: crops around a player holding a hoe with Growth Aura may grow a stage. */
+    private void growthTick() {
+        Settings settings = plugin.settings();
+        java.util.concurrent.ThreadLocalRandom rng = java.util.concurrent.ThreadLocalRandom.current();
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            if (player.getGameMode() == GameMode.SPECTATOR) continue;
+            ItemStack hoe = hoe(player);
+            if (hoe == null) continue;
+            int tier = plugin.legendary().tier(hoe, Upgrade.GROWTH_AURA);
+            if (tier <= 0) continue;
+            int r = Settings.forTier(settings.growthAuraRadius, tier);
+            int chance = Settings.forTier(settings.growthAuraChance, tier);
+            Block center = player.getLocation().getBlock();
+            int grown = 0;
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    for (int dy = -2; dy <= 2; dy++) {
+                        Block b = center.getRelative(dx, dy, dz);
+                        if (!SEEDS.containsKey(b.getType())) continue;
+                        if (!(b.getBlockData() instanceof Ageable age) || age.getAge() >= age.getMaximumAge()) continue;
+                        if (rng.nextInt(100) >= chance) continue;
+                        age.setAge(age.getAge() + 1);
+                        b.setBlockData(age);
+                        if (settings.effects && grown++ < 6) {
+                            b.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, b.getLocation().add(0.5, 0.4, 0.5), 2, 0.25, 0.2, 0.25, 0);
+                        }
+                    }
+                }
             }
-        });
-    }
-
-    /** Takes one seed out of the dropped items. */
-    private static boolean takeSeed(List<Item> drops, Material seed) {
-        Iterator<Item> it = drops.iterator();
-        while (it.hasNext()) {
-            Item drop = it.next();
-            ItemStack stack = drop.getItemStack();
-            if (stack.getType() != seed) continue;
-            if (stack.getAmount() <= 1) {
-                it.remove();
-            } else {
-                stack.setAmount(stack.getAmount() - 1);
-                drop.setItemStack(stack);
-            }
-            return true;
         }
-        return false;
     }
 
     // ---------------------------------------------------------------- Tiller

@@ -199,9 +199,35 @@ public final class Legendary {
      * knows to write the item back. Blocks broken are shown rounded, so this rarely changes while mining
      * (changing the held item makes the hand bob).
      */
+    /** Upgrades that were replaced (2.12.0): their old key, and what they became (same tier). */
+    private static final Map<String, Upgrade> RENAMED = Map.of(
+            "lt_up_replant", Upgrade.GROWTH_AURA,
+            "lt_up_impaler", Upgrade.TIDAL_PULL,
+            "lt_up_heavy_bolts", Upgrade.BLAST_BOLTS,
+            "lt_up_safe_landing", Upgrade.CRASH_GUARD);
+
+    /** Moves a replaced upgrade's tier onto its replacement. */
+    private void migrateRenamed(ItemStack item) {
+        ItemMeta meta = item.getItemMeta();
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        boolean changed = false;
+        for (Map.Entry<String, Upgrade> e : RENAMED.entrySet()) {
+            NamespacedKey old = new NamespacedKey(plugin, e.getKey());
+            Integer t = pdc.get(old, PersistentDataType.INTEGER);
+            if (t == null) continue;
+            pdc.remove(old);
+            NamespacedKey now = tierKeys.get(e.getValue());
+            int have = pdc.getOrDefault(now, PersistentDataType.INTEGER, 0);
+            pdc.set(now, PersistentDataType.INTEGER, Math.min(e.getValue().maxTier(), Math.max(have, t)));
+            changed = true;
+        }
+        if (changed) item.setItemMeta(meta);
+    }
+
     public boolean refresh(ItemStack item) {
         ToolKind kind = kind(item);
         if (kind == null) return false;
+        migrateRenamed(item);
         Settings s = plugin.settings();
         String id = id(item);
         long blocks = plugin.registry().blocks(id);

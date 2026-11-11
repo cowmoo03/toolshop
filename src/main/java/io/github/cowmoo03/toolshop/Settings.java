@@ -69,12 +69,16 @@ public final class Settings {
     /** Sword, trident and crossbow abilities against players are multiplied by this (PvP). */
     public double swordPvpMultiplier;
     public boolean harvestXpForAllCrops;
-    public int[] impalerDamage;
+    public int[] growthAuraRadius;
+    public int[] growthAuraChance;
+    /** Tidal Pull strength per tier, in tenths of a block per tick. */
+    public int[] tidalPullStrength;
     public int[] stormCallerCooldown;
     public double stormCallerDamage;
     public int[] arrowSaverChance;
     public int[] volleyArrows;
-    public int[] heavyBoltsPercent;
+    public int[] blastBoltsDamage;
+    public double blastBoltsRadius;
     public int[] boostCharges;
     public double boostStrength;
     public int[] rocketSaverChance;
@@ -170,12 +174,15 @@ public final class Settings {
         bountyPercent = readTierInts(c.getIntegerList("bounty.extra-percent"), new int[]{25, 50, 100});
         swordPvpMultiplier = Math.max(0, Math.min(1, c.getDouble("sword-pvp-multiplier", 0.5)));
         harvestXpForAllCrops = c.getBoolean("harvest.xp-for-all-crops", true);
-        impalerDamage = readTierInts(c.getIntegerList("impaler.extra-damage"), new int[]{2, 4, 6});
+        growthAuraRadius = readTierInts(c.getIntegerList("growth-aura.radius"), new int[]{4, 6, 8});
+        growthAuraChance = readTierInts(c.getIntegerList("growth-aura.chance-per-second"), new int[]{4, 6, 8});
+        tidalPullStrength = readTierInts(c.getIntegerList("tidal-pull.strength"), new int[]{6, 10, 14});
         stormCallerCooldown = readTierInts(c.getIntegerList("storm-caller.cooldown-seconds"), new int[]{30, 20, 10});
         stormCallerDamage = Math.max(0, c.getDouble("storm-caller.damage", 5));
         arrowSaverChance = readTierInts(c.getIntegerList("arrow-saver.chance"), new int[]{20, 35, 50});
         volleyArrows = readTierInts(c.getIntegerList("volley.extra-arrows"), new int[]{1, 2, 4});
-        heavyBoltsPercent = readTierInts(c.getIntegerList("heavy-bolts.extra-percent"), new int[]{10, 20, 30});
+        blastBoltsDamage = readTierInts(c.getIntegerList("blast-bolts.damage"), new int[]{2, 3, 5});
+        blastBoltsRadius = Math.max(1, Math.min(6, c.getDouble("blast-bolts.radius", 2.5)));
         boostCharges = readTierInts(c.getIntegerList("boost.charges"), new int[]{1, 2, 3});
         boostStrength = Math.max(0.2, Math.min(3, c.getDouble("boost.strength", 1.0)));
         rocketSaverChance = readTierInts(c.getIntegerList("rocket-saver.chance"), new int[]{25, 50, 75});

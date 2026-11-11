@@ -35,12 +35,12 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Legendary trident (Impaler, Storm Caller) and crossbow (Arrow Saver, Volley, Heavy Bolts), plus kill counting for
- * both. Against players, damage bonuses are multiplied by sword-pvp-multiplier.
+ * Legendary trident (Tidal Pull, Storm Caller) and crossbow (Arrow Saver, Volley, Blast Bolts), plus kill counting for
+ * both. Against players, their effects are multiplied by sword-pvp-multiplier.
  */
 public final class RangedListener implements Listener {
     private final ToolShopPlugin plugin;
-    /** On arrows from a legendary crossbow: the crossbow's id, its Heavy Bolts tier, and whether it's a Volley arrow. */
+    /** On arrows from a legendary crossbow: the crossbow's id, its Blast Bolts tier, and whether it's a Volley arrow. */
     private final NamespacedKey arrowTool;
     private final NamespacedKey arrowHeavy;
     private final NamespacedKey arrowVolley;
@@ -49,7 +49,7 @@ public final class RangedListener implements Listener {
     public RangedListener(ToolShopPlugin plugin) {
         this.plugin = plugin;
         this.arrowTool = new NamespacedKey(plugin, "arrow_tool");
-        this.arrowHeavy = new NamespacedKey(plugin, "arrow_heavy");
+        this.arrowHeavy = new NamespacedKey(plugin, "arrow_blast");
         this.arrowVolley = new NamespacedKey(plugin, "arrow_volley");
     }
 
@@ -90,8 +90,18 @@ public final class RangedListener implements Listener {
         Settings s = plugin.settings();
         double mult = pvp(victim);
 
-        int impaler = lt.tier(trident, Upgrade.IMPALER);
-        if (impaler > 0 && mult > 0) event.setDamage(event.getDamage() + Settings.forTier(s.impalerDamage, impaler) * mult);
+        int pull = lt.tier(trident, Upgrade.TIDAL_PULL);
+        if (thrown && pull > 0 && mult > 0 && !(victim instanceof org.bukkit.entity.Boss)) {
+            Player puller = owner;
+            double strength = Settings.forTier(s.tidalPullStrength, pull) / 10.0 * mult;
+            // Next tick, after the hit's own knockback.
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (!victim.isValid() || victim.isDead() || !victim.getWorld().equals(puller.getWorld())) return;
+                Vector toward = puller.getLocation().toVector().subtract(victim.getLocation().toVector()).setY(0);
+                if (toward.lengthSquared() < 9) return; // already close
+                victim.setVelocity(toward.normalize().multiply(strength).setY(0.35));
+            });
+        }
 
         int storm = lt.tier(trident, Upgrade.STORM_CALLER);
         if (!thrown || storm <= 0 || mult <= 0) return;
@@ -133,7 +143,7 @@ public final class RangedListener implements Listener {
         if (!(event.getProjectile() instanceof AbstractArrow arrow) || arrow instanceof Trident) return;
 
         String id = lt.id(bow);
-        int heavy = lt.tier(bow, Upgrade.HEAVY_BOLTS);
+        int heavy = lt.tier(bow, Upgrade.BLAST_BOLTS);
         tag(arrow, id, heavy, false);
         // Multishot's side arrows can't be picked up; only the main arrow gets Arrow Saver and Volley.
         if (arrow.getPickupStatus() != AbstractArrow.PickupStatus.ALLOWED) return;
@@ -178,18 +188,43 @@ public final class RangedListener implements Listener {
         if (volley) pdc.set(arrowVolley, PersistentDataType.BYTE, (byte) 1);
     }
 
-    /** Heavy Bolts, and Volley arrows at reduced strength on players. */
+    /** Volley arrows at reduced strength on players. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onArrowHit(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof AbstractArrow arrow) || arrow instanceof Trident) return;
         PersistentDataContainer pdc = arrow.getPersistentDataContainer();
-        if (!pdc.has(arrowTool, PersistentDataType.STRING)) return;
+        if (!pdc.has(arrowTool, PersistentDataType.STRING) || !pdc.has(arrowVolley, PersistentDataType.BYTE)) return;
         double mult = pvp(event.getEntity());
-        double factor = 1.0;
-        int heavy = pdc.getOrDefault(arrowHeavy, PersistentDataType.INTEGER, 0);
-        if (heavy > 0) factor += Settings.forTier(plugin.settings().heavyBoltsPercent, heavy) / 100.0 * mult;
-        if (pdc.has(arrowVolley, PersistentDataType.BYTE)) factor *= mult;
-        if (factor != 1.0) event.setDamage(event.getDamage() * factor);
+        if (mult != 1.0) event.setDamage(event.getDamage() * mult);
+    }
+
+    /** Blast Bolts: the arrow bursts where it lands, hurting mobs around it. Never breaks blocks or items. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onArrowLand(org.bukkit.event.entity.ProjectileHitEvent event) {
+        if (!(event.getEntity() instanceof AbstractArrow arrow) || arrow instanceof Trident) return;
+        PersistentDataContainer pdc = arrow.getPersistentDataContainer();
+        int blast = pdc.getOrDefault(arrowHeavy, PersistentDataType.INTEGER, 0);
+        if (blast <= 0 || !(arrow.getShooter() instanceof Player shooter)) return;
+        pdc.remove(arrowHeavy); // once per arrow
+        Settings s = plugin.settings();
+        Entity direct = event.getHitEntity();
+        Location at = direct != null ? direct.getLocation().add(0, direct.getHeight() / 2, 0) : arrow.getLocation();
+        double radius = s.blastBoltsRadius;
+        double damage = Settings.forTier(s.blastBoltsDamage, blast);
+        if (s.effects) {
+            at.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION, at, 1);
+            at.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.4f);
+        }
+        DamageSource source = DamageSource.builder(DamageType.PLAYER_EXPLOSION).withCausingEntity(shooter)
+                .withDirectEntity(shooter).withDamageLocation(at).build();
+        for (Entity e : at.getWorld().getNearbyEntities(at, radius, radius, radius)) {
+            if (!(e instanceof LivingEntity target) || e.equals(direct) || e.equals(shooter) || e instanceof ArmorStand) continue;
+            if (e instanceof org.bukkit.entity.Tameable pet && shooter.equals(pet.getOwner())) continue;
+            if (target.getLocation().distanceSquared(at) > radius * radius) continue;
+            double mult = pvp(target);
+            if (mult <= 0) continue;
+            target.damage(damage * mult, source);
+        }
     }
 
     // ---------------------------------------------------------------- kill count
