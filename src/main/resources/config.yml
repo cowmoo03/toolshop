@@ -41,6 +41,9 @@ mcmmo:
   # That also catches tree farms that push grown logs. With this on, a log that grew from a sapling still gives
   # Woodcutting XP after a piston moves it. Logs a player placed still give none, pushed or not.
   pushed-logs-give-xp: true
+  # Switch off mcMMO's Tree Feller: the Legendary Axe's Timber upgrade does the same job. /skills hides Tree Feller
+  # (and Knock On Wood, which only works with it) while this is on. Takes effect on /toolshop reload.
+  disable-tree-feller: true
 
 # Cost of turning a tool into a legendary tool. Leave empty ({}) for free.
 create-cost: {}

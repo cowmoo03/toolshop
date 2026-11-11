@@ -137,6 +137,7 @@ public final class SkillsMenu implements InventoryHolder {
         SkillCatalog.Ability next = null;
         int nextLevel = Integer.MAX_VALUE;
         for (SkillCatalog.Ability a : skill.abilities()) {
+            if (hidden(a)) continue;
             int unlock = unlockLevel(skill, a);
             if (unlock > level && unlock < nextLevel) {
                 next = a;
@@ -156,6 +157,12 @@ public final class SkillsMenu implements InventoryHolder {
         return named(ItemStack.of(skill.icon()), text(skill.name(), NamedTextColor.GREEN), lore);
     }
 
+    /** Tree Feller (and Knock On Wood, which only works with it) are hidden while Tree Feller is switched off. */
+    private boolean hidden(SkillCatalog.Ability a) {
+        return plugin.settings().disableTreeFeller
+                && ("TreeFeller".equals(a.rankKey()) || "KnockOnWood".equals(a.rankKey()));
+    }
+
     // ------------------------------------------------------------------ skill page
 
     private void renderSkill(Player player, SkillCatalog.Skill skill) {
@@ -165,6 +172,7 @@ public final class SkillsMenu implements InventoryHolder {
         int i = 0;
         for (SkillCatalog.Ability a : skill.abilities()) {
             if (i >= ABILITY_SLOTS.length) break;
+            if (hidden(a)) continue;
             inventory.setItem(ABILITY_SLOTS[i++], abilityIcon(skill, a, level));
         }
 
@@ -177,7 +185,6 @@ public final class SkillsMenu implements InventoryHolder {
             for (Upgrade up : Upgrade.values()) {
                 if (u >= UPGRADE_SLOTS.length) break;
                 if (!appliesToKind(up, skill.tool())) continue;
-                if (up == Upgrade.TIMBER) continue; // same idea as mcMMO's Tree Feller, which /skills already shows
                 inventory.setItem(UPGRADE_SLOTS[u++], upgradeIcon(up, skill, level));
             }
         }

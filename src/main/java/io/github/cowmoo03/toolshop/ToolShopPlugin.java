@@ -74,7 +74,10 @@ public final class ToolShopPlugin extends JavaPlugin {
         });
 
         // Connect to mcMMO after every plugin has enabled, so load order doesn't matter.
-        getServer().getScheduler().runTask(this, () -> mcmmo = new McMMOHook(this));
+        getServer().getScheduler().runTask(this, () -> {
+            mcmmo = new McMMOHook(this);
+            if (TreeFellerBlocker.register(this)) getLogger().info("mcMMO's Tree Feller is switched off (Timber replaces it).");
+        });
         getServer().getScheduler().runTaskTimer(this, this::scanOnlinePlayers, 40L, SCAN_INTERVAL_TICKS);
         getServer().getScheduler().runTaskTimer(this, () -> registry.saveIfDirty(), SAVE_INTERVAL_TICKS, SAVE_INTERVAL_TICKS);
     }

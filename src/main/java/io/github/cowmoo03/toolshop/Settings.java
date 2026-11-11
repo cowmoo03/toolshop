@@ -31,6 +31,8 @@ public final class Settings {
     public final boolean timberXpForAllLogs;
     /** mcmmo.pushed-logs-give-xp: grown logs a piston moves still give Woodcutting XP. */
     public final boolean pushedLogsGiveXp;
+    /** mcmmo.disable-tree-feller: mcMMO's Tree Feller is switched off (the Legendary Axe's Timber replaces it). */
+    public final boolean disableTreeFeller;
     public final Map<Material, Integer> createCost;
     private final Map<Upgrade, List<Tier>> tiers = new EnumMap<>(Upgrade.class);
 
@@ -84,6 +86,7 @@ public final class Settings {
         requireLevels = c.getBoolean("mcmmo.require-levels", true);
         xpOnlyForHitBlock = c.getBoolean("mcmmo.xp-only-for-hit-block", true);
         pushedLogsGiveXp = c.getBoolean("mcmmo.pushed-logs-give-xp", true);
+        disableTreeFeller = c.getBoolean("mcmmo.disable-tree-feller", true);
         org.bukkit.configuration.ConfigurationSection mults = c.getConfigurationSection("mcmmo.skill-multiplier");
         if (mults != null) {
             for (String key : mults.getKeys(false)) {
