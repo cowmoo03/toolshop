@@ -66,9 +66,13 @@ public final class AbilityListener implements Listener {
             case PICKAXE -> {
                 int drill = lt.tier(tool, Upgrade.DRILL);
                 int vein = lt.tier(tool, Upgrade.VEIN);
-                boolean veinMode = vein > 0 && (drill == 0 || Legendary.MODE_VEIN.equals(lt.mode(tool)));
+                String mode = lt.mode(tool);
+                boolean ore = s.veinOres.contains(block.getType());
+                // Auto: ores vein-mine, everything else drills. Or force one with Drill only / Vein Mining only.
+                boolean veinMode = vein > 0 && (drill == 0 || Legendary.MODE_VEIN.equals(mode)
+                        || (Legendary.MODE_AUTO.equals(mode) && ore));
                 if (veinMode) {
-                    if (s.veinOres.contains(block.getType())) mineVein(player, block, vein);
+                    if (ore) mineVein(player, block, vein);
                 } else if (drill > 0 && isDrillable(block)) {
                     digArea(player, block, drill, this::isDrillable, Sound.BLOCK_DEEPSLATE_BREAK, 0f);
                 }

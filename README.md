@@ -9,7 +9,7 @@ pickaxe, axe, shovel, hoe, sword, bow, trident, crossbow and elytra into their o
 | Upgrade | Tool | Tiers | Default unlock (mcMMO level + items) |
 |---|---|---|---|
 | **Drill** | Pickaxe | 1x2 → 3x3 → 5x5 area of stone | Mining 10 + 16 iron · 30 + 8 diamonds · 60 + 2 netherite ingots |
-| **Vein Mining** | Pickaxe | up to 8 → 16 → 32 ores (switch modes with `/toolshop mode`) | Mining 15 / 35 / 65 |
+| **Vein Mining** | Pickaxe | up to 8 → 16 → 32 ores. With Drill too, Auto mode vein-mines ores and drills the rest (`/toolshop mode`: Auto → Drill only → Vein only) | Mining 15 / 35 / 65 |
 | **Timber** | Axe | up to 16 → 64 → 150 logs; Silk Touch collects leaves at tier 3 | Woodcutting 10 / 30 / 60 |
 | **Excavator** | Shovel | 1x2 → 3x3 → 5x5 area of dirt, sand, gravel | Excavation 10 / 30 / 60 |
 | **Lifesteal** | Sword | heals 5% → 10% → 15% of the damage you deal | Swords 15 / 35 / 65 |
@@ -105,7 +105,7 @@ completion. Both can be turned off under `skills-menu` in the config.
 |---|---|---|
 | `/toolshop` | Everyone | Open the shop |
 | `/skills [skill]` | Everyone | Window with every mcMMO skill: level, XP, abilities in plain words, what's unlocked and the ToolShop upgrades each skill unlocks |
-| `/toolshop mode` | Everyone | Switch a legendary pickaxe between Drill and Vein Mining |
+| `/toolshop mode` | Everyone | Cycle a legendary pickaxe with Drill and Vein Mining: Auto → Drill only → Vein Mining only |
 | `/toolshop give <player> <pickaxe\|axe\|shovel> [iron\|diamond\|netherite]` | Ops | Give a new legendary tool |
 | `/toolshop give <player> flight [amount]` | Ops | Give Flight Charms |
 | `/toolshop upgrade <player> <upgrade> <tier>` | Ops | Set an upgrade on the player's held legendary tool |

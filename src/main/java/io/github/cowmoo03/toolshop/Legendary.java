@@ -25,7 +25,9 @@ import java.util.UUID;
  * and keeps its name and description up to date.
  */
 public final class Legendary {
-    public static final String MODE_DRILL = "drill";
+    /** Pickaxe with Drill and Vein Mining: Auto picks by block (ores vein-mine, the rest drills). */
+    public static final String MODE_AUTO = "auto";
+    public static final String MODE_DRILL = "drill-only";
     public static final String MODE_VEIN = "vein";
 
     private final ToolShopPlugin plugin;
@@ -97,7 +99,18 @@ public final class Legendary {
 
     public String mode(ItemStack item) {
         String m = item.getItemMeta().getPersistentDataContainer().get(modeKey, PersistentDataType.STRING);
-        return MODE_VEIN.equals(m) ? MODE_VEIN : MODE_DRILL;
+        if (MODE_VEIN.equals(m)) return MODE_VEIN;
+        if (MODE_DRILL.equals(m)) return MODE_DRILL;
+        return MODE_AUTO; // also tools from before Auto existed, which were stored as "drill"
+    }
+
+    /** "Auto", "Drill only" or "Vein Mining only". */
+    public static String modeName(String mode) {
+        return switch (mode) {
+            case MODE_DRILL -> "Drill only";
+            case MODE_VEIN -> "Vein Mining only";
+            default -> "Auto";
+        };
     }
 
     /** Soulbound saves left on this tool. */
@@ -140,7 +153,7 @@ public final class Legendary {
         pdc.set(idKey, PersistentDataType.STRING, id);
         pdc.set(ownerKey, PersistentDataType.STRING, owner.getUniqueId().toString());
         pdc.set(kindKey, PersistentDataType.STRING, kind.id());
-        pdc.set(modeKey, PersistentDataType.STRING, MODE_DRILL);
+        pdc.set(modeKey, PersistentDataType.STRING, MODE_AUTO);
         for (NamespacedKey k : tierKeys.values()) pdc.remove(k);
         pdc.remove(savesKey);
         item.setItemMeta(meta);
@@ -267,7 +280,9 @@ public final class Legendary {
             }
             if (u == Upgrade.DRILL || u == Upgrade.VEIN) {
                 boolean both = tier(item, Upgrade.DRILL) > 0 && tier(item, Upgrade.VEIN) > 0;
-                if (both && mode(item).equals(u == Upgrade.DRILL ? MODE_DRILL : MODE_VEIN)) suffix = "  ◀ active";
+                String m = mode(item);
+                if (both && MODE_AUTO.equals(m)) suffix = u == Upgrade.DRILL ? "  ◀ stone" : "  ◀ ores";
+                else if (both && m.equals(u == Upgrade.DRILL ? MODE_DRILL : MODE_VEIN)) suffix = "  ◀ only"; 
             }
             lore.add(line("• " + u.withTier(t) + suffix, NamedTextColor.AQUA));
         }

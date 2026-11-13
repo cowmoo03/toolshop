@@ -571,12 +571,26 @@ public final class ShopMenu implements InventoryHolder {
         }
 
         if (kind == ToolKind.PICKAXE && lt.tier(tool, Upgrade.DRILL) > 0 && lt.tier(tool, Upgrade.VEIN) > 0) {
-            boolean vein = Legendary.MODE_VEIN.equals(lt.mode(tool));
+            String mode = lt.mode(tool);
+            String nextMode = switch (mode) {
+                case Legendary.MODE_AUTO -> Legendary.MODE_DRILL;
+                case Legendary.MODE_DRILL -> Legendary.MODE_VEIN;
+                default -> Legendary.MODE_AUTO;
+            };
             actions.put(MODE_SLOT, new ToggleMode());
-            inventory.setItem(MODE_SLOT, icon(vein ? Material.DIAMOND_ORE : Material.STONE,
-                    text("Mode: " + (vein ? "Vein Mining" : "Drill"), NamedTextColor.YELLOW), List.of(
-                            text("Click to switch to " + (vein ? "Drill" : "Vein Mining") + ".", NamedTextColor.GRAY),
-                            text("Also: /toolshop mode", NamedTextColor.DARK_GRAY)), false));
+            Material modeIcon = switch (mode) {
+                case Legendary.MODE_DRILL -> Material.STONE;
+                case Legendary.MODE_VEIN -> Material.DIAMOND_ORE;
+                default -> Material.REDSTONE_ORE;
+            };
+            inventory.setItem(MODE_SLOT, icon(modeIcon, text("Mode: " + Legendary.modeName(mode), NamedTextColor.YELLOW), List.of(
+                    text(Legendary.MODE_AUTO.equals(mode) ? "Sneak-breaking ore vein-mines it;"
+                            : Legendary.MODE_DRILL.equals(mode) ? "Always drills, even on ores."
+                            : "Only vein-mines ores; no drilling.", NamedTextColor.GRAY),
+                    text(Legendary.MODE_AUTO.equals(mode) ? "anything else drills." : "", NamedTextColor.GRAY),
+                    Component.empty(),
+                    text("Click to switch to " + Legendary.modeName(nextMode) + ".", NamedTextColor.YELLOW),
+                    text("Also: /toolshop mode", NamedTextColor.DARK_GRAY)), false));
         }
     }
 

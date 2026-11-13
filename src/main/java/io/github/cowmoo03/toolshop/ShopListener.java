@@ -236,12 +236,18 @@ public final class ShopListener implements Listener {
             fail(player, "Hold your legendary pickaxe with both Drill and Vein Mining to switch modes.");
             return;
         }
-        boolean toVein = !Legendary.MODE_VEIN.equals(lt.mode(hand));
-        lt.setMode(hand, toVein ? Legendary.MODE_VEIN : Legendary.MODE_DRILL);
+        // Auto -> Drill only -> Vein Mining only -> Auto
+        String next = switch (lt.mode(hand)) {
+            case Legendary.MODE_AUTO -> Legendary.MODE_DRILL;
+            case Legendary.MODE_DRILL -> Legendary.MODE_VEIN;
+            default -> Legendary.MODE_AUTO;
+        };
+        lt.setMode(hand, next);
         lt.refresh(hand);
         player.getInventory().setItem(slot, hand);
-        player.sendActionBar(Component.text("Mode: " + (toVein ? "Vein Mining" : "Drill"), NamedTextColor.YELLOW));
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, toVein ? 1.4f : 0.9f);
+        player.sendActionBar(Component.text("Mode: " + Legendary.modeName(next)
+                + (Legendary.MODE_AUTO.equals(next) ? " (ores vein-mine, stone drills)" : ""), NamedTextColor.YELLOW));
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, Legendary.MODE_AUTO.equals(next) ? 1.2f : 0.9f);
     }
 
     // ------------------------------------------------------------------ helpers
