@@ -419,7 +419,7 @@ public final class SpawnerUpgrades implements Listener {
         Player player = event.getPlayer();
         if (r.claimed() && !player.getUniqueId().equals(r.owner) && !player.isOp()) {
             event.setCancelled(true);
-            fail(player, "This spawner is claimed by " + r.ownerName + ". You can take it over instead (sneak + right-click).");
+            fail(player, "This spawner is claimed by " + r.ownerName + ". Right-click it to take it over instead.");
             return;
         }
         records.remove(r.key());
