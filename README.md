@@ -49,7 +49,7 @@ Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, 
 - Players get a warning when a legendary tool is low on durability.
 - The Drill never breaks ancient debris, obsidian, containers or machines. Vein Mining never touches ancient debris.
 - Timber only fells trees with natural leaves (log builds are safe); trees whose logs touch fall together, and leftover stumps can be chopped in one go.
-- Only the block the player hits gives mcMMO XP; the extra blocks an ability breaks don't.
+- Only the block the player hits gives mcMMO XP; the extra blocks an ability breaks don't. Exceptions: every log Timber fells and every ore Vein Mining breaks give XP (`timber.xp-for-all-logs`, `vein.xp-for-all-ores`).
 - mcMMO's Tree Feller is switched off because Timber does the same job (`mcmmo.disable-tree-feller`); `/skills` hides it and Knock On Wood.
 - Logs that grew from a sapling still give Woodcutting XP after a piston moves them (tree farms). mcMMO's piston rule still blocks XP for logs a player placed (`mcmmo.pushed-logs-give-xp`).
 - Without mcMMO installed, level requirements are skipped (items only).

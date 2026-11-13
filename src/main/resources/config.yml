@@ -178,6 +178,9 @@ drill:
 vein:
   # Most ores per swing for tier 1, 2 and 3.
   max-blocks: [8, 16, 32]
+  # Every ore Vein Mining breaks gives Mining XP and gets mcMMO's Double Drops chance, not just the one you hit
+  # (overrides xp-only-for-hit-block). Ores players placed never give XP either way.
+  xp-for-all-ores: true
   # Extra hunger per extra ore. 4.0 = one hunger point.
   exhaustion-per-block: 0.15
   # Ancient debris is never allowed here.

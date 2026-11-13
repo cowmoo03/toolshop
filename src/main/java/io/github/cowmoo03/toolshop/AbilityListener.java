@@ -154,7 +154,8 @@ public final class AbilityListener implements Listener {
                 Settings.forTier(s.veinMaxBlocks, tier), b -> true);
         ores.remove(start);
         if (ores.isEmpty()) return;
-        int broken = breakAll(player, ores);
+        // Ore veins are natural, so each ore can give XP (placed ores never do: mcMMO tracks those itself).
+        int broken = breakAll(player, ores, s.xpOnlyForHitBlock && !s.veinXpForAllOres);
         if (broken > 0) {
             playSound(start, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.2f);
             addExhaustion(player, broken * s.veinExhaustion);

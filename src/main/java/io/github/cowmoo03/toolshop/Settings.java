@@ -29,6 +29,8 @@ public final class Settings {
     /** mcmmo.skill-multiplier, keyed by lower-case mcMMO skill name. */
     public final java.util.Map<String, Double> skillMultiplier = new java.util.HashMap<>();
     public final boolean timberXpForAllLogs;
+    /** vein.xp-for-all-ores: every ore Vein Mining breaks gives Mining XP (and mcMMO's Double Drops chance). */
+    public final boolean veinXpForAllOres;
     /** mcmmo.pushed-logs-give-xp: grown logs a piston moves still give Woodcutting XP. */
     public final boolean pushedLogsGiveXp;
     /** mcmmo.disable-tree-feller: mcMMO's Tree Feller is switched off (the Legendary Axe's Timber replaces it). */
@@ -157,6 +159,7 @@ public final class Settings {
         timberSilkLeavesFromTier = c.getInt("timber.silk-leaves-from-tier", 3);
         timberMinLeaves = Math.max(0, c.getInt("timber.min-natural-leaves", 3));
         timberXpForAllLogs = c.getBoolean("timber.xp-for-all-logs", true);
+        veinXpForAllOres = c.getBoolean("vein.xp-for-all-ores", true);
         excavatorExhaustion = (float) Math.max(0, c.getDouble("excavator.exhaustion-per-block", 0.05));
         durabilityChance = readTierInts(c.getIntegerList("durability.chance"), new int[]{5, 10, 20});
         fireproofSeconds = readTierInts(c.getIntegerList("fireproof.seconds"), new int[]{60, 180, 300});
