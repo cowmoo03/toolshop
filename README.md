@@ -1,7 +1,7 @@
 # ToolShop
 
 A Paper plugin (Minecraft 26.2) for **legendary tools**: each player turns one iron, diamond or netherite
-pickaxe, axe, shovel, hoe and sword, trident, crossbow and elytra into their own legendary item and upgrades it for good, unlocking tiers with
+pickaxe, axe, shovel, hoe, sword, bow, trident, crossbow and elytra into their own legendary item and upgrades it for good, unlocking tiers with
 **mcMMO skill levels plus items**. Upgrades are permanent, but the tool can be lost like any item.
 
 ## Upgrades
@@ -23,6 +23,9 @@ pickaxe, axe, shovel, hoe and sword, trident, crossbow and elytra into their own
 | **Arrow Saver** | Crossbow | 20% → 35% → 50% chance to get the arrow back | Crossbows 10 / 30 / 60 |
 | **Volley** | Crossbow | +1 → +2 → +4 extra arrows in a spread | Crossbows 20 / 40 / 70 |
 | **Blast Bolts** | Crossbow | arrows burst on impact: 2 → 3 → 5 damage to mobs around it (no block or item damage) | Crossbows 15 / 35 / 65 |
+| **Seeker** | Bow | arrows curve toward the nearest hostile mob within 6 → 9 → 12 blocks | Archery 20 / 40 / 70 |
+| **Quick Draw** | Bow | a half-drawn shot flies at 70% → 85% → 100% power | Archery 10 / 30 / 60 |
+| **Frost Arrows** | Bow | hits give Slowness II for 2 → 3 → 4 s | Archery 15 / 35 / 65 |
 | **Boost** | Elytra | sneak while gliding for a push; 1 → 2 → 3 per flight, refilled on landing | Acrobatics 10 / 30 / 60 |
 | **Rocket Saver** | Elytra | 25% → 50% → 75% chance a firework rocket isn't used up | Acrobatics 15 / 35 / 65 |
 | **Crash Guard** | Elytra | no damage from flying into walls, then 3 s of slow falling | Acrobatics 20 |
@@ -52,10 +55,17 @@ Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, 
 - Without mcMMO installed, level requirements are skipped (items only).
 - A one-time chat announcement greets each player after an update (`join-announcement` in the config; change its `id` to show a new one).
 
+## Skill synergy
+
+Legendary items and mcMMO work together. While you use your legendary item (held; the elytra worn), every upgrade
+tier on it gives +2% XP in its skill (up to +30%) and cuts that skill's super ability cooldown by 4% (up to 50%):
+Super Breaker (pickaxe), Giga Drill Breaker (shovel), Green Terra (hoe), Serrated Strikes (sword), Skull Splitter
+(axe). The item shows its bonus on a ⚡ line. Settings under `synergy`.
+
 ## Spawners
 
-Spawners work like vanilla whether they're claimed or not. Right-click one to see its mob, tier and owner.
-Sneak + right-click (twice, to confirm) to:
+Spawners work like vanilla whether they're claimed or not. Right-click one to open its menu (no sneaking;
+sneak with a block in hand to build against it, and spawn eggs still change the mob). From the menu you can:
 
 - **Claim** an unclaimed spawner: 8 diamonds + power level 500 (Retro Mode). Up to 3 per player.
 - **Upgrade** your own: Tier I spawns 25% faster (16 iron + 8 bones, power 500), II 50% faster (8 diamonds,

@@ -34,6 +34,7 @@ mcmmo:
     tridents: 1.0
     crossbows: 1.0
     acrobatics: 1.0
+    archery: 1.0
   # Only the block the player actually hits gives mcMMO XP, not the extra blocks an ability breaks.
   # Without this, a 5x5 Drill swing would give 25 blocks' worth of XP.
   xp-only-for-hit-block: true
@@ -132,6 +133,19 @@ upgrades:
     - { level: 15, cost: { TNT: 8 } }
     - { level: 35, cost: { DIAMOND: 8 } }
     - { level: 65, cost: { NETHERITE_INGOT: 2 } }
+  # Bow only. Levels are Archery levels.
+  seeker:
+    - { level: 20, cost: { ENDER_EYE: 8 } }
+    - { level: 40, cost: { DIAMOND: 8 } }
+    - { level: 70, cost: { NETHERITE_INGOT: 2 } }
+  quick-draw:
+    - { level: 10, cost: { STRING: 32 } }
+    - { level: 30, cost: { DIAMOND: 4 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 1 } }
+  frost-arrows:
+    - { level: 15, cost: { SNOWBALL: 32 } }
+    - { level: 35, cost: { BLUE_ICE: 8 } }
+    - { level: 65, cost: { NETHERITE_INGOT: 1 } }
   # Elytra only. Levels are Acrobatics levels.
   boost:
     - { level: 10, cost: { FIREWORK_ROCKET: 32 } }
@@ -267,8 +281,7 @@ flight-charm:
     amount: 1
 
 # Spawner claims and upgrades. Spawners work like vanilla whether they're claimed or not.
-# Right-click a spawner to see it; sneak + right-click (twice) to claim an unclaimed one, upgrade your own, or take
-# over someone else's. Claimed spawners show up in /toolshop (Your Spawners) where the owner can upgrade them from
+# Right-click a spawner to open its menu: claim an unclaimed one, upgrade your own, or take over someone else's. Claimed spawners show up in /toolshop (Your Spawners) where the owner can upgrade them from
 # anywhere, turn them on/off or unclaim them. Only the owner (or an op) can break a claimed spawner; explosions can't.
 # Each tier makes it spawn faster (shorter delay); the vanilla limits stay (about 6 of its mobs nearby, a player
 # within 16 blocks). power-level is the mcMMO power level needed, on the Standard scale (x10 in Retro Mode).
@@ -288,6 +301,16 @@ spawner-upgrades:
     - { speed: 1.25, power-level: 50, cost: { IRON_INGOT: 16, BONE: 8 } }
     - { speed: 1.5, power-level: 100, cost: { DIAMOND: 8 } }
     - { speed: 2.0, power-level: 150, cost: { NETHERITE_INGOT: 2 } }
+
+# Legendary items and mcMMO work together. While you use your legendary item (held; the elytra worn), every upgrade
+# tier on it adds bonus XP in its skill and shortens that skill's super ability cooldown (Super Breaker, Giga Drill
+# Breaker, Green Terra, Serrated Strikes, Skull Splitter). Shown on the item as a ⚡ line.
+synergy:
+  enabled: true
+  xp-percent-per-tier: 2
+  max-xp-percent: 30
+  cooldown-percent-per-tier: 4
+  max-cooldown-percent: 50
 
 join-announcement:
   enabled: true
@@ -351,6 +374,18 @@ blast-bolts:
   # Damage to every mob around where the arrow lands (not the one it hits). Blocks and dropped items are never hurt.
   damage: [2, 3, 5]
   radius: 2.5
+# Bow abilities, per tier I, II, III.
+seeker:
+  # Arrows lock onto the nearest hostile mob ahead of them within this many blocks...
+  radius: [6, 9, 12]
+  # ...and turn this % of the way toward it every tick.
+  turn-percent: [15, 25, 35]
+quick-draw:
+  # A shot you don't fully draw still flies at least this hard (100 = like a full draw, with the crit).
+  min-power-percent: [70, 85, 100]
+frost-arrows:
+  # Slowness II for this long (multiplied by sword-pvp-multiplier on players).
+  seconds: [2, 3, 4]
 # Elytra abilities, per tier I, II, III.
 boost:
   # Boosts per flight; they refill when you land.

@@ -128,7 +128,7 @@ public final class SkillCatalog {
                 pas("IronGrip", "Iron Grip", "Harder for others to disarm you.", 60),
                 limitBreak("Unarmed"))));
 
-        add(new Skill("archery", "Archery", "BOW", "Hitting mobs and players with a bow", List.of(), null, List.of(
+        add(new Skill("archery", "Archery", "BOW", "Hitting mobs and players with a bow", List.of(), ToolKind.BOW, List.of(
                 pas("SkillShot", "Skill Shot", "Bonus bow damage.", 1),
                 pas("ArrowRetrieval", "Arrow Retrieval", "Chance to get your arrows back from mobs you kill.", 1),
                 new Ability(null, "Daze", Kind.PASSIVE, "Chance to stun players you shoot (PvP).", null, 0),

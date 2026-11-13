@@ -46,16 +46,14 @@ import java.util.UUID;
 /**
  * Spawner claims and upgrades. A spawner works like vanilla whether or not it's claimed.
  * <ul>
- *   <li>Right-click a spawner: its mob, tier and owner, and what sneak + right-click would do.</li>
- *   <li>Sneak + right-click (twice, to confirm): claim an unclaimed spawner, upgrade your own, or take over someone
- *   else's (a takeover costs more; nobody gets the items).</li>
+ *   <li>Right-click a spawner to open its menu: claim it, upgrade your own, or take over someone else's (a takeover
+ *   costs more; nobody gets the items).</li>
  *   <li>Claimed spawners show up in /toolshop (Your Spawners), where the owner can upgrade them from anywhere, turn
  *   them on/off or unclaim them. Only the owner (or an op) can break a claimed spawner; explosions can't.</li>
  * </ul>
  * Claiming and every tier need an mcMMO power level and items. Data lives in plugins/ToolShop/spawners.yml.
  */
 public final class SpawnerUpgrades implements Listener {
-    private static final long CONFIRM_MS = 5000;
     private static final String FILE = "spawners.yml";
 
     /** One step: power level needed (config scale), items. */
@@ -98,9 +96,6 @@ public final class SpawnerUpgrades implements Listener {
     private final NamespacedKey legacyBaseMinKey;
     private final NamespacedKey legacyBaseMaxKey;
     private final Map<String, Record> records = new HashMap<>();
-    private final Map<UUID, String> pendingKey = new HashMap<>();
-    private final Map<UUID, String> pendingWhat = new HashMap<>();
-    private final Map<UUID, Long> pendingSince = new HashMap<>();
     /** Spawners whose spawn was just cancelled this tick (off), so their delay is only reset once. */
     private final Set<String> pausing = new HashSet<>();
     private boolean dirty;
@@ -237,6 +232,7 @@ public final class SpawnerUpgrades implements Listener {
 
     // ---------------------------------------------------------------- clicking a spawner
 
+    /** Right-clicking a spawner opens its menu. Spawn eggs still change the mob; sneaking with a block still builds. */
     @EventHandler(priority = EventPriority.HIGH)
     public void onClick(PlayerInteractEvent event) {
         if (!enabled || event.getAction() != Action.RIGHT_CLICK_BLOCK || event.getHand() != EquipmentSlot.HAND) return;
@@ -247,73 +243,17 @@ public final class SpawnerUpgrades implements Listener {
         if (player.getGameMode() == GameMode.SPECTATOR || !player.hasPermission("toolshop.use")) return;
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (hand.getType().name().endsWith("_SPAWN_EGG")) return; // changing the mob: vanilla
-        if (!player.isSneaking()) {
-            if (!hand.isEmpty() && hand.getType().isBlock()) return; // let them build against it
-            event.setCancelled(true);
-            showInfo(player, recordFor(block, spawner));
-            return;
-        }
-        event.setCancelled(true); // sneaking: don't place a block
+        if (player.isSneaking() && !hand.isEmpty() && hand.getType().isBlock()) return; // building against it
+        event.setCancelled(true);
         Record r = recordFor(block, spawner);
-        if (!r.claimed()) confirmThen(player, r, "claim", () -> claim(player, r, false));
-        else if (player.getUniqueId().equals(r.owner)) confirmThen(player, r, "upgrade", () -> upgrade(player, r));
-        else confirmThen(player, r, "takeover", () -> claim(player, r, true));
+        ShopMenu menu = new ShopMenu(plugin);
+        menu.showWorldSpawner(r);
+        menu.render(player);
+        player.openInventory(menu.getInventory());
     }
 
-    private void showInfo(Player player, Record r) {
-        String owner = !r.claimed() ? "unclaimed" : player.getUniqueId().equals(r.owner) ? "yours" : "claimed by " + r.ownerName;
-        tell(player, r.mob + " spawner (" + owner + "): " + (r.tier == 0 ? "not upgraded"
-                : "Tier " + Upgrade.roman(r.tier) + ", spawns " + faster(tiers.get(Math.min(r.tier, tiers.size()) - 1).speed()))
-                + (r.enabled ? "" : ", turned off"), NamedTextColor.GOLD);
-        if (!r.claimed()) {
-            tell(player, "Sneak + right-click to claim it for " + describe(claimCost) + ".", NamedTextColor.YELLOW);
-        } else if (player.getUniqueId().equals(r.owner)) {
-            if (r.tier < tiers.size()) {
-                tell(player, "Sneak + right-click to upgrade to Tier " + Upgrade.roman(r.tier + 1) + " (spawns "
-                        + faster(tiers.get(r.tier).speed()) + ") for " + describe(tiers.get(r.tier).cost()) + ".", NamedTextColor.YELLOW);
-            } else {
-                tell(player, "It's fully upgraded. Manage it in /toolshop.", NamedTextColor.GRAY);
-            }
-        } else {
-            tell(player, "Sneak + right-click to take it over for " + describe(takeoverCost) + ".", NamedTextColor.YELLOW);
-        }
-    }
-
-    /** Runs the action on the second sneak + right-click within 5 seconds. */
-    private void confirmThen(Player player, Record r, String what, Runnable action) {
-        UUID id = player.getUniqueId();
-        long now = System.currentTimeMillis();
-        if (r.key().equals(pendingKey.get(id)) && what.equals(pendingWhat.get(id))
-                && now - pendingSince.getOrDefault(id, 0L) <= CONFIRM_MS) {
-            pendingKey.remove(id);
-            pendingWhat.remove(id);
-            pendingSince.remove(id);
-            action.run();
-            return;
-        }
-        String problem = switch (what) {
-            case "claim" -> claimProblem(player, claimCost);
-            case "takeover" -> claimProblem(player, takeoverCost);
-            default -> r.tier >= tiers.size() ? "This spawner is fully upgraded." : costProblem(player, tiers.get(r.tier).cost());
-        };
-        if (problem != null) {
-            fail(player, problem);
-            return;
-        }
-        pendingKey.put(id, r.key());
-        pendingWhat.put(id, what);
-        pendingSince.put(id, now);
-        String question = switch (what) {
-            case "claim" -> "Claim this " + r.mob + " spawner for " + describe(claimCost) + "?";
-            case "takeover" -> "Take this spawner from " + r.ownerName + " for " + describe(takeoverCost) + "? (They get nothing back.)";
-            default -> "Upgrade to Tier " + Upgrade.roman(r.tier + 1) + " (spawns " + faster(tiers.get(r.tier).speed())
-                    + ") for " + describe(tiers.get(r.tier).cost()) + "?";
-        };
-        tell(player, question + " Sneak + right-click again to confirm.", NamedTextColor.YELLOW);
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-    }
-
-    private String claimProblem(Player player, Cost cost) {
+    /** Why the player can't claim (or take over) with this cost, or null. */
+    public String claimProblem(Player player, Cost cost) {
         if (maxClaims > 0 && claimsOf(player.getUniqueId()).size() >= maxClaims) {
             return "You already have " + maxClaims + " spawners claimed (the most you can have). Unclaim one in /toolshop first.";
         }
@@ -339,7 +279,8 @@ public final class SpawnerUpgrades implements Listener {
 
     // ---------------------------------------------------------------- actions (also used by the /toolshop dashboard)
 
-    private void claim(Player player, Record r, boolean takeover) {
+    /** Claims an unclaimed spawner, or takes over someone else's. */
+    public void claim(Player player, Record r, boolean takeover) {
         Cost cost = takeover ? takeoverCost : claimCost;
         String problem = takeover || !r.claimed() ? claimProblem(player, cost) : "Someone claimed it first.";
         if (problem == null && takeover && player.getUniqueId().equals(r.owner)) problem = "It's already yours.";

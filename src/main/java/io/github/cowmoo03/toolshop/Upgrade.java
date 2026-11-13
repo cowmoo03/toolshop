@@ -19,6 +19,9 @@ public enum Upgrade {
     ARROW_SAVER("arrow-saver", "Arrow Saver", ToolKind.CROSSBOW, 3, "Chance to get the arrow back when you shoot"),
     VOLLEY("volley", "Volley", ToolKind.CROSSBOW, 3, "Shoots extra arrows in a spread"),
     BLAST_BOLTS("blast-bolts", "Blast Bolts", ToolKind.CROSSBOW, 3, "Arrows burst on impact and hurt mobs around it (no block damage)"),
+    SEEKER("seeker", "Seeker", ToolKind.BOW, 3, "Arrows curve toward the nearest hostile mob"),
+    QUICK_DRAW("quick-draw", "Quick Draw", ToolKind.BOW, 3, "Shots you don't fully draw still fly hard"),
+    FROST_ARROWS("frost-arrows", "Frost Arrows", ToolKind.BOW, 3, "Arrows slow what they hit"),
     BOOST("boost", "Boost", ToolKind.ELYTRA, 3, "Sneak while gliding for a burst of speed"),
     ROCKET_SAVER("rocket-saver", "Rocket Saver", ToolKind.ELYTRA, 3, "Chance for a firework rocket not to be used up"),
     CRASH_GUARD("crash-guard", "Crash Guard", ToolKind.ELYTRA, 1, "No damage from flying into walls, then a moment of slow falling"),
@@ -57,7 +60,7 @@ public enum Upgrade {
             return switch (kind) {
                 case SWORD -> "Chance for a hit to use no durability";
                 case TRIDENT -> "Chance for a hit or throw to use no durability";
-                case CROSSBOW -> "Chance for a shot to use no durability";
+                case CROSSBOW, BOW -> "Chance for a shot to use no durability";
                 case ELYTRA -> "Chance for gliding to use no durability";
                 default -> "Chance for a block to use no durability";
             };
@@ -65,7 +68,7 @@ public enum Upgrade {
         if (this == LAST_STAND && (kind == ToolKind.SWORD || kind == ToolKind.TRIDENT)) {
             return "Stops at 1 durability instead of breaking (can't hit until repaired)";
         }
-        if (this == LAST_STAND && kind == ToolKind.CROSSBOW) {
+        if (this == LAST_STAND && (kind == ToolKind.CROSSBOW || kind == ToolKind.BOW)) {
             return "Stops at 1 durability instead of breaking (can't shoot until repaired)";
         }
         if (this == LAST_STAND) return "Stops at 1 durability instead of breaking (can't mine until repaired)";

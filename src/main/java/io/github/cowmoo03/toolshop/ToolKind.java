@@ -18,7 +18,8 @@ public enum ToolKind {
             Set.of(Material.IRON_HOE, Material.DIAMOND_HOE, Material.NETHERITE_HOE)),
     TRIDENT("trident", "Legendary Trident", "TRIDENTS", "Tridents", Set.of(Material.TRIDENT)),
     CROSSBOW("crossbow", "Legendary Crossbow", "CROSSBOWS", "Crossbows", Set.of(Material.CROSSBOW)),
-    ELYTRA("elytra", "Legendary Elytra", "ACROBATICS", "Acrobatics", Set.of(Material.ELYTRA));
+    ELYTRA("elytra", "Legendary Elytra", "ACROBATICS", "Acrobatics", Set.of(Material.ELYTRA)),
+    BOW("bow", "Legendary Bow", "ARCHERY", "Archery", Set.of(Material.BOW));
 
     private final String id;
     private final String displayName;
@@ -43,7 +44,7 @@ public enum ToolKind {
     public Set<Material> materials() { return materials; }
 
     /** Weapons rank up by kills instead of blocks. */
-    public boolean countsKills() { return this == SWORD || this == TRIDENT || this == CROSSBOW; }
+    public boolean countsKills() { return this == SWORD || this == TRIDENT || this == CROSSBOW || this == BOW; }
 
     /** What the rank counts: "kills", "blocks flown" or "blocks". */
     public String countWord(long n) {
@@ -57,6 +58,7 @@ public enum ToolKind {
         return switch (this) {
             case TRIDENT -> "a trident";
             case CROSSBOW -> "a crossbow";
+            case BOW -> "a bow";
             case ELYTRA -> "an elytra";
             default -> "an iron, diamond or netherite " + id;
         };

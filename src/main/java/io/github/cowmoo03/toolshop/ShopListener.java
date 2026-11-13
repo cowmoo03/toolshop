@@ -69,6 +69,9 @@ public final class ShopListener implements Listener {
             else if (action instanceof ShopMenu.SpawnerUpgrade su) {
                 SpawnerUpgrades.Record r = plugin.spawners().record(su.key());
                 if (r != null) plugin.spawners().upgrade(player, r);
+            } else if (action instanceof ShopMenu.SpawnerClaim cl) {
+                SpawnerUpgrades.Record r = menu.currentSpawner();
+                if (r != null && r.key().equals(cl.key())) plugin.spawners().claim(player, r, cl.takeover());
             } else if (action instanceof ShopMenu.SpawnerUnclaim sc) {
                 SpawnerUpgrades.Record r = plugin.spawners().record(sc.key());
                 if (r != null) plugin.spawners().unclaim(player, r);

@@ -26,8 +26,10 @@ import java.util.Map;
  */
 public final class ShopMenu implements InventoryHolder {
     public static final int TOOL_SLOT = 4;
-    /** Home page: one slot per tool kind (tools on row 2, weapons and elytra on row 3) and the star. */
-    private static final int[] HOME_TOOL_SLOTS = {10, 12, 14, 16, 19, 21, 23, 25};
+    /** Home page: tools on row 2, weapons and the elytra on row 3, then the star. */
+    private static final Map<ToolKind, Integer> HOME_SLOT = Map.of(
+            ToolKind.PICKAXE, 10, ToolKind.AXE, 12, ToolKind.SHOVEL, 14, ToolKind.HOE, 16,
+            ToolKind.SWORD, 20, ToolKind.BOW, 21, ToolKind.CROSSBOW, 22, ToolKind.TRIDENT, 23, ToolKind.ELYTRA, 24);
     public static final int CREATE_SLOT = 29;
     public static final int FLIGHT_SLOT = 31;
     public static final int SPAWNER_SLOT = 33;
@@ -41,7 +43,9 @@ public final class ShopMenu implements InventoryHolder {
 
     /** What a slot does. */
     public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire, Preview,
-            Spawners, OpenSpawner, SpawnerUpgrade, SpawnerToggle, SpawnerUnclaim {}
+            Spawners, OpenSpawner, SpawnerUpgrade, SpawnerToggle, SpawnerUnclaim, SpawnerClaim {}
+    /** Claim an unclaimed spawner, or take over someone else's (takeover = true). */
+    public record SpawnerClaim(String key, boolean takeover) implements Action {}
     /** "Your Spawners" list, one claimed spawner's dashboard, and its buttons. */
     public record Spawners() implements Action {}
     public record OpenSpawner(String key) implements Action {}
@@ -70,6 +74,9 @@ public final class ShopMenu implements InventoryHolder {
     /** True on the "Your Spawners" list; spawnerKey is set on one spawner's dashboard. */
     private boolean spawnerList;
     private String spawnerKey;
+    /** The spawner a player right-clicked in the world (may not be claimed yet), and whether the menu came from there. */
+    private SpawnerUpgrades.Record worldSpawner;
+    private boolean fromWorld;
     private static final int[] SPAWNER_LIST_SLOTS = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25};
 
     public ShopMenu(ToolShopPlugin plugin) {
@@ -109,7 +116,25 @@ public final class ShopMenu implements InventoryHolder {
         preview = null;
         spawnerList = false;
         spawnerKey = null;
+        worldSpawner = null;
+        fromWorld = false;
         pending = null;
+    }
+
+    /** Opened by right-clicking a spawner: its own page, whoever owns it. */
+    public void showWorldSpawner(SpawnerUpgrades.Record r) {
+        setPage(null);
+        spawnerKey = r.key();
+        worldSpawner = r;
+        fromWorld = true;
+    }
+
+    /** The spawner this page is about, or null. */
+    public SpawnerUpgrades.Record currentSpawner() {
+        if (spawnerKey == null) return null;
+        SpawnerUpgrades.Record r = plugin.spawners().record(spawnerKey);
+        if (r == null && worldSpawner != null && worldSpawner.key().equals(spawnerKey)) r = worldSpawner;
+        return r;
     }
 
     public void showSpawners() {
@@ -156,11 +181,12 @@ public final class ShopMenu implements InventoryHolder {
         ItemStack filler = icon(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "), List.of(), false);
         for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, filler);
         if (page != null && findTool(plugin, player, page) < 0) page = null; // tool left the inventory
-        if (spawnerKey != null) {
-            SpawnerUpgrades.Record r = plugin.spawners().record(spawnerKey);
-            if (r == null || !player.getUniqueId().equals(r.owner)) { spawnerKey = null; spawnerList = true; }
+        SpawnerUpgrades.Record shown = currentSpawner();
+        if (spawnerKey != null && (shown == null || (!fromWorld && !player.getUniqueId().equals(shown.owner)))) {
+            spawnerKey = null;
+            spawnerList = true;
         }
-        if (spawnerKey != null) renderSpawner(player, plugin.spawners().record(spawnerKey));
+        if (spawnerKey != null) renderSpawner(player, shown);
         else if (spawnerList) renderSpawnerList(player);
         else if (preview != null) renderPreview(player, preview);
         else if (page == null) renderHome(player);
@@ -172,9 +198,10 @@ public final class ShopMenu implements InventoryHolder {
         inventory.setItem(INFO_SLOT, infoButton());
         Legendary lt = plugin.legendary();
         ToolKind[] kinds = ToolKind.values();
-        for (int k = 0; k < kinds.length && k < HOME_TOOL_SLOTS.length; k++) {
-            ToolKind kind = kinds[k];
-            int slot = HOME_TOOL_SLOTS[k];
+        for (ToolKind kind : kinds) {
+            Integer homeSlot = HOME_SLOT.get(kind);
+            if (homeSlot == null) continue;
+            int slot = homeSlot;
             int invSlot = findTool(plugin, player, kind);
             if (invSlot >= 0) {
                 ItemStack tool = player.getInventory().getItem(invSlot);
@@ -244,6 +271,8 @@ public final class ShopMenu implements InventoryHolder {
         List<Component> headLore = new ArrayList<>();
         headLore.add(text("Upgrades for the " + kind.displayName() + ", unlocked with", NamedTextColor.GRAY));
         headLore.add(text(kind.skillName() + " levels and items.", NamedTextColor.GRAY));
+        String perTier = SkillSynergy.perTierText(plugin, kind);
+        if (perTier != null) headLore.add(text("⚡ " + perTier, NamedTextColor.LIGHT_PURPLE));
         headLore.add(Component.empty());
         if (owned) {
             headLore.add(text("Yours isn't in your inventory.", NamedTextColor.RED));
@@ -317,9 +346,9 @@ public final class ShopMenu implements InventoryHolder {
         SpawnerUpgrades su = plugin.spawners();
         int have = su.claimsOf(player.getUniqueId()).size();
         List<Component> lore = new ArrayList<>();
-        lore.add(text("Right-click a mob spawner to see it.", NamedTextColor.GRAY));
-        lore.add(text("Sneak + right-click (twice) to claim it,", NamedTextColor.GRAY));
-        lore.add(text("upgrade yours, or take over someone else's.", NamedTextColor.GRAY));
+        lore.add(text("Right-click a mob spawner to open its menu:", NamedTextColor.GRAY));
+        lore.add(text("claim it, upgrade yours, or take over", NamedTextColor.GRAY));
+        lore.add(text("someone else's.", NamedTextColor.GRAY));
         lore.add(Component.empty());
         lore.add(text("Claim: " + su.describe(su.claimCost()), NamedTextColor.WHITE));
         lore.add(text("Take over: " + su.describe(su.takeoverCost()), NamedTextColor.WHITE));
@@ -351,11 +380,11 @@ public final class ShopMenu implements InventoryHolder {
                 .decoration(TextDecoration.BOLD, true), List.of(
                 text(mine.size() + (su.maxClaims() > 0 ? "/" + su.maxClaims() : "") + " claimed", NamedTextColor.YELLOW),
                 text("Claim more by finding a spawner and", NamedTextColor.GRAY),
-                text("sneak + right-clicking it (twice).", NamedTextColor.GRAY)), false));
+                text("right-clicking it.", NamedTextColor.GRAY)), false));
         if (mine.isEmpty()) {
             inventory.setItem(22, icon(Material.BARRIER, text("No spawners yet", NamedTextColor.GRAY), List.of(
-                    text("Find a mob spawner and sneak + right-click it", NamedTextColor.GRAY),
-                    text("(twice) to claim it for " + su.describe(su.claimCost()) + ".", NamedTextColor.GRAY)), false));
+                    text("Find a mob spawner and right-click it", NamedTextColor.GRAY),
+                    text("to claim it for " + su.describe(su.claimCost()) + ".", NamedTextColor.GRAY)), false));
             return;
         }
         for (int i = 0; i < mine.size() && i < SPAWNER_LIST_SLOTS.length; i++) {
@@ -372,17 +401,59 @@ public final class ShopMenu implements InventoryHolder {
         }
     }
 
-    /** One claimed spawner: upgrade from anywhere, turn on/off, unclaim. */
+    /**
+     * One spawner. The owner gets upgrade (from anywhere), on/off and unclaim; anyone else who right-clicked it gets
+     * Claim (unclaimed) or Take over (someone else's).
+     */
     private void renderSpawner(Player player, SpawnerUpgrades.Record r) {
         SpawnerUpgrades su = plugin.spawners();
         long now = System.currentTimeMillis();
-        backButton("Back to your spawners");
+        boolean mine = player.getUniqueId().equals(r.owner);
+        if (!fromWorld) backButton("Back to your spawners");
+        List<Component> head = new ArrayList<>();
+        head.add(text("At " + r.where(), NamedTextColor.GRAY));
+        head.add(text(!r.claimed() ? "Unclaimed" : mine ? "Yours" : "Claimed by " + r.ownerName,
+                !r.claimed() ? NamedTextColor.WHITE : mine ? NamedTextColor.GREEN : NamedTextColor.RED));
+        head.add(text(speedText(r), NamedTextColor.AQUA));
+        head.add(text(r.enabled ? "● On" : "● Off", r.enabled ? NamedTextColor.GREEN : NamedTextColor.RED));
+        if (mine) head.add(text(r.spawned + " mobs spawned since you claimed it", NamedTextColor.DARK_GRAY));
+        head.add(text("Works like a normal spawner either way.", NamedTextColor.DARK_GRAY));
         inventory.setItem(TOOL_SLOT, icon(Material.SPAWNER, text(r.mob + " spawner", NamedTextColor.GOLD)
-                .decoration(TextDecoration.BOLD, true), List.of(
-                text("At " + r.where(), NamedTextColor.GRAY),
-                text(speedText(r), NamedTextColor.AQUA),
-                text(r.enabled ? "● On" : "● Off", r.enabled ? NamedTextColor.GREEN : NamedTextColor.RED),
-                text(r.spawned + " mobs spawned since you claimed it", NamedTextColor.DARK_GRAY)), r.enabled));
+                .decoration(TextDecoration.BOLD, true), head, r.enabled));
+
+        if (!mine) {
+            boolean takeover = r.claimed();
+            SpawnerUpgrades.Cost cost = takeover ? su.takeoverCost() : su.claimCost();
+            SpawnerClaim claim = new SpawnerClaim(r.key(), takeover);
+            boolean confirming = isAwaitingConfirm(claim, now);
+            String problem = su.claimProblem(player, cost);
+            List<Component> lore = new ArrayList<>();
+            lore.add(text(takeover ? "Take this spawner from " + r.ownerName + "." : "Make this spawner yours.", NamedTextColor.WHITE));
+            lore.add(text("Then upgrade it, turn it on/off or manage it", NamedTextColor.GRAY));
+            lore.add(text("from anywhere in /toolshop (Your Spawners).", NamedTextColor.GRAY));
+            if (takeover) lore.add(text("They get nothing back.", NamedTextColor.DARK_GRAY));
+            lore.add(Component.empty());
+            lore.add(text("Cost: " + su.describe(cost), NamedTextColor.YELLOW));
+            lore.add(Component.empty());
+            if (problem != null) {
+                lore.add(text("✘ " + problem, NamedTextColor.RED));
+            } else {
+                actions.put(22, claim);
+                lore.add(confirming
+                        ? text("CLICK AGAIN TO CONFIRM", NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true)
+                        : text("Click to " + (takeover ? "take it over" : "claim it"), NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+            }
+            inventory.setItem(22, icon(takeover ? Material.IRON_SWORD : Material.GOLDEN_HELMET,
+                    text(takeover ? "Take over" : "Claim", NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true), lore, confirming));
+            if (r.tier < su.tiers().size()) {
+                SpawnerUpgrades.Tier next = su.tiers().get(r.tier);
+                inventory.setItem(24, icon(Material.EXPERIENCE_BOTTLE, text("Upgrades", NamedTextColor.GRAY), List.of(
+                        text("Claim it first to upgrade it.", NamedTextColor.GRAY),
+                        text("Next: Tier " + Upgrade.roman(r.tier + 1) + ", spawns " + SpawnerUpgrades.faster(next.speed()), NamedTextColor.WHITE),
+                        text("for " + su.describe(next.cost()), NamedTextColor.DARK_GRAY)), false));
+            }
+            return;
+        }
 
         List<SpawnerUpgrades.Tier> tiers = su.tiers();
         if (r.tier < tiers.size()) {
@@ -518,6 +589,7 @@ public final class ShopMenu implements InventoryHolder {
             case HOE -> Material.IRON_HOE;
             case TRIDENT -> Material.TRIDENT;
             case CROSSBOW -> Material.CROSSBOW;
+            case BOW -> Material.BOW;
             case ELYTRA -> Material.ELYTRA;
         };
     }
@@ -647,6 +719,9 @@ public final class ShopMenu implements InventoryHolder {
             case BLAST_BOLTS -> Settings.forTier(s.blastBoltsDamage, t) + " damage around the hit" + pvpNote(s);
             case BOOST -> Settings.forTier(s.boostCharges, t) + " boost" + (Settings.forTier(s.boostCharges, t) == 1 ? "" : "s") + " per flight (refill on landing)";
             case ROCKET_SAVER -> Settings.forTier(s.rocketSaverChance, t) + "% chance";
+            case SEEKER -> "locks on within " + Settings.forTier(s.seekerRadius, t) + " blocks";
+            case QUICK_DRAW -> "any shot flies at " + Settings.forTier(s.quickDrawPower, t) + "% power or more";
+            case FROST_ARROWS -> "Slowness II for " + Settings.forTier(s.frostSeconds, t) + "s" + pvpNote(s);
             default -> null;
         };
     }
@@ -692,6 +767,9 @@ public final class ShopMenu implements InventoryHolder {
             case BOOST -> Material.PHANTOM_MEMBRANE;
             case ROCKET_SAVER -> Material.FIREWORK_ROCKET;
             case CRASH_GUARD -> Material.HAY_BLOCK;
+            case SEEKER -> Material.ENDER_EYE;
+            case QUICK_DRAW -> Material.STRING;
+            case FROST_ARROWS -> Material.BLUE_ICE;
         };
     }
 

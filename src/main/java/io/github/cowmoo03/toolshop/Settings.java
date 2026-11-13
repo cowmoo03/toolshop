@@ -33,6 +33,12 @@ public final class Settings {
     public final boolean pushedLogsGiveXp;
     /** mcmmo.disable-tree-feller: mcMMO's Tree Feller is switched off (the Legendary Axe's Timber replaces it). */
     public final boolean disableTreeFeller;
+    /** synergy.*: legendary items boost their mcMMO skill (XP and super ability cooldown) per upgrade tier. */
+    public boolean synergyEnabled;
+    public int synergyXpPercentPerTier;
+    public int synergyMaxXpPercent;
+    public int synergyCooldownPercentPerTier;
+    public int synergyMaxCooldownPercent;
     public final Map<Material, Integer> createCost;
     private final Map<Upgrade, List<Tier>> tiers = new EnumMap<>(Upgrade.class);
 
@@ -79,6 +85,10 @@ public final class Settings {
     public int[] volleyArrows;
     public int[] blastBoltsDamage;
     public double blastBoltsRadius;
+    public int[] seekerRadius;
+    public int[] seekerTurn;
+    public int[] quickDrawPower;
+    public int[] frostSeconds;
     public int[] boostCharges;
     public double boostStrength;
     public int[] rocketSaverChance;
@@ -91,6 +101,11 @@ public final class Settings {
         xpOnlyForHitBlock = c.getBoolean("mcmmo.xp-only-for-hit-block", true);
         pushedLogsGiveXp = c.getBoolean("mcmmo.pushed-logs-give-xp", true);
         disableTreeFeller = c.getBoolean("mcmmo.disable-tree-feller", true);
+        synergyEnabled = c.getBoolean("synergy.enabled", true);
+        synergyXpPercentPerTier = Math.max(0, c.getInt("synergy.xp-percent-per-tier", 2));
+        synergyMaxXpPercent = Math.max(0, c.getInt("synergy.max-xp-percent", 30));
+        synergyCooldownPercentPerTier = Math.max(0, c.getInt("synergy.cooldown-percent-per-tier", 4));
+        synergyMaxCooldownPercent = Math.max(0, Math.min(90, c.getInt("synergy.max-cooldown-percent", 50)));
         org.bukkit.configuration.ConfigurationSection mults = c.getConfigurationSection("mcmmo.skill-multiplier");
         if (mults != null) {
             for (String key : mults.getKeys(false)) {
@@ -183,6 +198,10 @@ public final class Settings {
         volleyArrows = readTierInts(c.getIntegerList("volley.extra-arrows"), new int[]{1, 2, 4});
         blastBoltsDamage = readTierInts(c.getIntegerList("blast-bolts.damage"), new int[]{2, 3, 5});
         blastBoltsRadius = Math.max(1, Math.min(6, c.getDouble("blast-bolts.radius", 2.5)));
+        seekerRadius = readTierInts(c.getIntegerList("seeker.radius"), new int[]{6, 9, 12});
+        seekerTurn = readTierInts(c.getIntegerList("seeker.turn-percent"), new int[]{15, 25, 35});
+        quickDrawPower = readTierInts(c.getIntegerList("quick-draw.min-power-percent"), new int[]{70, 85, 100});
+        frostSeconds = readTierInts(c.getIntegerList("frost-arrows.seconds"), new int[]{2, 3, 4});
         boostCharges = readTierInts(c.getIntegerList("boost.charges"), new int[]{1, 2, 3});
         boostStrength = Math.max(0.2, Math.min(3, c.getDouble("boost.strength", 1.0)));
         rocketSaverChance = readTierInts(c.getIntegerList("rocket-saver.chance"), new int[]{25, 50, 75});

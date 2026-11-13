@@ -152,6 +152,8 @@ public final class SkillsMenu implements InventoryHolder {
         }
         if (skill.tool() != null) {
             lore.add(text("Unlocks " + skill.tool().displayName() + " upgrades", NamedTextColor.GOLD));
+            String perTier = SkillSynergy.perTierText(plugin, skill.tool());
+            if (perTier != null) lore.add(text("⚡ " + perTier, NamedTextColor.LIGHT_PURPLE));
         }
         if (clickHint) lore.add(text("▶ Click to see abilities", NamedTextColor.YELLOW));
         return named(ItemStack.of(skill.icon()), text(skill.name(), NamedTextColor.GREEN), lore);

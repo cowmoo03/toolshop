@@ -31,6 +31,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     private SkillsListener skills;
     private FlightCharm flight;
     private SpawnerUpgrades spawners;
+    private volatile SkillSynergy synergy;
 
     @Override
     public void onEnable() {
@@ -77,6 +78,7 @@ public final class ToolShopPlugin extends JavaPlugin {
         getServer().getScheduler().runTask(this, () -> {
             mcmmo = new McMMOHook(this);
             if (TreeFellerBlocker.register(this)) getLogger().info("mcMMO's Tree Feller is switched off (Timber replaces it).");
+            if (SkillSynergy.register(this)) getLogger().info("Legendary items now boost their mcMMO skills.");
         });
         getServer().getScheduler().runTaskTimer(this, this::scanOnlinePlayers, 40L, SCAN_INTERVAL_TICKS);
         getServer().getScheduler().runTaskTimer(this, () -> registry.saveIfDirty(), SAVE_INTERVAL_TICKS, SAVE_INTERVAL_TICKS);
@@ -130,6 +132,8 @@ public final class ToolShopPlugin extends JavaPlugin {
     public SkillsListener skills() { return skills; }
     public FlightCharm flight() { return flight; }
     public SpawnerUpgrades spawners() { return spawners; }
+    public SkillSynergy synergy() { return synergy; }
+    void setSynergy(SkillSynergy s) { synergy = s; }
 
     /**
      * mcMMO level an upgrade tier needs. The config uses the 0-100 (Standard) scale; with mcMMO in Retro Mode

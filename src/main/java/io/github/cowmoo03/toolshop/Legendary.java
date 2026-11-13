@@ -83,6 +83,13 @@ public final class Legendary {
         }
     }
 
+    /** All upgrade tiers on this item added up (Drill III + Magnet I = 4). */
+    public int totalTiers(ItemStack item) {
+        int sum = 0;
+        for (Upgrade u : Upgrade.values()) sum += tier(item, u);
+        return sum;
+    }
+
     public int tier(ItemStack item, Upgrade upgrade) {
         Integer t = item.getItemMeta().getPersistentDataContainer().get(tierKeys.get(upgrade), PersistentDataType.INTEGER);
         return t == null ? 0 : t;
@@ -266,6 +273,8 @@ public final class Legendary {
         }
         if (!any) lore.add(line("No upgrades yet", NamedTextColor.DARK_GRAY));
         lore.add(Component.empty());
+        String synergy = SkillSynergy.describe(plugin, item, kind);
+        if (synergy != null) lore.add(line("⚡ " + synergy, NamedTextColor.LIGHT_PURPLE));
         lore.add(line("Upgrade at /toolshop", NamedTextColor.DARK_GRAY));
 
         Component name = Component.text(kind.displayName(), current ? NamedTextColor.GOLD : NamedTextColor.GRAY)

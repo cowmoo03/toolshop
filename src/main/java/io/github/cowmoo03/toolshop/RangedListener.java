@@ -45,12 +45,20 @@ public final class RangedListener implements Listener {
     private final NamespacedKey arrowHeavy;
     private final NamespacedKey arrowVolley;
     private final Map<UUID, Long> stormReadyAt = new HashMap<>();
+    /** On arrows from a legendary bow: Seeker and Frost Arrows tiers. */
+    private final NamespacedKey arrowSeeker;
+    private final NamespacedKey arrowFrost;
+    /** Seeker arrows still in flight, and how many ticks they've been steered. */
+    private final Map<AbstractArrow, Integer> seeking = new HashMap<>();
 
     public RangedListener(ToolShopPlugin plugin) {
         this.plugin = plugin;
         this.arrowTool = new NamespacedKey(plugin, "arrow_tool");
         this.arrowHeavy = new NamespacedKey(plugin, "arrow_blast");
         this.arrowVolley = new NamespacedKey(plugin, "arrow_volley");
+        this.arrowSeeker = new NamespacedKey(plugin, "arrow_seeker");
+        this.arrowFrost = new NamespacedKey(plugin, "arrow_frost");
+        plugin.getServer().getScheduler().runTaskTimer(plugin, this::steerSeekers, 1L, 1L);
     }
 
     private double pvp(Entity victim) {
@@ -243,12 +251,112 @@ public final class RangedListener implements Listener {
         } else if (damager instanceof AbstractArrow arrow && killer.equals(arrow.getShooter())) {
             id = arrow.getPersistentDataContainer().get(arrowTool, PersistentDataType.STRING);
             // Only count it while that crossbow is still the player's current one.
-            if (id != null && !id.equals(plugin.registry().activeId(killer.getUniqueId(), ToolKind.CROSSBOW))) id = null;
+            if (id != null && !id.equals(plugin.registry().activeId(killer.getUniqueId(), ToolKind.CROSSBOW))
+                    && !id.equals(plugin.registry().activeId(killer.getUniqueId(), ToolKind.BOW))) id = null;
         } else if (damager.equals(killer)) {
             ItemStack trident = legendary(killer.getInventory().getItemInMainHand(), killer, ToolKind.TRIDENT);
             if (trident != null) id = plugin.legendary().id(trident);
         }
         if (id != null) plugin.registry().addBlocks(id, 1);
+    }
+
+    // ---------------------------------------------------------------- bow: Quick Draw, Seeker, Frost Arrows
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBowShoot(EntityShootBowEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        ItemStack bow = legendary(event.getBow(), player, ToolKind.BOW);
+        if (bow == null) return;
+        Legendary lt = plugin.legendary();
+        Settings s = plugin.settings();
+        if (player.getGameMode() != GameMode.CREATIVE && lt.tier(bow, Upgrade.LAST_STAND) > 0
+                && bow.getItemMeta() instanceof Damageable d && bow.getType().getMaxDurability() - d.getDamage() <= 1) {
+            event.setCancelled(true);
+            player.sendActionBar(Component.text("Your Legendary Bow needs repairing before it can be used again.",
+                    NamedTextColor.RED));
+            return;
+        }
+        if (!(event.getProjectile() instanceof AbstractArrow arrow) || arrow instanceof Trident) return;
+        PersistentDataContainer pdc = arrow.getPersistentDataContainer();
+        pdc.set(arrowTool, PersistentDataType.STRING, lt.id(bow));
+
+        int quick = lt.tier(bow, Upgrade.QUICK_DRAW);
+        float force = event.getForce();
+        if (quick > 0 && force > 0.05f) {
+            double floor = Settings.forTier(s.quickDrawPower, quick) / 100.0;
+            if (force < floor) {
+                arrow.setVelocity(arrow.getVelocity().multiply(floor / force));
+                if (floor >= 1.0) arrow.setCritical(true);
+            }
+        }
+        int seeker = lt.tier(bow, Upgrade.SEEKER);
+        if (seeker > 0) {
+            pdc.set(arrowSeeker, PersistentDataType.INTEGER, seeker);
+            seeking.put(arrow, 0);
+        }
+        int frost = lt.tier(bow, Upgrade.FROST_ARROWS);
+        if (frost > 0) pdc.set(arrowFrost, PersistentDataType.INTEGER, frost);
+    }
+
+    /** Every tick: nudge Seeker arrows toward the nearest hostile mob ahead of them, for up to 3 seconds. */
+    private void steerSeekers() {
+        if (seeking.isEmpty()) return;
+        Settings s = plugin.settings();
+        var it = seeking.entrySet().iterator();
+        while (it.hasNext()) {
+            var e = it.next();
+            AbstractArrow arrow = e.getKey();
+            int age = e.getValue() + 1;
+            if (!arrow.isValid() || arrow.isInBlock() || arrow.isOnGround() || age > 60) {
+                it.remove();
+                continue;
+            }
+            e.setValue(age);
+            if (age < 3) continue; // let it leave the bow first
+            int tier = arrow.getPersistentDataContainer().getOrDefault(arrowSeeker, PersistentDataType.INTEGER, 0);
+            if (tier <= 0) {
+                it.remove();
+                continue;
+            }
+            Vector vel = arrow.getVelocity();
+            double speed = vel.length();
+            if (speed < 0.3) continue;
+            double radius = Settings.forTier(s.seekerRadius, tier);
+            Location from = arrow.getLocation();
+            Vector dir = vel.clone().normalize();
+            LivingEntity best = null;
+            double bestDist = Double.MAX_VALUE;
+            for (Entity n : arrow.getWorld().getNearbyEntities(from, radius, radius, radius)) {
+                if (!(n instanceof org.bukkit.entity.Enemy) || !(n instanceof LivingEntity target) || target.isDead()) continue;
+                Vector to = target.getEyeLocation().toVector().subtract(from.toVector());
+                double dist = to.length();
+                if (dist > radius || dist < 0.5 || to.normalize().dot(dir) < 0.5) continue; // only ahead of the arrow
+                if (dist < bestDist) {
+                    best = target;
+                    bestDist = dist;
+                }
+            }
+            if (best == null) continue;
+            double turn = Settings.forTier(s.seekerTurn, tier) / 100.0;
+            Vector want = best.getLocation().add(0, best.getHeight() * 0.6, 0).toVector().subtract(from.toVector()).normalize();
+            arrow.setVelocity(dir.multiply(1 - turn).add(want.multiply(turn)).normalize().multiply(speed));
+        }
+    }
+
+    /** Frost Arrows: Slowness II on hit (shorter on players). */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onFrostHit(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof AbstractArrow arrow) || !(event.getEntity() instanceof LivingEntity target)) return;
+        int frost = arrow.getPersistentDataContainer().getOrDefault(arrowFrost, PersistentDataType.INTEGER, 0);
+        if (frost <= 0 || target instanceof ArmorStand) return;
+        double mult = pvp(target);
+        int ticks = (int) Math.round(Settings.forTier(plugin.settings().frostSeconds, frost) * 20 * mult);
+        if (ticks <= 0) return;
+        target.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, ticks, 1));
+        if (plugin.settings().effects) {
+            target.getWorld().spawnParticle(org.bukkit.Particle.SNOWFLAKE, target.getLocation().add(0, target.getHeight() / 2, 0),
+                    12, 0.3, 0.4, 0.3, 0.02);
+        }
     }
 
     @EventHandler
