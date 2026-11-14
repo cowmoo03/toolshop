@@ -798,8 +798,6 @@ public final class ShopMenu implements InventoryHolder {
                     + (t >= s.timberSilkLeavesFromTier ? " + clears its leaves (Silk Touch: leaf blocks)" : "");
             case DURABILITY -> Settings.forTier(s.durabilityChance, t) + "% chance to save durability";
             case EMPOWERED -> "main enchant " + t + " level" + (t == 1 ? "" : "s") + " past its max";
-                    + (t >= 3 ? ", survives explosions and cactus, returns from the void"
-                    : t == 2 ? ", survives explosions and cactus" : ", death location message");
             case SOULBOUND -> Settings.forTier(s.soulboundSaves, t) + " saves (upgrading refills them)";
             case LIFESTEAL -> "heal " + Settings.forTier(s.lifestealPercent, t) + "% of damage dealt" + pvpNote(s);
             case BEHEADING -> Settings.forTier(s.beheadingChance, t) + "% head chance per kill" + pvpNote(s);
@@ -903,9 +901,8 @@ public final class ShopMenu implements InventoryHolder {
                 Component.empty(),
                 text("Upgrades are permanent, but if the tool breaks,", NamedTextColor.RED),
                 text("burns or despawns, it's gone. Last Stand stops it", NamedTextColor.RED),
-                text("breaking, Fireproof buys time in lava (Recovery", NamedTextColor.RED),
-                text("protects netherite tools instead), and", NamedTextColor.RED),
-                text("Soulbound saves it on death a few times.", NamedTextColor.RED));
+                text("breaking, and Soulbound keeps it on death", NamedTextColor.RED),
+                text("a few times.", NamedTextColor.RED));
         return icon(Material.BOOK, text("How it works", NamedTextColor.YELLOW), lore, false);
     }
 

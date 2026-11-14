@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** Magnet, Durability Saver, Last Stand, Fireproof, Soulbound, low-durability warnings and block counting. */
+/** Magnet, Durability Saver, Last Stand, Soulbound, low-durability warnings and block counting. */
 public final class PerkListener implements Listener {
     private static final long WARNING_COOLDOWN_MS = 30_000;
 
