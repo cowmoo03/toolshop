@@ -207,8 +207,9 @@ vein:
 timber:
   # Most logs per chop for tier 1, 2 and 3. Trees whose logs touch fall together.
   max-logs: [16, 64, 150]
-  # From this tier, a Silk Touch axe also collects the tree's leaves as leaf blocks.
-  silk-leaves-from-tier: 3
+  # From this tier, a felled tree's leaves are cleared right away instead of slowly decaying. With Silk Touch they
+  # drop as leaf blocks; otherwise they drop what decaying leaves would (saplings, sticks, apples).
+  clear-leaves-from-tier: 1
   # A tree only falls if at least this many natural leaves touch it (protects log builds).
   min-natural-leaves: 3
   # Every log Timber fells gives Woodcutting XP, not just the one you hit (overrides xp-only-for-hit-block).

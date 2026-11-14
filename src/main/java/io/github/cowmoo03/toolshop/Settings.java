@@ -50,6 +50,7 @@ public final class Settings {
     public final float veinExhaustion;
     public final Set<Material> veinOres;
     public final int[] timberMaxLogs;
+    /** timber.clear-leaves-from-tier: from this tier, a felled tree's loose leaves are cleared right away. */
     public final int timberSilkLeavesFromTier;
     public final int timberMinLeaves;
     public final float excavatorExhaustion;
@@ -156,7 +157,7 @@ public final class Settings {
         veinOres = readMaterials(c.getStringList("vein.ores"), "vein.ores", log);
         veinOres.remove(Material.ANCIENT_DEBRIS);
         timberMaxLogs = readTierInts(c.getIntegerList("timber.max-logs"), new int[]{16, 64, 150});
-        timberSilkLeavesFromTier = c.getInt("timber.silk-leaves-from-tier", 3);
+        timberSilkLeavesFromTier = Math.max(1, c.getInt("timber.clear-leaves-from-tier", 1));
         timberMinLeaves = Math.max(0, c.getInt("timber.min-natural-leaves", 3));
         timberXpForAllLogs = c.getBoolean("timber.xp-for-all-logs", true);
         veinXpForAllOres = c.getBoolean("vein.xp-for-all-ores", true);

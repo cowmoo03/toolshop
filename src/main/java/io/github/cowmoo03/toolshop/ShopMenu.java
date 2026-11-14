@@ -713,7 +713,7 @@ public final class ShopMenu implements InventoryHolder {
             case DRILL, EXCAVATOR -> "breaks " + area;
             case VEIN -> "up to " + Settings.forTier(s.veinMaxBlocks, t) + " ores";
             case TIMBER -> "up to " + Settings.forTier(s.timberMaxLogs, t) + " logs"
-                    + (t >= s.timberSilkLeavesFromTier ? " + Silk Touch collects leaves" : "");
+                    + (t >= s.timberSilkLeavesFromTier ? " + clears its leaves (Silk Touch: leaf blocks)" : "");
             case DURABILITY -> Settings.forTier(s.durabilityChance, t) + "% chance to save durability";
             case FIREPROOF -> "survives fire and lava for " + shortTime(Settings.forTier(s.fireproofSeconds, t));
             case RECOVERY -> "glows for you when dropped, +" + shortTime(Settings.forTier(s.recoverySeconds, t)) + " before despawning"

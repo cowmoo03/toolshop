@@ -13,7 +13,6 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.TileState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.Leaves;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -192,7 +191,9 @@ public final class AbilityListener implements Listener {
         Set<Block> felled = new HashSet<>(logs);
         rememberFelled(felled);
         ItemStack axe = player.getInventory().getItemInMainHand().clone();
-        boolean collectLeaves = tier >= s.timberSilkLeavesFromTier && axe.getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0;
+        // The tree's loose leaves are cleared right away: Silk Touch drops the leaf blocks, otherwise they drop
+        // what decaying leaves would (saplings, sticks, apples).
+        boolean collectLeaves = tier >= s.timberSilkLeavesFromTier;
 
         logs.remove(start);
         logs.sort(Comparator.comparingInt(Block::getY)
@@ -235,8 +236,8 @@ public final class AbilityListener implements Listener {
     }
 
     /**
-     * Breaks leaves around the felled tree that are no longer attached to any log, using the Silk Touch axe,
-     * so the leaf blocks themselves drop. Leaves still held up by a neighbouring tree are left alone, because
+     * Breaks leaves around the felled tree that are no longer attached to any log, with the axe (so a Silk Touch axe
+     * drops the leaf blocks themselves, and any other axe drops saplings, sticks and apples). Leaves still held up by a neighbouring tree are left alone, because
      * the game only marks unattached leaves with the maximum distance (7).
      */
     private void clearLooseLeaves(Set<Block> felledLogs, ItemStack axe) {

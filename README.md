@@ -10,7 +10,7 @@ pickaxe, axe, shovel, hoe, sword, bow, trident, crossbow and elytra into their o
 |---|---|---|---|
 | **Drill** | Pickaxe | 1x2 → 3x3 → 5x5 area of stone | Mining 10 + 16 iron · 30 + 8 diamonds · 60 + 2 netherite ingots |
 | **Vein Mining** | Pickaxe | up to 8 → 16 → 32 ores. With Drill too, Auto mode vein-mines ores and drills the rest (`/toolshop mode`: Auto → Drill only → Vein only) | Mining 15 / 35 / 65 |
-| **Timber** | Axe | up to 16 → 64 → 150 logs; Silk Touch collects leaves at tier 3 | Woodcutting 10 / 30 / 60 |
+| **Timber** | Axe | up to 16 → 64 → 150 logs; clears the tree's leaves right away (Silk Touch: as leaf blocks) | Woodcutting 10 / 30 / 60 |
 | **Excavator** | Shovel | 1x2 → 3x3 → 5x5 area of dirt, sand, gravel | Excavation 10 / 30 / 60 |
 | **Lifesteal** | Sword | heals 5% → 10% → 15% of the damage you deal | Swords 15 / 35 / 65 |
 | **Beheading** | Sword | 3% → 6% → 10% chance for a zombie, skeleton, creeper, piglin, wither skeleton or player head | Swords 20 / 40 / 70 |
