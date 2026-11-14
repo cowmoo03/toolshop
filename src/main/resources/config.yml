@@ -364,20 +364,20 @@ villager-claims:
     cost: { EMERALD: 16 }
   # discount = percent off each trade's emerald price (always at least 1 off).
   tiers:
-    - { discount: 10, power-level: 50, cost: { EMERALD: 32 } }
-    - { discount: 20, power-level: 100, cost: { EMERALD_BLOCK: 8 } }
-    - { discount: 30, power-level: 150, cost: { EMERALD_BLOCK: 16, DIAMOND: 4 } }
-    - { discount: 40, power-level: 250, cost: { EMERALD_BLOCK: 32, NETHER_STAR: 1 } }
+    - { discount: 10, power-level: 5, cost: { EMERALD: 5 } }
+    - { discount: 20, power-level: 20, cost: { EMERALD: 16 } }
+    - { discount: 30, power-level: 40, cost: { EMERALD: 32 } }
+    - { discount: 40, power-level: 80, cost: { EMERALD_BLOCK: 5 } }
   # What the owner pays to set a librarian's enchanted book trade, by how rare the enchantment is.
   # Common: Protection, Efficiency, Sharpness, Power. Uncommon: Unbreaking, Smite, Feather Falling, Piercing...
   # Rare: Fortune, Looting, Respiration, Sweeping Edge, Multishot... Very rare: Silk Touch, Infinity, Thorns, Channeling.
   # Treasure: Mending, Frost Walker, Soul Speed, Swift Sneak, Wind Burst.
   enchant-trade-cost:
-    common: { EMERALD: 32 }
-    uncommon: { EMERALD: 64 }
-    rare: { EMERALD_BLOCK: 16 }
-    very-rare: { EMERALD_BLOCK: 32 }
-    treasure: { EMERALD_BLOCK: 40 }
+    common: { EMERALD: 8 }
+    uncommon: { EMERALD: 16 }
+    rare: { EMERALD: 32 }
+    very-rare: { EMERALD_BLOCK: 4 }
+    treasure: { EMERALD_BLOCK: 10 }
 
 # Legendary bow: Mending and Infinity together. On the bow's /toolshop page, a Mending enchanted book (used up) adds
 # Mending to a legendary bow that has Infinity, for this many real days. When it runs out, use another book.

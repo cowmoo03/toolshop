@@ -127,6 +127,7 @@ public final class VillagerClaims implements Listener {
         ConfigurationSection c = plugin.getConfig().getConfigurationSection("villager-claims");
         ConfigurationSection d = plugin.getConfig().getDefaults() == null ? null
                 : plugin.getConfig().getDefaults().getConfigurationSection("villager-claims");
+        migrateOldPrices(c, d);
         enabled = c == null || c.getBoolean("enabled", true);
         maxClaims = Math.max(0, c == null ? 0 : c.getInt("max-claims", 0));
         ConfigurationSection claim = section(c, d, "claim");
@@ -145,6 +146,29 @@ public final class VillagerClaims implements Listener {
             ConfigurationSection rs = ec == null ? null : ec.getConfigurationSection(key);
             assignCost.put(r, rs == null ? Map.of(Material.EMERALD, 64) : items(rs.getValues(false)));
         }
+    }
+
+    /** 2.17.0 shipped prices that were far too high; swap them for the new defaults if they were never changed. */
+    private void migrateOldPrices(ConfigurationSection c, ConfigurationSection d) {
+        if (c == null || d == null) return;
+        List<Map<?, ?>> t = c.getMapList("tiers");
+        boolean oldTiers = t.size() == 4 && String.valueOf(t.get(3).get("cost")).contains("NETHER_STAR");
+        boolean oldBooks = c.getInt("enchant-trade-cost.treasure.EMERALD_BLOCK") == 40
+                && c.getInt("enchant-trade-cost.very-rare.EMERALD_BLOCK") == 32;
+        if (!oldTiers && !oldBooks) return;
+        if (oldTiers) c.set("tiers", d.getMapList("tiers"));
+        if (oldBooks) {
+            ConfigurationSection books = d.getConfigurationSection("enchant-trade-cost");
+            c.set("enchant-trade-cost", null);
+            if (books != null) {
+                for (String k : books.getKeys(false)) {
+                    ConfigurationSection r = books.getConfigurationSection(k);
+                    if (r != null) c.set("enchant-trade-cost." + k, r.getValues(false));
+                }
+            }
+        }
+        plugin.saveConfig();
+        plugin.getLogger().info("villager-claims: replaced the old (too high) discount and book prices with the new ones.");
     }
 
     private static ConfigurationSection section(ConfigurationSection c, ConfigurationSection d, String name) {

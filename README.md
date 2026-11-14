@@ -134,12 +134,12 @@ Villagers trade like vanilla whether they're claimed or not: a normal right-clic
   shown above the villager and in the menu. No limit on how many. Other players can't hurt a claimed villager.
 - **Upgrade** its discount (owner only, from anywhere). Every trade gets cheaper for anyone who trades with it,
   on top of vanilla's own discounts, always at least 1 emerald off:
-  I 10% (32 emeralds, power 500), II 20% (8 emerald blocks, power 1000), III 30% (16 emerald blocks + 4 diamonds,
-  power 1500), IV 40% (32 emerald blocks + a nether star, power 2500).
+  I 10% (5 emeralds, power 50), II 20% (16 emeralds, power 200), III 30% (32 emeralds, power 400),
+  IV 40% (5 emerald blocks, power 800).
 - **Enchanted book trade** (librarians only, owner only): pick any non-curse enchantment from a list with rarity
   tabs and a search box, and the librarian sells it as a max-level book for emeralds + a book (12 uses, restocks
-  like normal). Setting it costs by rarity: common 32 emeralds, uncommon 64 emeralds, rare 16 emerald blocks,
-  very rare 32 emerald blocks, treasure (Mending, Frost Walker, Soul Speed, Swift Sneak, Wind Burst) 40 emerald
+  like normal). Setting it costs by rarity: common 8 emeralds, uncommon 16 emeralds, rare 32 emeralds,
+  very rare 4 emerald blocks, treasure (Mending, Frost Walker, Soul Speed, Swift Sneak, Wind Burst) 10 emerald
   blocks. A new pick replaces the old one.
 - **Rename** or **Unclaim** it (discount and book trade stay; the name is removed).
 
