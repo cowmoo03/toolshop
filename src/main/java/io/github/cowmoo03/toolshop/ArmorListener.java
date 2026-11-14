@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Legendary armor: Night Vision and Water Breathing (helmet), Vitality (chestplate), Swiftness (leggings), Spring and
+ * Legendary armor: Clear Mind and Water Breathing (helmet), Vitality (chestplate), Swiftness (leggings), Spring and
  * Lava Walker (boots), and a full-set bonus (Regeneration after 10 s without being hurt). Effects and attribute
  * bonuses are refreshed every second and removed as soon as the piece comes off. Attribute bonuses are transient,
  * so they're never saved onto the player.
@@ -42,6 +42,9 @@ public final class ArmorListener implements Listener {
     private static final int EFFECT_TICKS = 400; // refreshed every second; long enough that Night Vision never flickers
     private static final long SET_REGEN_AFTER_MS = 10_000;
     private static final long LAVA_REVERT_TICKS = 100;
+    /** Effects Clear Mind blocks. */
+    private static final Set<PotionEffectType> CLEARED = Set.of(PotionEffectType.BLINDNESS, PotionEffectType.DARKNESS,
+            PotionEffectType.NAUSEA, PotionEffectType.MINING_FATIGUE);
 
     private final ToolShopPlugin plugin;
     private final NamespacedKey vitalityKey;
@@ -91,7 +94,9 @@ public final class ArmorListener implements Listener {
         for (Player p : plugin.getServer().getOnlinePlayers()) {
             if (p.isDead()) continue;
             Set<String> mine = given.computeIfAbsent(p.getUniqueId(), k -> new java.util.HashSet<>());
-            effect(p, mine, "nv", PotionEffectType.NIGHT_VISION, 0, tier(p, ToolKind.HELMET, Upgrade.NIGHT_VISION) > 0);
+            if (tier(p, ToolKind.HELMET, Upgrade.CLEAR_MIND) > 0) {
+                for (PotionEffectType t : CLEARED) if (p.hasPotionEffect(t)) p.removePotionEffect(t);
+            }
             effect(p, mine, "wb", PotionEffectType.WATER_BREATHING, 0, tier(p, ToolKind.HELMET, Upgrade.WATER_BREATHING) > 0);
 
             boolean fullSet = s.armorSetBonus && worn(p, ToolKind.HELMET) != null && worn(p, ToolKind.CHESTPLATE) != null
@@ -140,6 +145,19 @@ public final class ArmorListener implements Listener {
         if (existing != null) inst.removeModifier(key);
         if (amount != 0) inst.addTransientModifier(new AttributeModifier(key, amount, op, EquipmentSlotGroup.ANY));
         if (attribute == Attribute.MAX_HEALTH && p.getHealth() > inst.getValue()) p.setHealth(inst.getValue());
+    }
+
+    // ---------------------------------------------------------------- Clear Mind
+
+    /** Clear Mind: Blindness, Darkness, Nausea and Mining Fatigue never land. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEffect(org.bukkit.event.entity.EntityPotionEffectEvent event) {
+        if (!(event.getEntity() instanceof Player p)) return;
+        if (event.getAction() != org.bukkit.event.entity.EntityPotionEffectEvent.Action.ADDED
+                && event.getAction() != org.bukkit.event.entity.EntityPotionEffectEvent.Action.CHANGED) return;
+        PotionEffect added = event.getNewEffect();
+        if (added == null || !CLEARED.contains(added.getType())) return;
+        if (tier(p, ToolKind.HELMET, Upgrade.CLEAR_MIND) > 0) event.setCancelled(true);
     }
 
     // ---------------------------------------------------------------- hits taken, set bonus timer
@@ -225,7 +243,6 @@ public final class ArmorListener implements Listener {
     private void clear(Player p) {
         Set<String> mine = given.remove(p.getUniqueId());
         if (mine != null) {
-            effect(p, mine, "nv", PotionEffectType.NIGHT_VISION, 0, false);
             effect(p, mine, "wb", PotionEffectType.WATER_BREATHING, 0, false);
             effect(p, mine, "regen", PotionEffectType.REGENERATION, 0, false);
         }

@@ -219,12 +219,13 @@ public final class Legendary {
      * knows to write the item back. Blocks broken are shown rounded, so this rarely changes while mining
      * (changing the held item makes the hand bob).
      */
-    /** Upgrades that were replaced (2.12.0): their old key, and what they became (same tier). */
+    /** Upgrades that were replaced (2.12.0, 2.15.2): their old key, and what they became (same tier). */
     private static final Map<String, Upgrade> RENAMED = Map.of(
             "lt_up_replant", Upgrade.GROWTH_AURA,
             "lt_up_impaler", Upgrade.TIDAL_PULL,
             "lt_up_heavy_bolts", Upgrade.BLAST_BOLTS,
-            "lt_up_safe_landing", Upgrade.CRASH_GUARD);
+            "lt_up_safe_landing", Upgrade.CRASH_GUARD,
+            "lt_up_night_vision", Upgrade.CLEAR_MIND);
 
     /** Moves a replaced upgrade's tier onto its replacement. */
     private void migrateRenamed(ItemStack item) {

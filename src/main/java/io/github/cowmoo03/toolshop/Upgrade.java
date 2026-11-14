@@ -22,7 +22,7 @@ public enum Upgrade {
     SEEKER("seeker", "Seeker", ToolKind.BOW, 3, "Arrows curve toward the nearest hostile mob"),
     QUICK_DRAW("quick-draw", "Quick Draw", ToolKind.BOW, 3, "Shots you don't fully draw still fly hard"),
     FROST_ARROWS("frost-arrows", "Frost Arrows", ToolKind.BOW, 3, "Arrows slow what they hit"),
-    NIGHT_VISION("night-vision", "Night Vision", ToolKind.HELMET, 1, "See in the dark while you wear it"),
+    CLEAR_MIND("clear-mind", "Clear Mind", ToolKind.HELMET, 1, "Immune to Blindness, Darkness, Nausea and Mining Fatigue while you wear it"),
     WATER_BREATHING("water-breathing", "Water Breathing", ToolKind.HELMET, 1, "Breathe underwater while you wear it"),
     VITALITY("vitality", "Vitality", ToolKind.CHESTPLATE, 3, "Extra hearts while you wear it"),
     SWIFTNESS("swiftness", "Swiftness", ToolKind.LEGGINGS, 3, "Move faster while you wear them"),

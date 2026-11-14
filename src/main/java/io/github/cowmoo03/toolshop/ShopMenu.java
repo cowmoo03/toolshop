@@ -822,7 +822,7 @@ public final class ShopMenu implements InventoryHolder {
             case SEEKER -> "locks on within " + Settings.forTier(s.seekerRadius, t) + " blocks";
             case QUICK_DRAW -> "any shot flies at " + Settings.forTier(s.quickDrawPower, t) + "% power or more";
             case FROST_ARROWS -> "Slowness II for " + Settings.forTier(s.frostSeconds, t) + "s" + pvpNote(s);
-            case NIGHT_VISION -> "always see in the dark";
+            case CLEAR_MIND -> "no Blindness, Darkness, Nausea or Mining Fatigue";
             case WATER_BREATHING -> "never run out of air";
             case VITALITY -> "+" + hearts(Settings.forTier(s.vitalityHealth, t)) + " heart" + (Settings.forTier(s.vitalityHealth, t) == 2 ? "" : "s");
             case SWIFTNESS -> "+" + Settings.forTier(s.swiftnessPercent, t) + "% speed";
@@ -880,7 +880,7 @@ public final class ShopMenu implements InventoryHolder {
             case SEEKER -> Material.ENDER_EYE;
             case QUICK_DRAW -> Material.STRING;
             case FROST_ARROWS -> Material.BLUE_ICE;
-            case NIGHT_VISION -> Material.GLOW_BERRIES;
+            case CLEAR_MIND -> Material.MILK_BUCKET;
             case WATER_BREATHING -> Material.PUFFERFISH;
             case VITALITY -> Material.GOLDEN_APPLE;
             case SWIFTNESS -> Material.SUGAR;

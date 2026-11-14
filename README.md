@@ -26,7 +26,7 @@ pickaxe, axe, shovel, hoe, sword, bow, trident, crossbow, elytra, helmet, chestp
 | **Seeker** | Bow | arrows curve toward the nearest hostile mob within 6 → 9 → 12 blocks | Archery 20 / 40 / 70 |
 | **Quick Draw** | Bow | a half-drawn shot flies at 70% → 85% → 100% power | Archery 10 / 30 / 60 |
 | **Frost Arrows** | Bow | hits give Slowness II for 2 → 3 → 4 s | Archery 15 / 35 / 65 |
-| **Night Vision** | Helmet | see in the dark while worn | power level 600 |
+| **Clear Mind** | Helmet | immune to Blindness, Darkness (Warden), Nausea and Mining Fatigue (Elder Guardians) while worn | power level 600 |
 | **Water Breathing** | Helmet | breathe underwater while worn | power level 400 |
 | **Vitality** | Chestplate | +1 → +2 → +3 hearts (IV: +4) | power level 800 / 1500 / 2500 |
 | **Swiftness** | Leggings | +5% → +10% → +15% speed (IV: +20%) | power level 700 / 1400 / 2400 |

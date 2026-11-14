@@ -180,8 +180,8 @@ upgrades:
   crash-guard:
     - { level: 20, cost: { HAY_BLOCK: 16, DIAMOND: 2 } }
   # Armor only. Armor has no mcMMO skill: these levels are power levels (all skills added up), x10 in Retro Mode.
-  night-vision:
-    - { level: 60, cost: { GOLDEN_CARROT: 32, DIAMOND: 2 } }
+  clear-mind:
+    - { level: 60, cost: { DIAMOND: 4, MILK_BUCKET: 1 } }
   water-breathing:
     - { level: 40, cost: { PUFFERFISH: 4, PRISMARINE_CRYSTALS: 16 } }
   vitality:
