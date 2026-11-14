@@ -57,6 +57,46 @@ public final class ShopListener implements Listener {
             SpawnerUpgrades.Record r = plugin.spawners().record(st.key());
             if (r != null) plugin.spawners().toggle(player, r);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        } else if (action instanceof ShopMenu.Villagers) {
+            menu.showVillagers();
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+        } else if (action instanceof ShopMenu.OpenVillager ov) {
+            menu.showVillager(ov.id());
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+        } else if (action instanceof ShopMenu.PickEnchant) {
+            menu.showPicker();
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+        } else if (action instanceof ShopMenu.EnchantFilter f) {
+            menu.setPickerSearch(null);
+            menu.setPickerFilter(f.rarity());
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.1f);
+        } else if (action instanceof ShopMenu.EnchantPage ep) {
+            menu.setPickerPage(ep.page());
+            player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 1f, 1f);
+        } else if (action instanceof ShopMenu.ClearSearch) {
+            menu.setPickerSearch(null);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 0.9f);
+        } else if (action instanceof ShopMenu.EnchantSearch) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> plugin.search().open(player, "Search enchantments", "enchant name", "Search",
+                    typed -> {
+                        menu.setPickerSearch(typed.equalsIgnoreCase("enchant name") ? null : typed);
+                        reopen(player, menu);
+                    },
+                    () -> reopen(player, menu)));
+            return;
+        } else if (action instanceof ShopMenu.VillagerListPage lp) {
+            menu.setVillagerListPage(lp.page());
+            player.playSound(player.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 1f, 1f);
+        } else if (action instanceof ShopMenu.RenameVillager rv) {
+            VillagerClaims.Record r = plugin.villagers().record(rv.id());
+            plugin.getServer().getScheduler().runTask(plugin, () -> plugin.search().open(player, "Rename your villager",
+                    r != null && r.name != null ? r.name : "villager name", "Rename",
+                    typed -> {
+                        plugin.villagers().rename(player, rv.id(), typed);
+                        reopen(player, menu);
+                    },
+                    () -> reopen(player, menu)));
+            return;
         } else if (action instanceof ShopMenu.Ranks) {
             menu.showRanks();
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
@@ -82,6 +122,32 @@ public final class ShopListener implements Listener {
                 SpawnerUpgrades.Record r = plugin.spawners().record(sc.key());
                 if (r != null) plugin.spawners().unclaim(player, r);
             }
+            else if (action instanceof ShopMenu.VillagerClaim vc) {
+                // Name it first, then claim (and pay) when the name is saved. Closing the name box cancels.
+                String problem = plugin.villagers().claimProblem(player);
+                if (problem == null && VillagerClaims.find(vc.id()) != null) {
+                    plugin.getServer().getScheduler().runTask(plugin, () -> plugin.search().open(player, "Name your villager",
+                            "villager name", "Claim",
+                            typed -> {
+                                org.bukkit.entity.Villager v = VillagerClaims.find(vc.id());
+                                if (VillagerClaims.cleanName(typed) == null || typed.equalsIgnoreCase("villager name")) {
+                                    fail(player, "Give it a name to claim it.");
+                                } else if (v != null) {
+                                    plugin.villagers().claim(player, v, typed);
+                                }
+                                reopen(player, menu);
+                            },
+                            () -> reopen(player, menu)));
+                    return;
+                }
+                if (problem != null) fail(player, problem);
+            } else if (action instanceof ShopMenu.VillagerUpgrade vu) plugin.villagers().upgrade(player, vu.id());
+            else if (action instanceof ShopMenu.VillagerUnclaim vn) plugin.villagers().unclaim(player, vn.id());
+            else if (action instanceof ShopMenu.AssignEnchant ae) {
+                org.bukkit.enchantments.Enchantment e = VillagerClaims.byKey(ae.key());
+                if (e != null) plugin.villagers().assign(player, ae.id(), e);
+            }
+            else if (action instanceof ShopMenu.BowMending && page != null) bowMending(player, page);
             else if (action instanceof ShopMenu.Buy b && page != null) buy(player, b.upgrade(), page);
             else if (action instanceof ShopMenu.Recharge && page != null) recharge(player, page);
         } else {
@@ -235,6 +301,36 @@ public final class ShopListener implements Listener {
         player.playSound(player.getLocation(), Sound.ITEM_TOTEM_USE, 0.5f, 1.2f);
     }
 
+    /** Uses a Mending book to give the legendary bow Mending (alongside Infinity) for bow-mending.days. */
+    private void bowMending(Player player, ToolKind kind) {
+        if (kind != ToolKind.BOW || !plugin.settings().bowMendingEnabled) return;
+        PlayerInventory inv = player.getInventory();
+        int slot = ShopMenu.findTool(plugin, player, kind);
+        if (slot < 0) {
+            fail(player, "Your Legendary Bow has to be in your inventory.");
+            return;
+        }
+        ItemStack bow = inv.getItem(slot);
+        String problem = ShopMenu.bowMendingProblem(plugin, player, bow);
+        if (problem != null) {
+            fail(player, problem);
+            return;
+        }
+        int bookSlot = ShopMenu.mendingBookSlot(player);
+        ItemStack book = inv.getItem(bookSlot);
+        book.setAmount(book.getAmount() - 1);
+        inv.setItem(bookSlot, book.getAmount() <= 0 ? null : book);
+        Legendary lt = plugin.legendary();
+        long until = System.currentTimeMillis() + Math.round(plugin.settings().bowMendingDays * 86_400_000L);
+        ItemStack tool = inv.getItem(slot);
+        lt.grantMending(tool, until);
+        lt.refresh(tool);
+        inv.setItem(slot, tool);
+        plugin.log(player, "BOW_MENDING until " + new java.util.Date(until) + ", used a Mending book", lt.id(tool));
+        ok(player, "Your bow has Mending and Infinity for " + Settings.trimNumber(plugin.settings().bowMendingDays) + " days.");
+        player.playSound(player.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.2f);
+    }
+
     /** Switches a pickaxe that has both Drill and Vein Mining between the two. Also used by /toolshop mode. */
     public void toggleMode(Player player) {
         toggleMode(player, player.getInventory().getHeldItemSlot());
@@ -264,6 +360,12 @@ public final class ShopListener implements Listener {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    private static void reopen(Player player, ShopMenu menu) {
+        if (!player.isOnline()) return;
+        menu.render(player);
+        player.openInventory(menu.getInventory());
+    }
 
     static List<String> missingItems(Player player, Map<Material, Integer> cost) {
         List<String> missing = new ArrayList<>();

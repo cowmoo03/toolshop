@@ -92,6 +92,17 @@ items; buy them from the backpack's bottom row (two clicks). From Tier IV it kee
 that they drop with your inventory. `/trash` (or the lava bucket in the backpack) opens a window whose contents are
 deleted when it closes. Contents are saved in `plugins/ToolShop/backpacks/`.
 
+**Quiver:** holding a bow or crossbow with no arrows in your inventory pulls a stack of arrows (normal, spectral or
+tipped) out of your backpack, and it refills after the shot that uses your last one. Minecraft only lets you draw
+a bow with arrows in your inventory, so they're moved there rather than shot straight from the backpack.
+Turn off with `backpack.quiver: false`.
+
+## Bow: Mending + Infinity
+
+On the Legendary Bow's page in `/toolshop`, a Mending enchanted book (used up) gives a bow that has Infinity
+Mending too, for 5 real days (`bow-mending.days`). The time left shows on the bow; when it runs out Mending is
+removed and Infinity stays. Renew with another book once less than a day is left (it resets to 5 days).
+
 ## Power ranks
 
 Ranks by power level, shown before the name in chat, the tab list and death messages: Novice, Apprentice (500),
@@ -113,6 +124,28 @@ Claimed spawners are listed in `/toolshop` under **Your Spawners**: upgrade from
 Only the owner (or an op) can break a claimed spawner, and explosions can't. Tiers stay on the spawner when it
 changes hands; breaking it loses them. The vanilla limits stay (about 6 of its mobs nearby, a player within
 16 blocks). Settings under `spawner-upgrades`; data in `plugins/ToolShop/spawners.yml`; actions logged.
+
+## Villagers
+
+Villagers trade like vanilla whether they're claimed or not: a normal right-click always opens trading.
+**Sneak + right-click** a villager to open its menu (everything happens in the window):
+
+- **Claim** it: 16 emeralds + power level 300 (Retro Mode). You type a name for it (in an anvil-style box),
+  shown above the villager and in the menu. No limit on how many. Other players can't hurt a claimed villager.
+- **Upgrade** its discount (owner only, from anywhere). Every trade gets cheaper for anyone who trades with it,
+  on top of vanilla's own discounts, always at least 1 emerald off:
+  I 10% (32 emeralds, power 500), II 20% (8 emerald blocks, power 1000), III 30% (16 emerald blocks + 4 diamonds,
+  power 1500), IV 40% (32 emerald blocks + a nether star, power 2500).
+- **Enchanted book trade** (librarians only, owner only): pick any non-curse enchantment from a list with rarity
+  tabs and a search box, and the librarian sells it as a max-level book for emeralds + a book (12 uses, restocks
+  like normal). Setting it costs by rarity: common 32 emeralds, uncommon 64 emeralds, rare 16 emerald blocks,
+  very rare 32 emerald blocks, treasure (Mending, Frost Walker, Soul Speed, Swift Sneak, Wind Burst) 40 emerald
+  blocks. A new pick replaces the old one.
+- **Rename** or **Unclaim** it (discount and book trade stay; the name is removed).
+
+All your villagers are listed in `/toolshop` under **Your Villagers**, sorted by name. A claimed villager that
+turns into a zombie villager (or is cured) keeps its claim. Settings under `villager-claims`; data in
+`plugins/ToolShop/villagers.yml`.
 
 ## Flight Charm
 

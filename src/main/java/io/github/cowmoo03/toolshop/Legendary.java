@@ -37,6 +37,8 @@ public final class Legendary {
     private final NamespacedKey kindKey;
     private final NamespacedKey modeKey;
     private final NamespacedKey savesKey;
+    /** Legendary bow: when its Mending (alongside Infinity) runs out, in epoch ms; 0 once it has run out. */
+    private final NamespacedKey mendingKey;
     private final Map<Upgrade, NamespacedKey> tierKeys = new EnumMap<>(Upgrade.class);
     /** Keys used by ToolShop 1.x rentals, so old tools can be cleaned up. */
     private final NamespacedKey legacyType;
@@ -51,6 +53,7 @@ public final class Legendary {
         kindKey = new NamespacedKey(plugin, "lt_kind");
         modeKey = new NamespacedKey(plugin, "lt_mode");
         savesKey = new NamespacedKey(plugin, "lt_soul_saves");
+        mendingKey = new NamespacedKey(plugin, "lt_mending_until");
         for (Upgrade u : Upgrade.values()) tierKeys.put(u, new NamespacedKey(plugin, "lt_up_" + u.id().replace('-', '_')));
         legacyType = new NamespacedKey(plugin, "type");
         legacyExpires = new NamespacedKey(plugin, "expires");
@@ -144,6 +147,58 @@ public final class Legendary {
         return isLegendary(item) && player.getUniqueId().equals(owner(item)) && isCurrent(item);
     }
 
+    // ------------------------------------------------------------------ bow: Mending + Infinity
+
+    /** When this bow's ToolShop Mending runs out (epoch ms), 0 if it ran out, -1 if it never had it. */
+    public long mendingUntil(ItemStack item) {
+        Long v = item.getItemMeta().getPersistentDataContainer().get(mendingKey, PersistentDataType.LONG);
+        return v == null ? -1 : v;
+    }
+
+    public boolean mendingActive(ItemStack item) {
+        return mendingUntil(item) > System.currentTimeMillis();
+    }
+
+    /** Gives the bow Mending (it keeps Infinity) until this time. */
+    public void grantMending(ItemStack item, long until) {
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(mendingKey, PersistentDataType.LONG, until);
+        meta.addEnchant(Enchantment.MENDING, 1, true);
+        item.setItemMeta(meta);
+    }
+
+    /**
+     * Removes the bow's Mending once its time is up (and puts it back if something stripped it while it's still
+     * running). Returns true if it changed anything.
+     */
+    public boolean checkMending(ItemStack item) {
+        long until = mendingUntil(item);
+        if (until < 0) return false;
+        ItemMeta meta = item.getItemMeta();
+        boolean has = meta.hasEnchant(Enchantment.MENDING);
+        if (until > System.currentTimeMillis()) {
+            if (has || !meta.hasEnchant(Enchantment.INFINITY)) return false;
+            meta.addEnchant(Enchantment.MENDING, 1, true);
+        } else {
+            if (!has && until == 0) return false;
+            meta.removeEnchant(Enchantment.MENDING);
+            meta.getPersistentDataContainer().set(mendingKey, PersistentDataType.LONG, 0L);
+        }
+        item.setItemMeta(meta);
+        return true;
+    }
+
+    /** "4 days", "7 hours", "less than an hour": coarse, so the description rarely changes. */
+    public static String timeLeft(long ms) {
+        long hours = ms / 3_600_000L;
+        if (hours >= 24) {
+            long days = hours / 24;
+            return days + " day" + (days == 1 ? "" : "s");
+        }
+        if (hours >= 1) return hours + " hour" + (hours == 1 ? "" : "s");
+        return "less than an hour";
+    }
+
     // ------------------------------------------------------------------ writing
 
     /** Turns a plain tool into a new legendary tool owned by the player. Returns its new ID. */
@@ -157,6 +212,7 @@ public final class Legendary {
         pdc.set(modeKey, PersistentDataType.STRING, MODE_AUTO);
         for (NamespacedKey k : tierKeys.values()) pdc.remove(k);
         pdc.remove(savesKey);
+        pdc.remove(mendingKey);
         item.setItemMeta(meta);
         return id;
     }
@@ -222,6 +278,7 @@ public final class Legendary {
         pdc.remove(kindKey);
         pdc.remove(modeKey);
         pdc.remove(savesKey);
+        pdc.remove(mendingKey);
         for (NamespacedKey k : tierKeys.values()) pdc.remove(k);
         meta.lore(null);
         meta.itemName(null);
@@ -290,6 +347,7 @@ public final class Legendary {
         if (kind == null) return false;
         migrateRenamed(item);
         boolean enchanted = applyEmpowered(item);
+        enchanted |= checkMending(item);
         Settings s = plugin.settings();
         String id = id(item);
         long blocks = plugin.registry().blocks(id);
@@ -328,6 +386,12 @@ public final class Legendary {
             lore.add(line("• " + u.withTier(t) + suffix, NamedTextColor.AQUA));
         }
         if (!any) lore.add(line("No upgrades yet", NamedTextColor.DARK_GRAY));
+        long mendUntil = mendingUntil(item);
+        if (mendUntil > System.currentTimeMillis()) {
+            lore.add(line("✦ Mending + Infinity: " + timeLeft(mendUntil - System.currentTimeMillis()) + " left", NamedTextColor.LIGHT_PURPLE));
+        } else if (mendUntil == 0) {
+            lore.add(line("✦ Mending ran out: renew it with a Mending book in /toolshop", NamedTextColor.DARK_PURPLE));
+        }
         lore.add(Component.empty());
         String synergy = SkillSynergy.describe(plugin, item, kind);
         if (synergy != null) lore.add(line("⚡ " + synergy, NamedTextColor.LIGHT_PURPLE));

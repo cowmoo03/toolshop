@@ -15,11 +15,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -28,6 +33,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +46,8 @@ import java.util.UUID;
  *   backpack's info, the next upgrade (power level + items, two clicks) and a trash button.</li>
  *   <li>From backpack.keep-on-death-from-tier the contents survive death; below it they drop with the inventory.</li>
  *   <li>/trash: a window whose contents are deleted when it closes.</li>
+ *   <li>Quiver: holding a bow or crossbow with no arrows in the inventory pulls a stack of arrows out of the backpack
+ *   (Minecraft only lets you draw with arrows in your inventory).</li>
  * </ul>
  * Contents are saved in plugins/ToolShop/backpacks/&lt;uuid&gt;.yml when the window closes.
  */
@@ -83,6 +91,8 @@ public final class Backpacks implements Listener {
     private final List<Tier> tiers = new ArrayList<>();
     private boolean enabled;
     private int keepFromTier;
+    private boolean quiver;
+    private final Map<UUID, Long> lastQuiver = new HashMap<>();
 
     public Backpacks(ToolShopPlugin plugin) {
         this.plugin = plugin;
@@ -95,6 +105,7 @@ public final class Backpacks implements Listener {
         ConfigurationSection c = plugin.getConfig().getConfigurationSection("backpack");
         enabled = c == null || c.getBoolean("enabled", true);
         keepFromTier = c == null ? 4 : c.getInt("keep-on-death-from-tier", 4);
+        quiver = c == null || c.getBoolean("quiver", true);
         List<Map<?, ?>> raw = c == null ? List.of() : c.getMapList("tiers");
         if (raw.isEmpty() && plugin.getConfig().getDefaults() != null) {
             raw = plugin.getConfig().getDefaults().getMapList("backpack.tiers");
@@ -118,6 +129,7 @@ public final class Backpacks implements Listener {
     public boolean enabled() { return enabled && !tiers.isEmpty(); }
     public List<Tier> tiers() { return tiers; }
     public int keepFromTier() { return keepFromTier; }
+    public boolean quiver() { return quiver; }
 
     public int powerNeeded(Tier t) {
         if (t.powerLevel() <= 0 || plugin.mcmmo() == null || !plugin.mcmmo().available()) return 0;
@@ -322,6 +334,73 @@ public final class Backpacks implements Listener {
         }
     }
 
+    // ---------------------------------------------------------------- quiver
+
+    private static boolean isArrow(ItemStack is) {
+        if (is == null) return false;
+        Material m = is.getType();
+        return m == Material.ARROW || m == Material.SPECTRAL_ARROW || m == Material.TIPPED_ARROW;
+    }
+
+    private static boolean isLauncher(ItemStack is) {
+        return is != null && (is.getType() == Material.BOW || is.getType() == Material.CROSSBOW);
+    }
+
+    /** If the player holds a bow or crossbow and has no arrows, moves a stack of arrows from their backpack. */
+    public void refillQuiver(Player player) {
+        if (!enabled() || !quiver || !player.isOnline()) return;
+        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return;
+        if (!isLauncher(player.getInventory().getItemInMainHand()) && !isLauncher(player.getInventory().getItemInOffHand())) return;
+        for (ItemStack is : player.getInventory().getContents()) if (isArrow(is)) return;
+        if (player.getOpenInventory().getTopInventory().getHolder(false) instanceof BackpackHolder) return; // it's being edited
+        long now = System.currentTimeMillis();
+        Long last = lastQuiver.get(player.getUniqueId());
+        if (last != null && now - last < 500) return;
+        lastQuiver.put(player.getUniqueId(), now);
+        int tier = Math.min(tierOf(player.getUniqueId()), tiers.size());
+        if (tier <= 0) return;
+        int slots = tiers.get(tier - 1).rows() * 9;
+        ItemStack[] items = load(player.getUniqueId(), slots);
+        for (int i = 0; i < items.length; i++) {
+            if (!isArrow(items[i])) continue;
+            int before = items[i].getAmount();
+            Map<Integer, ItemStack> left = player.getInventory().addItem(items[i].clone());
+            items[i] = left.isEmpty() ? null : left.values().iterator().next();
+            int moved = before - (items[i] == null ? 0 : items[i].getAmount());
+            if (moved <= 0) return; // inventory full
+            save(player.getUniqueId(), tier, items);
+            player.sendActionBar(Component.text("Quiver: " + moved + " arrow" + (moved == 1 ? "" : "s") + " from your backpack",
+                    NamedTextColor.GOLD));
+            player.playSound(player.getLocation(), Sound.ITEM_BUNDLE_REMOVE_ONE, 0.8f, 1.2f);
+            return;
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHeld(PlayerItemHeldEvent event) {
+        Player p = event.getPlayer();
+        if (!isLauncher(p.getInventory().getItem(event.getNewSlot()))) return;
+        plugin.getServer().getScheduler().runTask(plugin, () -> refillQuiver(p));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onSwap(PlayerSwapHandItemsEvent event) {
+        Player p = event.getPlayer();
+        plugin.getServer().getScheduler().runTask(plugin, () -> refillQuiver(p));
+    }
+
+    @EventHandler(priority = EventPriority.LOW)
+    public void onUse(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        if (isLauncher(event.getItem())) refillQuiver(event.getPlayer());
+    }
+
+    /** After a shot used the last arrow, refill for the next one. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onShoot(EntityShootBowEvent event) {
+        if (event.getEntity() instanceof Player p) plugin.getServer().getScheduler().runTask(plugin, () -> refillQuiver(p));
+    }
+
     // ---------------------------------------------------------------- trash
 
     public void openTrash(Player player) {
@@ -361,6 +440,7 @@ public final class Backpacks implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        lastQuiver.remove(event.getPlayer().getUniqueId());
         if (event.getPlayer().getOpenInventory().getTopInventory().getHolder(false) instanceof BackpackHolder h) saveOpen(h);
     }
 

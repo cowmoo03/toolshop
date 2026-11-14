@@ -33,6 +33,8 @@ public final class ToolShopPlugin extends JavaPlugin {
     private Backpacks backpacks;
     private ArmorListener armor;
     private PowerRanks ranks;
+    private VillagerClaims villagers;
+    private SearchPrompt search;
     private volatile SkillSynergy synergy;
 
     @Override
@@ -72,6 +74,10 @@ public final class ToolShopPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(backpacks, this);
         ranks = new PowerRanks(this);
         getServer().getPluginManager().registerEvents(ranks, this);
+        villagers = new VillagerClaims(this);
+        getServer().getPluginManager().registerEvents(villagers, this);
+        search = new SearchPrompt(this);
+        getServer().getPluginManager().registerEvents(search, this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
         {
@@ -97,6 +103,7 @@ public final class ToolShopPlugin extends JavaPlugin {
         if (registry != null) registry.save();
         if (flight != null) flight.shutdown();
         if (spawners != null) spawners.save();
+        if (villagers != null) villagers.save();
         if (backpacks != null) backpacks.shutdown();
         if (armor != null) armor.shutdown();
     }
@@ -133,6 +140,7 @@ public final class ToolShopPlugin extends JavaPlugin {
         if (spawners != null) spawners.reload();
         if (backpacks != null) backpacks.reload();
         if (ranks != null) ranks.reload();
+        if (villagers != null) villagers.reload();
     }
 
     public Settings settings() { return settings; }
@@ -146,6 +154,8 @@ public final class ToolShopPlugin extends JavaPlugin {
     public SkillSynergy synergy() { return synergy; }
     public Backpacks backpacks() { return backpacks; }
     public PowerRanks ranks() { return ranks; }
+    public VillagerClaims villagers() { return villagers; }
+    public SearchPrompt search() { return search; }
     void setSynergy(SkillSynergy s) { synergy = s; }
 
     /**

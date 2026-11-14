@@ -58,6 +58,9 @@ public final class Settings {
     public final int[] soulboundSaves;
     /** True = saves can be refilled whenever below max; false = only once all are used up. */
     public final boolean soulboundRechargeAnytime;
+    /** Legendary bow: a Mending book gives Mending alongside Infinity for this many days. */
+    public final boolean bowMendingEnabled;
+    public final double bowMendingDays;
     public final boolean skillsMenuEnabled;
     public final boolean skillsReplaceCommands;
     public final boolean skillsTidyCommands;
@@ -175,6 +178,8 @@ public final class Settings {
         durabilityChance = readTierInts(c.getIntegerList("durability.chance"), new int[]{5, 10, 20, 30});
         soulboundSaves = readTierInts(c.getIntegerList("soulbound.saves"), new int[]{3, 5, 8, 12});
         soulboundRechargeAnytime = "anytime".equalsIgnoreCase(c.getString("soulbound.recharge", "empty"));
+        bowMendingEnabled = c.getBoolean("bow-mending.enabled", true);
+        bowMendingDays = Math.max(0.01, c.getDouble("bow-mending.days", 5));
 
         skillsMenuEnabled = c.getBoolean("skills-menu.enabled", true);
         skillsReplaceCommands = c.getBoolean("skills-menu.replace-mcmmo-commands", true);
@@ -257,6 +262,11 @@ public final class Settings {
     }
 
     /** "16 iron ingots, 4 ender pearls" */
+    /** 5.0 -> "5", 2.5 -> "2.5". */
+    public static String trimNumber(double d) {
+        return d == Math.rint(d) ? String.valueOf((long) d) : String.valueOf(d);
+    }
+
     public static String describeCost(Map<Material, Integer> cost) {
         if (cost.isEmpty()) return "free";
         List<String> parts = new ArrayList<>();

@@ -6,7 +6,9 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Villager;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
@@ -17,7 +19,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * The /toolshop window. The first page shows the player's three legendary tools, the "Make it Legendary" star
@@ -39,6 +43,7 @@ public final class ShopMenu implements InventoryHolder {
     public static final int RETIRE_SLOT = 44;
     public static final int BACKPACK_SLOT = 40;
     public static final int RANKS_SLOT = 42;
+    public static final int VILLAGER_SLOT = 43;
     public static final int BACK_SLOT = 36;
     public static final int MODE_SLOT = 40;
     public static final int RECHARGE_SLOT = 42;
@@ -48,7 +53,26 @@ public final class ShopMenu implements InventoryHolder {
 
     /** What a slot does. */
     public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire, Preview,
-            Spawners, OpenSpawner, SpawnerUpgrade, SpawnerToggle, SpawnerUnclaim, SpawnerClaim, OpenBackpack, Ranks {}
+            Spawners, OpenSpawner, SpawnerUpgrade, SpawnerToggle, SpawnerUnclaim, SpawnerClaim, OpenBackpack, Ranks,
+            Villagers, OpenVillager, VillagerClaim, VillagerUpgrade, VillagerUnclaim, PickEnchant, EnchantFilter, EnchantPage,
+            EnchantSearch, ClearSearch, AssignEnchant, BowMending, VillagerListPage, RenameVillager {}
+    public record VillagerListPage(int page) implements Action {}
+    public record RenameVillager(UUID id) implements Action {}
+    /** "Your Villagers" list, one villager's page, and its buttons. */
+    public record Villagers() implements Action {}
+    public record OpenVillager(UUID id) implements Action {}
+    public record VillagerClaim(UUID id) implements Action {}
+    public record VillagerUpgrade(UUID id) implements Action {}
+    public record VillagerUnclaim(UUID id) implements Action {}
+    /** The enchanted-book picker for a claimed librarian: open it, filter by rarity (null = all), page, search, assign. */
+    public record PickEnchant() implements Action {}
+    public record EnchantFilter(VillagerClaims.Rarity rarity) implements Action {}
+    public record EnchantPage(int page) implements Action {}
+    public record EnchantSearch() implements Action {}
+    public record ClearSearch() implements Action {}
+    public record AssignEnchant(UUID id, String key) implements Action {}
+    /** Legendary bow: use a Mending book to get Mending alongside Infinity for a few days. */
+    public record BowMending() implements Action {}
     public record OpenBackpack() implements Action {}
     public record Ranks() implements Action {}
     /** Claim an unclaimed spawner, or take over someone else's (takeover = true). */
@@ -87,6 +111,18 @@ public final class ShopMenu implements InventoryHolder {
     private SpawnerUpgrades.Record worldSpawner;
     private boolean fromWorld;
     private static final int[] SPAWNER_LIST_SLOTS = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25};
+    /** Villager pages: the villager shown (from the world or the list), the list, and the enchant picker's state. */
+    private UUID villagerId;
+    private VillagerClaims.Record worldVillager;
+    private boolean villagerList;
+    private int villagerListPage;
+    private static final int[] VILLAGER_LIST_SLOTS = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34};
+    private boolean picker;
+    private VillagerClaims.Rarity pickerRarity;
+    private int pickerPage;
+    private String pickerSearch;
+    private static final int[] PICKER_SLOTS = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34};
+    public static final int BOW_MENDING_SLOT = 38;
 
     public ShopMenu(ToolShopPlugin plugin) {
         this.plugin = plugin;
@@ -128,7 +164,73 @@ public final class ShopMenu implements InventoryHolder {
         worldSpawner = null;
         fromWorld = false;
         ranksPage = false;
+        villagerId = null;
+        worldVillager = null;
+        villagerList = false;
+        closePicker();
         pending = null;
+    }
+
+    // ---------------------------------------------------------------- villager page state
+
+    /** Opened by sneak + right-clicking a villager: its own page, whoever owns it. */
+    public void showVillager(Villager v, VillagerClaims.Record r) {
+        setPage(null);
+        villagerId = v.getUniqueId();
+        worldVillager = r;
+        fromWorld = true;
+    }
+
+    public void showVillagers() {
+        int keepPage = villagerListPage;
+        setPage(null);
+        villagerList = true;
+        villagerListPage = keepPage;
+    }
+
+    public void setVillagerListPage(int page) {
+        villagerListPage = Math.max(0, page);
+    }
+
+    public void showVillager(UUID id) {
+        setPage(null);
+        villagerId = id;
+    }
+
+    /** The villager this page is about, or null. */
+    public VillagerClaims.Record currentVillager() {
+        if (villagerId == null || plugin.villagers() == null) return null;
+        VillagerClaims.Record r = plugin.villagers().record(villagerId);
+        if (r == null && worldVillager != null && worldVillager.villager.equals(villagerId)) r = worldVillager;
+        return r;
+    }
+
+    public void showPicker() {
+        closePicker();
+        picker = true;
+        pending = null;
+    }
+
+    private void closePicker() {
+        picker = false;
+        pickerRarity = null;
+        pickerPage = 0;
+        pickerSearch = null;
+    }
+
+    public void setPickerFilter(VillagerClaims.Rarity rarity) {
+        pickerRarity = rarity;
+        pickerPage = 0;
+    }
+
+    public void setPickerPage(int page) {
+        pickerPage = Math.max(0, page);
+    }
+
+    public void setPickerSearch(String search) {
+        pickerSearch = search == null || search.isBlank() ? null : search.trim();
+        pickerPage = 0;
+        if (pickerSearch != null) pickerRarity = null;
     }
 
     public void showRanks() {
@@ -164,7 +266,11 @@ public final class ShopMenu implements InventoryHolder {
 
     /** Back: from a spawner's dashboard to the list, from anywhere else to the first page. */
     public void back() {
-        if (spawnerKey != null) showSpawners();
+        if (picker) {
+            closePicker();
+            pending = null;
+        } else if (villagerId != null && !fromWorld) showVillagers();
+        else if (spawnerKey != null) showSpawners();
         else setPage(null);
     }
 
@@ -201,7 +307,19 @@ public final class ShopMenu implements InventoryHolder {
             spawnerKey = null;
             spawnerList = true;
         }
+        VillagerClaims.Record villager = currentVillager();
+        if (villagerId != null && (villager == null || (!fromWorld && !player.getUniqueId().equals(villager.owner)))) {
+            villagerId = null;
+            closePicker();
+            villagerList = true;
+        }
+        if (picker && (villager == null || !player.getUniqueId().equals(villager.owner) || !VillagerClaims.isLibrarian(villager))) {
+            closePicker();
+        }
         if (ranksPage) renderRanks(player);
+        else if (villagerId != null && picker) renderPicker(player, villager);
+        else if (villagerId != null) renderVillager(player, villager);
+        else if (villagerList) renderVillagerList(player);
         else if (spawnerKey != null) renderSpawner(player, shown);
         else if (spawnerList) renderSpawnerList(player);
         else if (preview != null) renderPreview(player, preview);
@@ -281,6 +399,10 @@ public final class ShopMenu implements InventoryHolder {
         if (plugin.spawners() != null && plugin.spawners().enabled()) {
             actions.put(SPAWNER_SLOT, new Spawners());
             inventory.setItem(SPAWNER_SLOT, spawnerButton(player));
+        }
+        if (plugin.villagers() != null && plugin.villagers().enabled()) {
+            actions.put(VILLAGER_SLOT, new Villagers());
+            inventory.setItem(VILLAGER_SLOT, villagerButton(player));
         }
 
         ItemStack hand = player.getInventory().getItemInMainHand();
@@ -571,6 +693,352 @@ public final class ShopMenu implements InventoryHolder {
                         : text("Click to unclaim", NamedTextColor.YELLOW)), confirmingUnclaim));
     }
 
+    // ---------------------------------------------------------------- villagers
+
+    /** The villager's job block, for icons. */
+    private static Material jobIcon(String profession) {
+        return switch (profession.toLowerCase(Locale.ROOT)) {
+            case "librarian" -> Material.LECTERN;
+            case "armorer" -> Material.BLAST_FURNACE;
+            case "butcher" -> Material.SMOKER;
+            case "cartographer" -> Material.CARTOGRAPHY_TABLE;
+            case "cleric" -> Material.BREWING_STAND;
+            case "farmer" -> Material.COMPOSTER;
+            case "fisherman" -> Material.BARREL;
+            case "fletcher" -> Material.FLETCHING_TABLE;
+            case "leatherworker" -> Material.CAULDRON;
+            case "mason" -> Material.STONECUTTER;
+            case "shepherd" -> Material.LOOM;
+            case "toolsmith" -> Material.SMITHING_TABLE;
+            case "weaponsmith" -> Material.GRINDSTONE;
+            default -> Material.VILLAGER_SPAWN_EGG;
+        };
+    }
+
+    private String discountText(VillagerClaims.Record r) {
+        int pct = plugin.villagers().discount(r.tier);
+        return r.tier <= 0 ? "No discount yet" : "Tier " + Upgrade.roman(r.tier) + ": trades " + pct + "% cheaper";
+    }
+
+    private static String tradeText(VillagerClaims.Record r) {
+        Enchantment e = VillagerClaims.byKey(r.enchant);
+        return e == null ? null : "Sells " + VillagerClaims.enchantName(e) + " " + Upgrade.roman(e.getMaxLevel())
+                + " (" + VillagerClaims.tradePrice(e) + " emeralds + book)";
+    }
+
+    /** Home page button: what villager claims do and how many the player has. */
+    private ItemStack villagerButton(Player player) {
+        VillagerClaims vc = plugin.villagers();
+        int have = vc.claimsOf(player.getUniqueId()).size();
+        List<Component> lore = new ArrayList<>();
+        lore.add(text("Sneak + right-click a villager to open its menu:", NamedTextColor.GRAY));
+        lore.add(text("claim it, upgrade it so its trades get cheaper,", NamedTextColor.GRAY));
+        lore.add(text("or give a librarian an enchanted book trade.", NamedTextColor.GRAY));
+        lore.add(Component.empty());
+        lore.add(text("Claim: " + vc.describe(vc.claimCost()), NamedTextColor.WHITE));
+        if (!vc.tiers().isEmpty()) {
+            lore.add(text("Discounts up to " + vc.tiers().get(vc.tiers().size() - 1).discount() + "% off every trade", NamedTextColor.WHITE));
+        }
+        lore.add(text("Villagers trade like normal either way.", NamedTextColor.DARK_GRAY));
+        lore.add(Component.empty());
+        lore.add(text("You have " + have + (vc.maxClaims() > 0 ? "/" + vc.maxClaims() : "") + " claimed", NamedTextColor.YELLOW));
+        lore.add(text("Click to manage them", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+        return icon(Material.EMERALD, text("Your Villagers", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true), lore, have > 0);
+    }
+
+    private void renderVillagerList(Player player) {
+        VillagerClaims vc = plugin.villagers();
+        backButton("Back to your tools");
+        List<VillagerClaims.Record> mine = vc.claimsOf(player.getUniqueId());
+        inventory.setItem(TOOL_SLOT, icon(Material.EMERALD, text("Your Villagers", NamedTextColor.GREEN)
+                .decoration(TextDecoration.BOLD, true), List.of(
+                text(mine.size() + (vc.maxClaims() > 0 ? "/" + vc.maxClaims() : "") + " claimed", NamedTextColor.YELLOW),
+                text("Sorted by name. Claim more by", NamedTextColor.GRAY),
+                text("sneak + right-clicking a villager.", NamedTextColor.GRAY)), false));
+        if (mine.isEmpty()) {
+            inventory.setItem(22, icon(Material.BARRIER, text("No villagers yet", NamedTextColor.GRAY), List.of(
+                    text("Sneak + right-click a villager", NamedTextColor.GRAY),
+                    text("to claim it for " + vc.describe(vc.claimCost()) + ".", NamedTextColor.GRAY)), false));
+            return;
+        }
+        int pages = Math.max(1, (mine.size() + VILLAGER_LIST_SLOTS.length - 1) / VILLAGER_LIST_SLOTS.length);
+        if (villagerListPage >= pages) villagerListPage = pages - 1;
+        if (pages > 1) {
+            inventory.setItem(40, icon(Material.PAPER, text("Page " + (villagerListPage + 1) + "/" + pages, NamedTextColor.WHITE), List.of(), false));
+            if (villagerListPage > 0) {
+                actions.put(39, new VillagerListPage(villagerListPage - 1));
+                inventory.setItem(39, icon(Material.ARROW, text("Previous page", NamedTextColor.YELLOW), List.of(), false));
+            }
+            if (villagerListPage + 1 < pages) {
+                actions.put(41, new VillagerListPage(villagerListPage + 1));
+                inventory.setItem(41, icon(Material.ARROW, text("Next page", NamedTextColor.YELLOW), List.of(), false));
+            }
+        }
+        for (int i = 0; i < VILLAGER_LIST_SLOTS.length; i++) {
+            int idx = villagerListPage * VILLAGER_LIST_SLOTS.length + i;
+            if (idx >= mine.size()) break;
+            VillagerClaims.Record r = mine.get(idx);
+            int slot = VILLAGER_LIST_SLOTS[i];
+            actions.put(slot, new OpenVillager(r.villager));
+            List<Component> lore = new ArrayList<>();
+            if (r.name != null) lore.add(text(r.profession, NamedTextColor.YELLOW));
+            lore.add(text("At " + r.where() + (r.world.equals("world") ? "" : " (" + r.world + ")"), NamedTextColor.GRAY));
+            lore.add(text(discountText(r), NamedTextColor.AQUA));
+            String trade = tradeText(r);
+            if (trade != null) lore.add(text(trade, NamedTextColor.LIGHT_PURPLE));
+            lore.add(Component.empty());
+            lore.add(text("Click to manage", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+            inventory.setItem(slot, icon(jobIcon(r.profession), text(r.label(), NamedTextColor.GOLD), lore, r.tier > 0));
+        }
+    }
+
+    /**
+     * One villager. The owner gets upgrade (from anywhere), the enchant trade (librarians) and unclaim; anyone else who
+     * sneak + right-clicked it gets Claim if nobody owns it.
+     */
+    private void renderVillager(Player player, VillagerClaims.Record r) {
+        VillagerClaims vc = plugin.villagers();
+        long now = System.currentTimeMillis();
+        boolean mine = player.getUniqueId().equals(r.owner);
+        boolean loaded = VillagerClaims.find(r.villager) != null;
+        if (!fromWorld) backButton("Back to your villagers");
+        List<Component> head = new ArrayList<>();
+        if (r.name != null) head.add(text(r.profession, NamedTextColor.YELLOW));
+        head.add(text("At " + r.where(), NamedTextColor.GRAY));
+        head.add(text(!r.claimed() ? "Unclaimed" : mine ? "Yours" : "Claimed by " + r.ownerName,
+                !r.claimed() ? NamedTextColor.WHITE : mine ? NamedTextColor.GREEN : NamedTextColor.RED));
+        head.add(text(discountText(r), NamedTextColor.AQUA));
+        String trade = tradeText(r);
+        if (trade != null) head.add(text(trade, NamedTextColor.LIGHT_PURPLE));
+        if (r.claimed()) head.add(text("Other players can't hurt it.", NamedTextColor.DARK_GRAY));
+        head.add(text("Right-click (not sneaking) to trade like normal.", NamedTextColor.DARK_GRAY));
+        inventory.setItem(TOOL_SLOT, icon(jobIcon(r.profession), text(r.label(), NamedTextColor.GOLD)
+                .decoration(TextDecoration.BOLD, true), head, r.tier > 0));
+
+        if (!mine) {
+            if (r.claimed()) {
+                inventory.setItem(22, icon(Material.BARRIER, text("Claimed by " + r.ownerName, NamedTextColor.RED), List.of(
+                        text("Only its owner can manage it.", NamedTextColor.GRAY),
+                        text("You can still trade with it, and its", NamedTextColor.GRAY),
+                        text("discount works for you too.", NamedTextColor.GRAY)), false));
+            } else {
+                VillagerClaim claim = new VillagerClaim(r.villager);
+                boolean confirming = isAwaitingConfirm(claim, now);
+                String problem = loaded ? vc.claimProblem(player) : "This villager isn't loaded anymore.";
+                List<Component> lore = new ArrayList<>();
+                lore.add(text("Make this villager yours. You'll name it", NamedTextColor.WHITE));
+                lore.add(text("next; the name shows above it.", NamedTextColor.WHITE));
+                lore.add(text("Then upgrade it to make its trades cheaper", NamedTextColor.GRAY));
+                lore.add(text("(for everyone who trades with it), and give", NamedTextColor.GRAY));
+                lore.add(text("a librarian the enchanted book trade you want.", NamedTextColor.GRAY));
+                lore.add(text("Manage it from /toolshop (Your Villagers).", NamedTextColor.GRAY));
+                lore.add(Component.empty());
+                lore.add(text("Cost: " + vc.describe(vc.claimCost()), NamedTextColor.YELLOW));
+                lore.add(Component.empty());
+                if (problem != null) {
+                    lore.add(text("✘ " + problem, NamedTextColor.RED));
+                } else {
+                    actions.put(22, claim);
+                    lore.add(confirming
+                            ? text("CLICK AGAIN TO CONFIRM", NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true)
+                            : text("Click to claim and name it", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+                }
+                inventory.setItem(22, icon(Material.GOLDEN_HELMET, text("Claim", NamedTextColor.GOLD)
+                        .decoration(TextDecoration.BOLD, true), lore, confirming));
+            }
+            List<Component> tiers = new ArrayList<>();
+            tiers.add(text("Owners can buy discount tiers:", NamedTextColor.GRAY));
+            for (int t = 0; t < vc.tiers().size(); t++) {
+                VillagerClaims.Tier tier = vc.tiers().get(t);
+                tiers.add(text(Upgrade.roman(t + 1) + ": " + tier.discount() + "% off, " + vc.describe(tier.cost()),
+                        t < r.tier ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY));
+            }
+            inventory.setItem(24, icon(Material.EXPERIENCE_BOTTLE, text("Discount tiers", NamedTextColor.GRAY), tiers, false));
+            return;
+        }
+
+        // Upgrade
+        List<VillagerClaims.Tier> tiers = vc.tiers();
+        if (r.tier < tiers.size()) {
+            VillagerClaims.Tier next = tiers.get(r.tier);
+            VillagerUpgrade up = new VillagerUpgrade(r.villager);
+            boolean confirming = isAwaitingConfirm(up, now);
+            String problem = vc.problem(player, next.cost());
+            List<Component> lore = new ArrayList<>();
+            lore.add(text("Tier " + Upgrade.roman(r.tier + 1) + ": every trade " + next.discount() + "% cheaper", NamedTextColor.WHITE));
+            lore.add(text("(at least 1 emerald off; works for anyone", NamedTextColor.GRAY));
+            lore.add(text("trading with it, on top of normal discounts)", NamedTextColor.GRAY));
+            lore.add(text("Cost: " + vc.describe(next.cost()), NamedTextColor.GRAY));
+            lore.add(text("Works from anywhere.", NamedTextColor.DARK_GRAY));
+            lore.add(Component.empty());
+            if (problem != null) {
+                lore.add(text("✘ " + problem, NamedTextColor.RED));
+            } else {
+                actions.put(20, up);
+                lore.add(confirming
+                        ? text("CLICK AGAIN TO CONFIRM", NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true)
+                        : text("Click to upgrade", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+            }
+            inventory.setItem(20, icon(Material.EXPERIENCE_BOTTLE, text("Upgrade discount", NamedTextColor.GOLD)
+                    .decoration(TextDecoration.BOLD, true), lore, confirming));
+        } else {
+            inventory.setItem(20, icon(Material.NETHER_STAR, text("Fully upgraded", NamedTextColor.GOLD),
+                    List.of(text(discountText(r), NamedTextColor.AQUA)), true));
+        }
+
+        // Enchanted book trade (librarians)
+        if (VillagerClaims.isLibrarian(r)) {
+            List<Component> lore = new ArrayList<>();
+            lore.add(text("Pick an enchantment for this librarian to sell", NamedTextColor.GRAY));
+            lore.add(text("as a max-level book (emeralds + a book).", NamedTextColor.GRAY));
+            lore.add(text("Rarer enchantments cost more to set:", NamedTextColor.GRAY));
+            for (VillagerClaims.Rarity rr : VillagerClaims.Rarity.values()) {
+                lore.add(text("  " + rr.label + ": " + Settings.describeCost(vc.assignCost(rr)), rr.color));
+            }
+            lore.add(text("A new pick replaces the old one.", NamedTextColor.DARK_GRAY));
+            lore.add(Component.empty());
+            if (trade != null) lore.add(text("Now: " + trade, NamedTextColor.LIGHT_PURPLE));
+            if (!loaded) lore.add(text("Go near it to change the trade.", NamedTextColor.RED));
+            lore.add(text("Click to choose", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+            actions.put(22, new PickEnchant());
+            inventory.setItem(22, icon(Material.ENCHANTED_BOOK, text("Enchanted book trade", NamedTextColor.LIGHT_PURPLE)
+                    .decoration(TextDecoration.BOLD, true), lore, false));
+        } else {
+            inventory.setItem(22, icon(Material.BOOK, text("Enchanted book trade", NamedTextColor.GRAY), List.of(
+                    text("Only librarians can be given one.", NamedTextColor.GRAY),
+                    text("Claim a librarian to pick the book it sells.", NamedTextColor.DARK_GRAY)), false));
+        }
+
+        actions.put(24, new RenameVillager(r.villager));
+        inventory.setItem(24, icon(Material.NAME_TAG, text("Rename", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true), List.of(
+                text("Name: " + (r.name != null ? r.name : "(none)"), NamedTextColor.WHITE),
+                text("Shown above it and in Your Villagers.", NamedTextColor.GRAY),
+                Component.empty(),
+                text("Click to rename", NamedTextColor.GREEN)), false));
+
+        VillagerUnclaim unclaim = new VillagerUnclaim(r.villager);
+        boolean confirmingUnclaim = isAwaitingConfirm(unclaim, now);
+        actions.put(RETIRE_SLOT, unclaim);
+        inventory.setItem(RETIRE_SLOT, icon(Material.BARRIER, text("Unclaim", NamedTextColor.RED), List.of(
+                text("Give up this villager. Its discount and", NamedTextColor.GRAY),
+                text("book trade stay, its name is removed,", NamedTextColor.GRAY),
+                text("and anyone can claim it.", NamedTextColor.GRAY),
+                Component.empty(),
+                confirmingUnclaim
+                        ? text("CLICK AGAIN TO UNCLAIM", NamedTextColor.RED).decoration(TextDecoration.BOLD, true)
+                        : text("Click to unclaim", NamedTextColor.YELLOW)), confirmingUnclaim));
+    }
+
+    /** Picking the enchanted book a claimed librarian sells: rarity tabs, search, pages, and two-click assign. */
+    private void renderPicker(Player player, VillagerClaims.Record r) {
+        VillagerClaims vc = plugin.villagers();
+        long now = System.currentTimeMillis();
+        backButton("Back to the villager");
+        boolean loaded = VillagerClaims.find(r.villager) != null;
+        List<Component> head = new ArrayList<>();
+        head.add(text("Pick the enchanted book this librarian sells.", NamedTextColor.GRAY));
+        String trade = tradeText(r);
+        head.add(text(trade != null ? "Now: " + trade : "No book trade set yet", NamedTextColor.LIGHT_PURPLE));
+        if (pickerSearch != null) head.add(text("Searching: \"" + pickerSearch + "\"", NamedTextColor.YELLOW));
+        if (!loaded) head.add(text("Go near the villager to change its trade.", NamedTextColor.RED));
+        inventory.setItem(TOOL_SLOT, icon(Material.LECTERN, text("Enchanted book trade", NamedTextColor.LIGHT_PURPLE)
+                .decoration(TextDecoration.BOLD, true), head, false));
+
+        // Rarity tabs
+        Material[] tabIcons = {Material.WHITE_DYE, Material.LIME_DYE, Material.LIGHT_BLUE_DYE, Material.MAGENTA_DYE, Material.ORANGE_DYE};
+        boolean allSelected = pickerRarity == null && pickerSearch == null;
+        actions.put(10, new EnchantFilter(null));
+        inventory.setItem(10, icon(Material.BOOK, text("All", NamedTextColor.WHITE).decoration(TextDecoration.BOLD, allSelected),
+                List.of(text(allSelected ? "Showing everything" : "Click to show everything", NamedTextColor.GRAY)), allSelected));
+        VillagerClaims.Rarity[] rarities = VillagerClaims.Rarity.values();
+        for (int i = 0; i < rarities.length; i++) {
+            VillagerClaims.Rarity rr = rarities[i];
+            boolean sel = rr == pickerRarity;
+            actions.put(11 + i, new EnchantFilter(rr));
+            inventory.setItem(11 + i, icon(tabIcons[i], text(rr.label, rr.color).decoration(TextDecoration.BOLD, sel), List.of(
+                    text("Costs " + Settings.describeCost(vc.assignCost(rr)) + " to set", NamedTextColor.GRAY),
+                    Component.empty(),
+                    text(sel ? "Showing these" : "Click to show only these", NamedTextColor.YELLOW)), sel));
+        }
+        actions.put(16, new EnchantSearch());
+        inventory.setItem(16, icon(Material.NAME_TAG, text("Search", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true), List.of(
+                text("Type part of an enchantment's name", NamedTextColor.GRAY),
+                text("(like \"prot\" or \"loot\").", NamedTextColor.GRAY),
+                Component.empty(),
+                text("Click to search", NamedTextColor.GREEN)), pickerSearch != null));
+        if (pickerSearch != null) {
+            actions.put(17, new ClearSearch());
+            inventory.setItem(17, icon(Material.BARRIER, text("Clear search", NamedTextColor.RED),
+                    List.of(text("Searching: \"" + pickerSearch + "\"", NamedTextColor.GRAY)), false));
+        }
+
+        // The list
+        List<Enchantment> list = new ArrayList<>();
+        String q = pickerSearch == null ? null : pickerSearch.toLowerCase(Locale.ROOT);
+        for (Enchantment e : VillagerClaims.assignable()) {
+            if (pickerRarity != null && VillagerClaims.rarity(e) != pickerRarity) continue;
+            if (q != null && !VillagerClaims.enchantName(e).toLowerCase(Locale.ROOT).contains(q)
+                    && !e.getKey().getKey().contains(q.replace(' ', '_'))) continue;
+            list.add(e);
+        }
+        int pages = Math.max(1, (list.size() + PICKER_SLOTS.length - 1) / PICKER_SLOTS.length);
+        if (pickerPage >= pages) pickerPage = pages - 1;
+        if (list.isEmpty()) {
+            inventory.setItem(22, icon(Material.BARRIER, text("Nothing found", NamedTextColor.GRAY),
+                    List.of(text("Try another search or tab.", NamedTextColor.GRAY)), false));
+        }
+        for (int i = 0; i < PICKER_SLOTS.length; i++) {
+            int idx = pickerPage * PICKER_SLOTS.length + i;
+            if (idx >= list.size()) break;
+            Enchantment e = list.get(idx);
+            int slot = PICKER_SLOTS[i];
+            VillagerClaims.Rarity rr = VillagerClaims.rarity(e);
+            boolean current = e.getKey().getKey().equals(r.enchant);
+            List<Component> lore = new ArrayList<>();
+            lore.add(text(rr.label, rr.color));
+            lore.add(text("It will sell: " + VillagerClaims.enchantName(e) + " " + Upgrade.roman(e.getMaxLevel()) + " book", NamedTextColor.WHITE));
+            lore.add(text("for " + VillagerClaims.tradePrice(e) + " emeralds + 1 book (restocks like normal)", NamedTextColor.GRAY));
+            lore.add(Component.empty());
+            if (current) {
+                lore.add(text("✔ It sells this now", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+                inventory.setItem(slot, icon(Material.ENCHANTED_BOOK, text(VillagerClaims.enchantName(e), rr.color)
+                        .decoration(TextDecoration.BOLD, true), lore, true));
+                continue;
+            }
+            Map<Material, Integer> cost = vc.assignCost(rr);
+            lore.add(text("Cost to set: " + Settings.describeCost(cost), NamedTextColor.YELLOW));
+            Enchantment old = VillagerClaims.byKey(r.enchant);
+            if (old != null) lore.add(text("Replaces " + VillagerClaims.enchantName(old), NamedTextColor.DARK_GRAY));
+            String problem = !loaded ? "Go near the villager first." : vc.problem(player, new VillagerClaims.Cost(0, cost));
+            lore.add(Component.empty());
+            AssignEnchant assign = new AssignEnchant(r.villager, e.getKey().getKey());
+            boolean confirming = isAwaitingConfirm(assign, now);
+            if (problem != null) {
+                lore.add(text("✘ " + problem, NamedTextColor.RED));
+            } else {
+                actions.put(slot, assign);
+                lore.add(confirming
+                        ? text("CLICK AGAIN TO CONFIRM", NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true)
+                        : text("Click to set this trade", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+            }
+            inventory.setItem(slot, icon(Material.BOOK, text(VillagerClaims.enchantName(e), rr.color)
+                    .decoration(TextDecoration.BOLD, true), lore, confirming));
+        }
+
+        // Pages
+        if (pages > 1) {
+            inventory.setItem(40, icon(Material.PAPER, text("Page " + (pickerPage + 1) + "/" + pages, NamedTextColor.WHITE), List.of(), false));
+            if (pickerPage > 0) {
+                actions.put(39, new EnchantPage(pickerPage - 1));
+                inventory.setItem(39, icon(Material.ARROW, text("Previous page", NamedTextColor.YELLOW), List.of(), false));
+            }
+            if (pickerPage + 1 < pages) {
+                actions.put(41, new EnchantPage(pickerPage + 1));
+                inventory.setItem(41, icon(Material.ARROW, text("Next page", NamedTextColor.YELLOW), List.of(), false));
+            }
+        }
+    }
+
     /** The Flight Charm: what it does, the recipe, and whether this player has unlocked crafting it. */
     private ItemStack flightButton(Player player) {
         FlightCharm fc = plugin.flight();
@@ -641,6 +1109,40 @@ public final class ShopMenu implements InventoryHolder {
             }
         }
 
+        if (kind == ToolKind.BOW && plugin.settings().bowMendingEnabled) {
+            BowMending bm = new BowMending();
+            boolean confirming = isAwaitingConfirm(bm, now);
+            String problem = bowMendingProblem(plugin, player, tool);
+            long until = lt.mendingUntil(tool);
+            long left = until - System.currentTimeMillis();
+            String days = Settings.trimNumber(plugin.settings().bowMendingDays);
+            List<Component> lore = new ArrayList<>();
+            lore.add(text("Mending and Infinity on one bow:", NamedTextColor.GRAY));
+            lore.add(text("only possible through ToolShop.", NamedTextColor.GRAY));
+            lore.add(text("A Mending enchanted book (used up) gives", NamedTextColor.GRAY));
+            lore.add(text("it Mending for " + days + " real days.", NamedTextColor.GRAY));
+            lore.add(text("Renew with another book once it has", NamedTextColor.GRAY));
+            lore.add(text("less than a day left (resets to " + days + " days).", NamedTextColor.GRAY));
+            lore.add(Component.empty());
+            if (left > 0) lore.add(text("✦ Active: " + Legendary.timeLeft(left) + " left", NamedTextColor.LIGHT_PURPLE));
+            else if (until == 0) lore.add(text("Ran out", NamedTextColor.RED));
+            boolean inf = tool.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.INFINITY) > 0;
+            lore.add(text((inf ? "✔ " : "✘ ") + "Bow has Infinity", inf ? NamedTextColor.GREEN : NamedTextColor.RED));
+            boolean book = mendingBookSlot(player) >= 0;
+            lore.add(text((book ? "✔ " : "✘ ") + "Mending book in your inventory", book ? NamedTextColor.GREEN : NamedTextColor.RED));
+            lore.add(Component.empty());
+            if (problem != null) {
+                lore.add(text("✘ " + problem, NamedTextColor.RED));
+            } else {
+                actions.put(BOW_MENDING_SLOT, bm);
+                lore.add(confirming
+                        ? text("CLICK AGAIN TO CONFIRM", NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true)
+                        : text(left > 0 ? "Click to renew" : "Click to add Mending", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+            }
+            inventory.setItem(BOW_MENDING_SLOT, icon(Material.ENCHANTED_BOOK, text("Mending + Infinity", NamedTextColor.LIGHT_PURPLE)
+                    .decoration(TextDecoration.BOLD, true), lore, left > 0 || confirming));
+        }
+
         if (kind == ToolKind.PICKAXE && lt.tier(tool, Upgrade.DRILL) > 0 && lt.tier(tool, Upgrade.VEIN) > 0) {
             String mode = lt.mode(tool);
             String nextMode = switch (mode) {
@@ -663,6 +1165,27 @@ public final class ShopMenu implements InventoryHolder {
                     text("Click to switch to " + Legendary.modeName(nextMode) + ".", NamedTextColor.YELLOW),
                     text("Also: /toolshop mode", NamedTextColor.DARK_GRAY)), false));
         }
+    }
+
+    /** Inventory slot of a Mending enchanted book, or -1. */
+    public static int mendingBookSlot(Player player) {
+        ItemStack[] contents = player.getInventory().getStorageContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack is = contents[i];
+            if (is != null && is.getType() == Material.ENCHANTED_BOOK
+                    && is.getItemMeta() instanceof org.bukkit.inventory.meta.EnchantmentStorageMeta m
+                    && m.hasStoredEnchant(org.bukkit.enchantments.Enchantment.MENDING)) return i;
+        }
+        return -1;
+    }
+
+    /** Why this bow can't get (or renew) Mending + Infinity right now, or null. */
+    public static String bowMendingProblem(ToolShopPlugin plugin, Player player, ItemStack bow) {
+        if (bow.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.INFINITY) <= 0) return "Enchant the bow with Infinity first.";
+        long left = plugin.legendary().mendingUntil(bow) - System.currentTimeMillis();
+        if (left >= 24 * 3_600_000L) return "Still running: renew when less than a day is left.";
+        if (mendingBookSlot(player) < 0) return "You need a Mending enchanted book.";
+        return null;
     }
 
     private static Material plainIcon(ToolKind kind) {

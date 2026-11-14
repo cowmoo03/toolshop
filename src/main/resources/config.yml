@@ -350,6 +350,41 @@ spawner-upgrades:
     - { speed: 1.5, power-level: 100, cost: { DIAMOND: 8 } }
     - { speed: 2.0, power-level: 150, cost: { NETHERITE_INGOT: 2 } }
 
+# Villager claims. Sneak + right-click a villager to open its menu (a normal right-click always trades like vanilla,
+# claimed or not). Claim it, then the owner can buy discount tiers (every trade gets cheaper for anyone who trades with
+# it, on top of vanilla's own discounts) and give a librarian one max-level enchanted book trade of their choice.
+# Claiming asks for a name, shown above the villager and in /toolshop. Claimed villagers can't be hurt by other players.
+# Power levels are Standard scale (x10 in Retro Mode).
+villager-claims:
+  enabled: true
+  # Most villagers one player can claim (0 = no limit).
+  max-claims: 0
+  claim:
+    power-level: 30
+    cost: { EMERALD: 16 }
+  # discount = percent off each trade's emerald price (always at least 1 off).
+  tiers:
+    - { discount: 10, power-level: 50, cost: { EMERALD: 32 } }
+    - { discount: 20, power-level: 100, cost: { EMERALD_BLOCK: 8 } }
+    - { discount: 30, power-level: 150, cost: { EMERALD_BLOCK: 16, DIAMOND: 4 } }
+    - { discount: 40, power-level: 250, cost: { EMERALD_BLOCK: 32, NETHER_STAR: 1 } }
+  # What the owner pays to set a librarian's enchanted book trade, by how rare the enchantment is.
+  # Common: Protection, Efficiency, Sharpness, Power. Uncommon: Unbreaking, Smite, Feather Falling, Piercing...
+  # Rare: Fortune, Looting, Respiration, Sweeping Edge, Multishot... Very rare: Silk Touch, Infinity, Thorns, Channeling.
+  # Treasure: Mending, Frost Walker, Soul Speed, Swift Sneak, Wind Burst.
+  enchant-trade-cost:
+    common: { EMERALD: 32 }
+    uncommon: { EMERALD: 64 }
+    rare: { EMERALD_BLOCK: 16 }
+    very-rare: { EMERALD_BLOCK: 32 }
+    treasure: { EMERALD_BLOCK: 40 }
+
+# Legendary bow: Mending and Infinity together. On the bow's /toolshop page, a Mending enchanted book (used up) adds
+# Mending to a legendary bow that has Infinity, for this many real days. When it runs out, use another book.
+bow-mending:
+  enabled: true
+  days: 5
+
 # Legendary items and mcMMO work together. While you use your legendary item (held; the elytra worn), every upgrade
 # tier on it adds bonus XP in its skill and shortens that skill's super ability cooldown (Super Breaker, Giga Drill
 # Breaker, Green Terra, Serrated Strikes, Skull Splitter). Shown on the item as a ⚡ line.
@@ -366,6 +401,9 @@ backpack:
   enabled: true
   # From this tier the backpack keeps its items when you die; below it they drop with your inventory.
   keep-on-death-from-tier: 4
+  # Quiver: holding a bow or crossbow with no arrows in your inventory pulls arrows from your backpack, so you can
+  # keep shooting (Minecraft only lets you draw with arrows in your inventory).
+  quiver: true
   tiers:
     - { rows: 1, power-level: 20, cost: { LEATHER: 8, CHEST: 1 } }
     - { rows: 2, power-level: 60, cost: { LEATHER: 16, IRON_INGOT: 16 } }
