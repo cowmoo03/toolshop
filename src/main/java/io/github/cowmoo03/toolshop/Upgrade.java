@@ -37,8 +37,7 @@ public enum Upgrade {
     MAGNET("magnet", "Magnet", null, 1, "Drops from blocks you break go straight into your inventory"),
     DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block or hit to use no durability"),
     LAST_STAND("last-stand", "Last Stand", null, 1, "Stops at 1 durability instead of breaking"),
-    FIREPROOF("fireproof", "Fireproof", null, 3, "Survives lava and fire for a while when dropped"),
-    RECOVERY("recovery", "Recovery", null, 3, "A dropped tool glows for you, lasts longer, and survives explosions and the void"),
+    EMPOWERED("empowered", "Empowered", null, 3, "Pushes the item's main enchantment past its normal max"),
     SOULBOUND("soulbound", "Soulbound", null, 3, "Saves the tool when you die, a set number of times");
 
     private final String id;
@@ -49,7 +48,7 @@ public enum Upgrade {
 
     /** Tier IV "Mythic": three-tier upgrades get a fourth tier when mythic.enabled is on. */
     private static volatile boolean mythicOn = true;
-    private static final java.util.Set<String> NO_MYTHIC = java.util.Set.of("quick-draw", "fireproof", "recovery");
+    private static final java.util.Set<String> NO_MYTHIC = java.util.Set.of("quick-draw");
 
     static void setMythic(boolean on) { mythicOn = on; }
 
@@ -105,10 +104,6 @@ public enum Upgrade {
                 && kind != ToolKind.HOE) return false;
         if (this == LAST_STAND && kind == ToolKind.ELYTRA) return false; // elytras already stop at 1 durability
         if (this == LAST_STAND && kind.isArmor()) return false; // armor at 1 durability would protect forever
-        boolean netherite = material.name().startsWith("NETHERITE_");
-        // Netherite items never burn anyway, so Fireproof would do nothing for them; Recovery is their version.
-        if (this == FIREPROOF) return !netherite;
-        if (this == RECOVERY) return netherite;
         return true;
     }
 

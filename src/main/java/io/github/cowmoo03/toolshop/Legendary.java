@@ -6,6 +6,7 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -167,6 +168,43 @@ public final class Legendary {
         else meta.getPersistentDataContainer().set(tierKeys.get(upgrade), PersistentDataType.INTEGER, tier);
         item.setItemMeta(meta);
         if (upgrade == Upgrade.SOULBOUND) setSaves(item, maxSaves(item));
+        if (upgrade == Upgrade.EMPOWERED) applyEmpowered(item);
+    }
+
+    /** The enchantment Empowered raises for this kind of item. */
+    public static Enchantment empoweredEnchant(ToolKind kind) {
+        return switch (kind) {
+            case SWORD, TRIDENT -> Enchantment.SHARPNESS;
+            case BOW -> Enchantment.POWER;
+            case CROSSBOW -> Enchantment.PIERCING;
+            case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> Enchantment.PROTECTION;
+            case ELYTRA -> Enchantment.UNBREAKING;
+            default -> Enchantment.EFFICIENCY;
+        };
+    }
+
+    /** "Efficiency VII": the level Empowered gives this item at this tier. */
+    public static String empoweredText(ToolKind kind, int tier) {
+        Enchantment e = empoweredEnchant(kind);
+        String name = e.getKey().getKey().replace('_', ' ');
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1) + " " + Upgrade.roman(e.getMaxLevel() + tier);
+    }
+
+    /**
+     * Empowered: makes sure the item's main enchantment is at least max + tier (it may have lost levels to a
+     * grindstone or a repair). Returns true if it changed anything.
+     */
+    public boolean applyEmpowered(ItemStack item) {
+        ToolKind kind = kind(item);
+        int t = kind == null ? 0 : tier(item, Upgrade.EMPOWERED);
+        if (t <= 0) return false;
+        Enchantment e = empoweredEnchant(kind);
+        int want = e.getMaxLevel() + t;
+        if (item.getEnchantmentLevel(e) >= want) return false;
+        ItemMeta meta = item.getItemMeta();
+        meta.addEnchant(e, want, true);
+        item.setItemMeta(meta);
+        return true;
     }
 
     public void setMode(ItemStack item, String mode) {
@@ -219,13 +257,15 @@ public final class Legendary {
      * knows to write the item back. Blocks broken are shown rounded, so this rarely changes while mining
      * (changing the held item makes the hand bob).
      */
-    /** Upgrades that were replaced (2.12.0, 2.15.2): their old key, and what they became (same tier). */
+    /** Upgrades that were replaced (2.12.0, 2.15.2, 2.16.1): their old key, and what they became (same tier). */
     private static final Map<String, Upgrade> RENAMED = Map.of(
             "lt_up_replant", Upgrade.GROWTH_AURA,
             "lt_up_impaler", Upgrade.TIDAL_PULL,
             "lt_up_heavy_bolts", Upgrade.BLAST_BOLTS,
             "lt_up_safe_landing", Upgrade.CRASH_GUARD,
-            "lt_up_night_vision", Upgrade.CLEAR_MIND);
+            "lt_up_night_vision", Upgrade.CLEAR_MIND,
+            "lt_up_fireproof", Upgrade.EMPOWERED,
+            "lt_up_recovery", Upgrade.EMPOWERED);
 
     /** Moves a replaced upgrade's tier onto its replacement. */
     private void migrateRenamed(ItemStack item) {
@@ -249,6 +289,7 @@ public final class Legendary {
         ToolKind kind = kind(item);
         if (kind == null) return false;
         migrateRenamed(item);
+        boolean enchanted = applyEmpowered(item);
         Settings s = plugin.settings();
         String id = id(item);
         long blocks = plugin.registry().blocks(id);
@@ -275,9 +316,8 @@ public final class Legendary {
             String suffix = "";
             if (u == Upgrade.SOULBOUND) {
                 suffix = "  (" + saves(item) + "/" + maxSaves(item) + " saves)";
-            } else if (u == Upgrade.FIREPROOF || u == Upgrade.RECOVERY) {
-                int secs = Settings.forTier(u == Upgrade.FIREPROOF ? s.fireproofSeconds : s.recoverySeconds, t);
-                suffix = "  (" + (secs % 60 == 0 ? (secs / 60) + " min" : secs + "s") + ")";
+            } else if (u == Upgrade.EMPOWERED) {
+                suffix = "  (" + empoweredText(kind, t) + ")";
             }
             if (u == Upgrade.DRILL || u == Upgrade.VEIN) {
                 boolean both = tier(item, Upgrade.DRILL) > 0 && tier(item, Upgrade.VEIN) > 0;
@@ -301,7 +341,7 @@ public final class Legendary {
         Boolean oldGlint = meta.hasEnchantmentGlintOverride() ? meta.getEnchantmentGlintOverride() : null;
         Component oldName = meta.hasItemName() ? meta.itemName() : null;
         if (Objects.equals(meta.lore(), lore) && Objects.equals(oldName, name) && Objects.equals(oldGlint, glint)) {
-            return false;
+            return enchanted;
         }
         meta.lore(lore);
         // itemName is the base name: an anvil rename still shows instead, which is fine.

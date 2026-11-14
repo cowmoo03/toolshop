@@ -41,8 +41,7 @@ pickaxe, axe, shovel, hoe, sword, bow, trident, crossbow, elytra, helmet, chestp
 | **Magnet** | Pickaxe, axe, shovel, hoe | drops go straight into your inventory | 25 + 4 diamonds, 4 ender pearls |
 | **Durability Saver** | Any | 5% → 10% → 20% chance to use no durability | 20 / 40 / 70 |
 | **Last Stand** | Any | stops at 1 durability instead of breaking | 30 + 8 diamonds |
-| **Fireproof** | Iron/diamond | survives lava and fire for 1 → 3 → 5 min of game time (and doesn't despawn meanwhile), then burns | 40 + 2 netherite scrap · 60 + 4 scrap · 80 + 1 netherite ingot |
-| **Recovery** | Netherite | dropped tool glows (only for its owner) and stays 1 → 3 → 5 extra min · tier 2+: survives explosions and cactus · tier 3: returns from the void | 40 + 2 netherite scrap · 60 + 4 scrap · 80 + 1 netherite ingot |
+| **Empowered** | Any | main enchant +1 → +2 → +3 past its max (IV: +4): Efficiency (tools), Sharpness (sword, trident), Power (bow), Piercing (crossbow), Protection (armor), Unbreaking (elytra) | skill level 400 / 600 / 800 |
 | **Soulbound** | Any | survives 3 → 5 → 8 deaths; recharge in /toolshop once used up (or upgrade to refill) | 50 + 1 totem · 70 + 2 totems · 90 + 3 totems |
 
 Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, crossbow and elytra abilities work on their own. Weapon abilities work at half strength against players (`sword-pvp-multiplier`). Weapons rank up by kills and the elytra by blocks flown. The elytra can't get Last Stand (elytras already stop at 1 durability). No upgrade repeats an mcMMO ability: replanting is Green Thumb, bonus trident/crossbow damage is Impale/Powered Shot, fall damage is Roll. Everything above is set in `config.yml`.
@@ -67,13 +66,13 @@ Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, 
 ## Legendary armor
 
 Helmet, chestplate, leggings and boots (iron, diamond or netherite). Armor has no mcMMO skill, so its upgrades unlock
-with power level (see the table above); its shared upgrades (Durability Saver, Fireproof/Recovery, Soulbound) use
+with power level (see the table above); its shared upgrades (Durability Saver, Empowered, Soulbound) use
 power level x4 (`skill-multiplier.power`). No Last Stand on armor. Wearing all four legendary pieces gives
 Regeneration after 10 seconds without being hurt. Armor ranks up by hits taken.
 
 ## Tier IV (Mythic)
 
-Every three-tier upgrade except Quick Draw, Fireproof and Recovery gets a fourth tier, marked ✦. It needs the
+Every three-tier upgrade except Quick Draw gets a fourth tier, marked ✦. It needs the
 skill level, power level 3500 (Master rank; `mythic.power-level`) and its cost (4 netherite ingots + a nether
 star by default). Examples: Drill/Excavator 7x7, Vein Mining 64 ores, Timber 300 logs, Harvest/Tiller 9x9,
 Lifesteal 20%, Volley +6 arrows, Boost 5 per flight, Soulbound 12 saves, Vitality +4 hearts.

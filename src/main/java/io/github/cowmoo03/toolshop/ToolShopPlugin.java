@@ -27,7 +27,6 @@ public final class ToolShopPlugin extends JavaPlugin {
     private Registry registry;
     private McMMOHook mcmmo;
     private ShopListener shopListener;
-    private RecoveryListener recovery;
     private SkillsListener skills;
     private FlightCharm flight;
     private SpawnerUpgrades spawners;
@@ -59,8 +58,6 @@ public final class ToolShopPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ElytraListener(this), this);
         armor = new ArmorListener(this);
         getServer().getPluginManager().registerEvents(armor, this);
-        recovery = new RecoveryListener(this);
-        getServer().getPluginManager().registerEvents(recovery, this);
         getServer().getPluginManager().registerEvents(shopListener, this);
         getServer().getPluginManager().registerEvents(new RepairGuardListener(this), this);
         getServer().getPluginManager().registerEvents(new PushedLogListener(this), this);
@@ -98,7 +95,6 @@ public final class ToolShopPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (registry != null) registry.save();
-        if (recovery != null) recovery.shutdown();
         if (flight != null) flight.shutdown();
         if (spawners != null) spawners.save();
         if (backpacks != null) backpacks.shutdown();

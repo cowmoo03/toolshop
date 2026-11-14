@@ -361,13 +361,9 @@ public final class ShopMenu implements InventoryHolder {
         int have = levels ? plugin.mcmmo().level(player, kind.mcmmoSkill()) : 0;
         List<Component> lore = new ArrayList<>();
         lore.add(text(u.summary(kind), NamedTextColor.GRAY));
-        if (kind.materials().size() > 1) {
-            if (u == Upgrade.FIREPROOF) lore.add(text("Iron and diamond only (netherite can't burn)", NamedTextColor.DARK_AQUA));
-            if (u == Upgrade.RECOVERY) lore.add(text("Netherite only", NamedTextColor.DARK_AQUA));
-        }
         for (int t = 1; t <= u.maxTier(); t++) {
             lore.add(Component.empty());
-            String detail = tierDetail(u, t);
+            String detail = u == Upgrade.EMPOWERED ? Legendary.empoweredText(kind, t) : tierDetail(u, t);
             String head = u.maxTier() > 1 ? Upgrade.roman(t) + (detail != null ? ": " + detail : "") : (detail != null ? detail : "");
             if (!head.isEmpty()) lore.add(text(head, NamedTextColor.WHITE));
             if (levels) {
@@ -722,7 +718,7 @@ public final class ShopMenu implements InventoryHolder {
         List<Component> lore = new ArrayList<>();
         lore.add(text(u.summary(kind), NamedTextColor.GRAY));
         for (int t = 1; t <= u.maxTier(); t++) {
-            String detail = tierDetail(u, t);
+            String detail = u == Upgrade.EMPOWERED ? Legendary.empoweredText(kind, t) : tierDetail(u, t);
             if (detail == null) continue;
             NamedTextColor c = t <= current ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY;
             lore.add(text((t <= current ? "✔ " : "  ") + (u.maxTier() > 1 ? Upgrade.roman(t) + ": " : "") + detail, c));
@@ -801,8 +797,7 @@ public final class ShopMenu implements InventoryHolder {
             case TIMBER -> "up to " + Settings.forTier(s.timberMaxLogs, t) + " logs"
                     + (t >= s.timberSilkLeavesFromTier ? " + clears its leaves (Silk Touch: leaf blocks)" : "");
             case DURABILITY -> Settings.forTier(s.durabilityChance, t) + "% chance to save durability";
-            case FIREPROOF -> "survives fire and lava for " + shortTime(Settings.forTier(s.fireproofSeconds, t));
-            case RECOVERY -> "glows for you when dropped, +" + shortTime(Settings.forTier(s.recoverySeconds, t)) + " before despawning"
+            case EMPOWERED -> "main enchant " + t + " level" + (t == 1 ? "" : "s") + " past its max";
                     + (t >= 3 ? ", survives explosions and cactus, returns from the void"
                     : t == 2 ? ", survives explosions and cactus" : ", death location message");
             case SOULBOUND -> Settings.forTier(s.soulboundSaves, t) + " saves (upgrading refills them)";
@@ -864,8 +859,7 @@ public final class ShopMenu implements InventoryHolder {
             case MAGNET -> Material.LODESTONE;
             case DURABILITY -> Material.ANVIL;
             case LAST_STAND -> Material.SHIELD;
-            case FIREPROOF -> Material.MAGMA_CREAM;
-            case RECOVERY -> Material.RECOVERY_COMPASS;
+            case EMPOWERED -> Material.ENCHANTED_BOOK;
             case SOULBOUND -> Material.TOTEM_OF_UNDYING;
             case LIFESTEAL -> Material.GHAST_TEAR;
             case BEHEADING -> Material.SKELETON_SKULL;

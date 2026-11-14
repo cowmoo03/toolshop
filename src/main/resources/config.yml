@@ -22,7 +22,7 @@ mcmmo:
   # (0-1000), so Mining 30 here means Mining 300 in Retro Mode. Or set a number to multiply by.
   level-scale: auto
   # Multiplies the level needed for the upgrades every tool can get (Magnet, Durability Saver, Last Stand,
-  # Fireproof, Recovery, Soulbound) on one skill's tools, after level-scale, rounded to the nearest 10.
+  # Empowered, Soulbound) on one skill's tools, after level-scale, rounded to the nearest 10.
   # A tool's own ability (Drill, Vein Mining, Timber, Excavator) isn't affected: set it under upgrades below.
   # Woodcutting is 1.25 because Timber logs give XP, so axes level faster.
   skill-multiplier:
@@ -95,15 +95,13 @@ upgrades:
     - { level: 90, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   last-stand:
     - { level: 30, cost: { DIAMOND: 8 } }
-  fireproof:
-    - { level: 40, cost: { NETHERITE_SCRAP: 2 } }
-    - { level: 60, cost: { NETHERITE_SCRAP: 4 } }
-    - { level: 80, cost: { NETHERITE_INGOT: 1 } }
-  # Netherite tools only (they can't burn, so they get Recovery instead of Fireproof).
-  recovery:
-    - { level: 40, cost: { NETHERITE_SCRAP: 2 } }
-    - { level: 60, cost: { NETHERITE_SCRAP: 4 } }
-    - { level: 80, cost: { NETHERITE_INGOT: 1 } }
+  # Every legendary item. Raises its main enchantment past vanilla's max: Efficiency (tools), Sharpness (sword,
+  # trident), Power (bow), Piercing (crossbow), Protection (armor), Unbreaking (elytra). +1 / +2 / +3 / +4 levels.
+  empowered:
+    - { level: 40, cost: { LAPIS_LAZULI: 32, DIAMOND: 4 } }
+    - { level: 60, cost: { EXPERIENCE_BOTTLE: 16, DIAMOND: 8 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 100, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   # Sword only. Levels are Swords levels.
   lifesteal:
     - { level: 15, cost: { GHAST_TEAR: 2 } }
@@ -280,18 +278,7 @@ durability:
   # Chance (%) for a block to use no durability, for tier 1, 2 and 3. Stacks with Unbreaking.
   chance: [5, 10, 20]
 
-fireproof:
-  # Seconds a dropped tool survives in lava or fire, for tier 1, 2 and 3 (1 min, 3 min, 5 min). Then it burns.
-  # Counted in game time, so it pauses while nobody is near the item. It also won't despawn during this time.
-  seconds: [60, 180, 300]
 
-recovery:
-  # Netherite tools only. When dropped, the tool glows through walls (only its owner sees the glow).
-  # Extra seconds before it despawns, on top of the normal 5 minutes, for tier 1, 2 and 3.
-  # Counted in game time.
-  # Tier 2+: explosions and cactus can't destroy it.
-  # Tier 3: if it falls into the void it goes back to the owner (inventory, ender chest, or when they next join).
-  extra-seconds: [60, 180, 300]
 
 soulbound:
   # Deaths the tool survives, for tier 1, 2 and 3. Each death uses one save; with none left it drops normally.
@@ -401,7 +388,7 @@ power-ranks:
     - { name: Grandmaster, power-level: 550, color: gold, reward: { NETHERITE_INGOT: 4, TOTEM_OF_UNDYING: 2 } }
     - { name: Legend, power-level: 800, color: red, reward: { NETHERITE_BLOCK: 1, NETHER_STAR: 1 } }
 
-# Tier IV "Mythic": every three-tier upgrade (not Quick Draw, Fireproof or Recovery) gets a fourth tier that also needs
+# Tier IV "Mythic": every three-tier upgrade (not Quick Draw) gets a fourth tier that also needs
 # this power level (Standard scale, x10 in Retro Mode: 350 = 3500, the Master rank). Its cost is the upgrade's
 # fourth entry under upgrades. Effects: 7x7 Drill/Excavator, 64 ores, 300 logs, 9x9 Harvest/Tiller, and so on.
 mythic:
@@ -430,7 +417,7 @@ join-announcement:
     - "<gold><bold>⚒ New update: mcMMO + Legendary Tools!</bold></gold>"
     - "<gray>Everything you do now levels up skills. See yours with <yellow><click:run_command:'/mcstats'><hover:show_text:'<gray>Show your skills'>/mcstats</hover></click></yellow>.</gray>"
     - "<gray>Make your own <gold>legendary</gold> pickaxe, axe and shovel and upgrade them for good with mcMMO levels + items: Drill, Vein Mining, Timber, Excavator and more.</gray>"
-    - "<red>Careful: a legendary tool can be lost! Protect it with Last Stand, Fireproof and Soulbound.</red>"
+    - "<red>Careful: a legendary tool can be lost! Protect it with Last Stand and Soulbound.</red>"
     - "<green><click:run_command:'/toolshop'><hover:show_text:'<gray>Open the Tool Shop'><u>Click here</u> or type /toolshop</hover></click></green> <gray>while holding an iron, diamond or netherite tool.</gray>"
     - ""
 
