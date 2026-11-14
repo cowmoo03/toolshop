@@ -120,9 +120,11 @@ public final class ArmorListener implements Listener {
         if (on) {
             // Don't override a stronger or longer effect the player got elsewhere (a potion, a beacon).
             if (current != null && !mine.contains(id) && (current.getAmplifier() > amp || current.getDuration() > EFFECT_TICKS)) return;
-            if (current == null || current.getDuration() < EFFECT_TICKS - 40) {
-                p.addPotionEffect(new PotionEffect(type, type == PotionEffectType.REGENERATION ? 60 : EFFECT_TICKS, amp, true, false, true));
-            }
+            // Regeneration heals on a timer tied to its remaining duration, so it's only topped up once it runs low
+            // (re-adding it every second would heal far faster than Regeneration I).
+            boolean regen = type == PotionEffectType.REGENERATION;
+            boolean low = current == null || (regen ? current.getDuration() <= 25 : current.getDuration() < EFFECT_TICKS - 40);
+            if (low) p.addPotionEffect(new PotionEffect(type, regen ? 200 : EFFECT_TICKS, amp, true, false, true));
             mine.add(id);
         } else if (mine.remove(id) && current != null && current.isAmbient() && current.getDuration() <= EFFECT_TICKS) {
             p.removePotionEffect(type);
