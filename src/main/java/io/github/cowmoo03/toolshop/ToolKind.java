@@ -19,7 +19,16 @@ public enum ToolKind {
     TRIDENT("trident", "Legendary Trident", "TRIDENTS", "Tridents", Set.of(Material.TRIDENT)),
     CROSSBOW("crossbow", "Legendary Crossbow", "CROSSBOWS", "Crossbows", Set.of(Material.CROSSBOW)),
     ELYTRA("elytra", "Legendary Elytra", "ACROBATICS", "Acrobatics", Set.of(Material.ELYTRA)),
-    BOW("bow", "Legendary Bow", "ARCHERY", "Archery", Set.of(Material.BOW));
+    BOW("bow", "Legendary Bow", "ARCHERY", "Archery", Set.of(Material.BOW)),
+    // Armor has no mcMMO skill: its upgrades unlock with power level (all skill levels added up).
+    HELMET("helmet", "Legendary Helmet", "POWER", "Power",
+            Set.of(Material.IRON_HELMET, Material.DIAMOND_HELMET, Material.NETHERITE_HELMET)),
+    CHESTPLATE("chestplate", "Legendary Chestplate", "POWER", "Power",
+            Set.of(Material.IRON_CHESTPLATE, Material.DIAMOND_CHESTPLATE, Material.NETHERITE_CHESTPLATE)),
+    LEGGINGS("leggings", "Legendary Leggings", "POWER", "Power",
+            Set.of(Material.IRON_LEGGINGS, Material.DIAMOND_LEGGINGS, Material.NETHERITE_LEGGINGS)),
+    BOOTS("boots", "Legendary Boots", "POWER", "Power",
+            Set.of(Material.IRON_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS));
 
     private final String id;
     private final String displayName;
@@ -44,12 +53,15 @@ public enum ToolKind {
     public Set<Material> materials() { return materials; }
 
     /** Weapons rank up by kills instead of blocks. */
+    public boolean isArmor() { return this == HELMET || this == CHESTPLATE || this == LEGGINGS || this == BOOTS; }
+
     public boolean countsKills() { return this == SWORD || this == TRIDENT || this == CROSSBOW || this == BOW; }
 
     /** What the rank counts: "kills", "blocks flown" or "blocks". */
     public String countWord(long n) {
         if (countsKills()) return n == 1 ? "kill" : "kills";
         if (this == ELYTRA) return n == 1 ? "block flown" : "blocks flown";
+        if (isArmor()) return n == 1 ? "hit taken" : "hits taken";
         return n == 1 ? "block" : "blocks";
     }
 

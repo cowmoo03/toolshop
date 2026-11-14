@@ -26,16 +26,19 @@ import java.util.Map;
  */
 public final class ShopMenu implements InventoryHolder {
     public static final int TOOL_SLOT = 4;
-    /** Home page: tools on row 2, weapons and the elytra on row 3, then the star. */
-    private static final Map<ToolKind, Integer> HOME_SLOT = Map.of(
-            ToolKind.PICKAXE, 10, ToolKind.AXE, 12, ToolKind.SHOVEL, 14, ToolKind.HOE, 16,
-            ToolKind.SWORD, 20, ToolKind.BOW, 21, ToolKind.CROSSBOW, 22, ToolKind.TRIDENT, 23, ToolKind.ELYTRA, 24);
-    public static final int CREATE_SLOT = 29;
-    public static final int FLIGHT_SLOT = 31;
-    public static final int SPAWNER_SLOT = 33;
+    /** Home page: tools on row 2, weapons and the elytra on row 3, armor on row 4, buttons on the bottom row. */
+    private static final Map<ToolKind, Integer> HOME_SLOT = Map.ofEntries(
+            Map.entry(ToolKind.PICKAXE, 10), Map.entry(ToolKind.AXE, 12), Map.entry(ToolKind.SHOVEL, 14), Map.entry(ToolKind.HOE, 16),
+            Map.entry(ToolKind.SWORD, 20), Map.entry(ToolKind.BOW, 21), Map.entry(ToolKind.CROSSBOW, 22),
+            Map.entry(ToolKind.TRIDENT, 23), Map.entry(ToolKind.ELYTRA, 24),
+            Map.entry(ToolKind.HELMET, 28), Map.entry(ToolKind.CHESTPLATE, 30), Map.entry(ToolKind.LEGGINGS, 32),
+            Map.entry(ToolKind.BOOTS, 34));
+    public static final int CREATE_SLOT = 38;
+    public static final int FLIGHT_SLOT = 39;
+    public static final int SPAWNER_SLOT = 41;
     public static final int RETIRE_SLOT = 44;
     public static final int BACKPACK_SLOT = 40;
-    public static final int RANKS_SLOT = 44;
+    public static final int RANKS_SLOT = 42;
     public static final int BACK_SLOT = 36;
     public static final int MODE_SLOT = 40;
     public static final int RECHARGE_SLOT = 42;
@@ -373,6 +376,9 @@ public final class ShopMenu implements InventoryHolder {
                 lore.add(text("  " + (ok ? "✔ " : "✘ ") + kind.skillName() + " " + need + (have >= 0 ? " (you: " + have + ")" : ""),
                         ok ? NamedTextColor.GREEN : NamedTextColor.RED));
             }
+            if (u.isMythic(t) && plugin.mythicPowerNeeded() > 0) {
+                lore.add(text("  ✦ Mythic: power level " + plugin.mythicPowerNeeded(), NamedTextColor.LIGHT_PURPLE));
+            }
             Map<Material, Integer> cost = s.tier(u, t).cost();
             lore.add(text("  " + (cost.isEmpty() ? "No items" : Settings.describeCost(cost)), NamedTextColor.GRAY));
         }
@@ -673,6 +679,10 @@ public final class ShopMenu implements InventoryHolder {
             case TRIDENT -> Material.TRIDENT;
             case CROSSBOW -> Material.CROSSBOW;
             case BOW -> Material.BOW;
+            case HELMET -> Material.IRON_HELMET;
+            case CHESTPLATE -> Material.IRON_CHESTPLATE;
+            case LEGGINGS -> Material.IRON_LEGGINGS;
+            case BOOTS -> Material.IRON_BOOTS;
             case ELYTRA -> Material.ELYTRA;
         };
     }
@@ -735,6 +745,12 @@ public final class ShopMenu implements InventoryHolder {
             lore.add(text((ok ? "✔ " : "✘ ") + kind.skillName() + " level " + needLevel
                     + " (you: " + (lvl < 0 ? "?" : lvl) + ")", ok ? NamedTextColor.GREEN : NamedTextColor.RED));
         }
+        if (u.isMythic(next) && plugin.mythicPowerNeeded() > 0) {
+            int power = plugin.mcmmo().powerLevel(player);
+            boolean ok = power >= plugin.mythicPowerNeeded();
+            lore.add(text((ok ? "✔ " : "✘ ") + "Mythic: power level " + plugin.mythicPowerNeeded()
+                    + " (you: " + (power < 0 ? "?" : power) + ")", ok ? NamedTextColor.GREEN : NamedTextColor.LIGHT_PURPLE));
+        }
         for (Map.Entry<Material, Integer> e : req.cost().entrySet()) {
             boolean ok = player.getInventory().containsAtLeast(ItemStack.of(e.getKey()), e.getValue());
             lore.add(text((ok ? "✔ " : "✘ ") + e.getValue() + " " + Settings.itemName(e.getKey(), e.getValue()),
@@ -776,7 +792,8 @@ public final class ShopMenu implements InventoryHolder {
         String area = switch (t) {
             case 1 -> "1x2";
             case 2 -> "3x3";
-            default -> "5x5";
+            case 3 -> "5x5";
+            default -> "7x7";
         };
         return switch (u) {
             case DRILL, EXCAVATOR -> "breaks " + area;
@@ -805,8 +822,18 @@ public final class ShopMenu implements InventoryHolder {
             case SEEKER -> "locks on within " + Settings.forTier(s.seekerRadius, t) + " blocks";
             case QUICK_DRAW -> "any shot flies at " + Settings.forTier(s.quickDrawPower, t) + "% power or more";
             case FROST_ARROWS -> "Slowness II for " + Settings.forTier(s.frostSeconds, t) + "s" + pvpNote(s);
+            case NIGHT_VISION -> "always see in the dark";
+            case WATER_BREATHING -> "never run out of air";
+            case VITALITY -> "+" + hearts(Settings.forTier(s.vitalityHealth, t)) + " heart" + (Settings.forTier(s.vitalityHealth, t) == 2 ? "" : "s");
+            case SWIFTNESS -> "+" + Settings.forTier(s.swiftnessPercent, t) + "% speed";
+            case SPRING -> "+" + Settings.forTier(s.springPercent, t) + "% jump, " + t + " more block" + (t == 1 ? "" : "s") + " before fall damage";
+            case LAVA_WALKER -> "walk over lava; it turns back after 5s";
             default -> null;
         };
+    }
+
+    private static String hearts(int health) {
+        return health % 2 == 0 ? String.valueOf(health / 2) : (health / 2) + ".5";
     }
 
     private static String area(int tier) {
@@ -853,6 +880,12 @@ public final class ShopMenu implements InventoryHolder {
             case SEEKER -> Material.ENDER_EYE;
             case QUICK_DRAW -> Material.STRING;
             case FROST_ARROWS -> Material.BLUE_ICE;
+            case NIGHT_VISION -> Material.GLOW_BERRIES;
+            case WATER_BREATHING -> Material.PUFFERFISH;
+            case VITALITY -> Material.GOLDEN_APPLE;
+            case SWIFTNESS -> Material.SUGAR;
+            case SPRING -> Material.SLIME_BALL;
+            case LAVA_WALKER -> Material.MAGMA_CREAM;
         };
     }
 

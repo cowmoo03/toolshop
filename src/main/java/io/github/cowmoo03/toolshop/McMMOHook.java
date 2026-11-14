@@ -78,6 +78,7 @@ public final class McMMOHook {
     /** The player's level in an mcMMO skill, or -1 if it can't be read right now (e.g. data still loading). */
     public int level(Player player, String skill) {
         if (!available) return -1;
+        if ("POWER".equalsIgnoreCase(skill)) return powerLevel(player); // legendary armor levels with power level
         try {
             Object result = getLevel.invoke(null, player, skill);
             return result instanceof Number n ? n.intValue() : -1;

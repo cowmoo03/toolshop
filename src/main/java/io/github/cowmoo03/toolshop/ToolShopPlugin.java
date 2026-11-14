@@ -32,6 +32,7 @@ public final class ToolShopPlugin extends JavaPlugin {
     private FlightCharm flight;
     private SpawnerUpgrades spawners;
     private Backpacks backpacks;
+    private ArmorListener armor;
     private PowerRanks ranks;
     private volatile SkillSynergy synergy;
 
@@ -56,6 +57,8 @@ public final class ToolShopPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new HoeListener(this), this);
         getServer().getPluginManager().registerEvents(new RangedListener(this), this);
         getServer().getPluginManager().registerEvents(new ElytraListener(this), this);
+        armor = new ArmorListener(this);
+        getServer().getPluginManager().registerEvents(armor, this);
         recovery = new RecoveryListener(this);
         getServer().getPluginManager().registerEvents(recovery, this);
         getServer().getPluginManager().registerEvents(shopListener, this);
@@ -99,6 +102,7 @@ public final class ToolShopPlugin extends JavaPlugin {
         if (flight != null) flight.shutdown();
         if (spawners != null) spawners.save();
         if (backpacks != null) backpacks.shutdown();
+        if (armor != null) armor.shutdown();
     }
 
     /** ToolShop 1.x used a different config (rental prices). Keep it as a backup and start fresh. */
@@ -161,6 +165,12 @@ public final class ToolShopPlugin extends JavaPlugin {
         if (mult == 1.0) return base;
         long scaled = Math.round(base * mult);
         return (int) (base >= 10 ? Math.round(scaled / 10.0) * 10 : scaled);
+    }
+
+    /** Power level a Tier IV (Mythic) upgrade needs, on mcMMO's scale (0 without mcMMO). */
+    public int mythicPowerNeeded() {
+        if (mcmmo == null || !mcmmo.available() || settings.mythicPowerLevel <= 0) return 0;
+        return settings.mythicPowerLevel * levelScale();
     }
 
     public int levelScale() {

@@ -2,7 +2,7 @@ name: ToolShop
 version: '${version}'
 main: io.github.cowmoo03.toolshop.ToolShopPlugin
 api-version: '26.2'
-description: Legendary tools - one upgradeable pickaxe, axe, shovel and sword per player, unlocked with mcMMO levels and items.
+description: Legendary tools - legendary tools, weapons and armor with upgrades, per player, unlocked with mcMMO levels and items.
 authors:
   - cowmoo03
 dependencies:

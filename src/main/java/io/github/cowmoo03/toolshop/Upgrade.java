@@ -22,6 +22,12 @@ public enum Upgrade {
     SEEKER("seeker", "Seeker", ToolKind.BOW, 3, "Arrows curve toward the nearest hostile mob"),
     QUICK_DRAW("quick-draw", "Quick Draw", ToolKind.BOW, 3, "Shots you don't fully draw still fly hard"),
     FROST_ARROWS("frost-arrows", "Frost Arrows", ToolKind.BOW, 3, "Arrows slow what they hit"),
+    NIGHT_VISION("night-vision", "Night Vision", ToolKind.HELMET, 1, "See in the dark while you wear it"),
+    WATER_BREATHING("water-breathing", "Water Breathing", ToolKind.HELMET, 1, "Breathe underwater while you wear it"),
+    VITALITY("vitality", "Vitality", ToolKind.CHESTPLATE, 3, "Extra hearts while you wear it"),
+    SWIFTNESS("swiftness", "Swiftness", ToolKind.LEGGINGS, 3, "Move faster while you wear them"),
+    SPRING("spring", "Spring", ToolKind.BOOTS, 3, "Jump higher and land safer while you wear them"),
+    LAVA_WALKER("lava-walker", "Lava Walker", ToolKind.BOOTS, 1, "Lava hardens under your feet as you walk (not while sneaking)"),
     BOOST("boost", "Boost", ToolKind.ELYTRA, 3, "Sneak while gliding for a burst of speed"),
     ROCKET_SAVER("rocket-saver", "Rocket Saver", ToolKind.ELYTRA, 3, "Chance for a firework rocket not to be used up"),
     CRASH_GUARD("crash-guard", "Crash Guard", ToolKind.ELYTRA, 1, "No damage from flying into walls, then a moment of slow falling"),
@@ -38,6 +44,12 @@ public enum Upgrade {
     private final int maxTier;
     private final String summary;
 
+    /** Tier IV "Mythic": three-tier upgrades get a fourth tier when mythic.enabled is on. */
+    private static volatile boolean mythicOn = true;
+    private static final java.util.Set<String> NO_MYTHIC = java.util.Set.of("quick-draw", "fireproof", "recovery");
+
+    static void setMythic(boolean on) { mythicOn = on; }
+
     Upgrade(String id, String displayName, ToolKind onlyFor, int maxTier, String summary) {
         this.id = id;
         this.displayName = displayName;
@@ -48,7 +60,13 @@ public enum Upgrade {
 
     public String id() { return id; }
     public String displayName() { return displayName; }
-    public int maxTier() { return maxTier; }
+    /** Highest tier, counting Tier IV (Mythic) when it's on. */
+    public int maxTier() { return maxTier + (hasMythic() ? 1 : 0); }
+    /** Highest tier without Mythic. */
+    public int baseMaxTier() { return maxTier; }
+    public boolean hasMythic() { return mythicOn && maxTier == 3 && !NO_MYTHIC.contains(id); }
+    /** True for an upgrade's Tier IV (Mythic). */
+    public boolean isMythic(int tier) { return hasMythic() && tier > maxTier; }
     /** The one tool kind this upgrade is for (Drill, Timber...), or null if it fits every tool. */
     public ToolKind onlyFor() { return onlyFor; }
     public String summary() { return summary; }
@@ -62,6 +80,7 @@ public enum Upgrade {
                 case TRIDENT -> "Chance for a hit or throw to use no durability";
                 case CROSSBOW, BOW -> "Chance for a shot to use no durability";
                 case ELYTRA -> "Chance for gliding to use no durability";
+                case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> "Chance for a hit to cost no armor durability";
                 default -> "Chance for a block to use no durability";
             };
         }
@@ -82,6 +101,7 @@ public enum Upgrade {
         if (this == MAGNET && kind != ToolKind.PICKAXE && kind != ToolKind.AXE && kind != ToolKind.SHOVEL
                 && kind != ToolKind.HOE) return false;
         if (this == LAST_STAND && kind == ToolKind.ELYTRA) return false; // elytras already stop at 1 durability
+        if (this == LAST_STAND && kind.isArmor()) return false; // armor at 1 durability would protect forever
         boolean netherite = material.name().startsWith("NETHERITE_");
         // Netherite items never burn anyway, so Fireproof would do nothing for them; Recovery is their version.
         if (this == FIREPROOF) return !netherite;
@@ -91,7 +111,8 @@ public enum Upgrade {
 
     /** "Drill II", or just "Magnet" for single-tier upgrades. */
     public String withTier(int tier) {
-        return maxTier == 1 ? displayName : displayName + " " + roman(tier);
+        if (maxTier == 1) return displayName;
+        return displayName + " " + roman(tier) + (isMythic(tier) ? " ✦" : "");
     }
 
     public static String roman(int n) {

@@ -1,7 +1,7 @@
 # ToolShop
 
 A Paper plugin (Minecraft 26.2) for **legendary tools**: each player turns one iron, diamond or netherite
-pickaxe, axe, shovel, hoe, sword, bow, trident, crossbow and elytra into their own legendary item and upgrades it for good, unlocking tiers with
+pickaxe, axe, shovel, hoe, sword, bow, trident, crossbow, elytra, helmet, chestplate, leggings and boots into their own legendary item and upgrades it for good, unlocking tiers with
 **mcMMO skill levels plus items**. Upgrades are permanent, but the tool can be lost like any item.
 
 ## Upgrades
@@ -26,6 +26,12 @@ pickaxe, axe, shovel, hoe, sword, bow, trident, crossbow and elytra into their o
 | **Seeker** | Bow | arrows curve toward the nearest hostile mob within 6 → 9 → 12 blocks | Archery 20 / 40 / 70 |
 | **Quick Draw** | Bow | a half-drawn shot flies at 70% → 85% → 100% power | Archery 10 / 30 / 60 |
 | **Frost Arrows** | Bow | hits give Slowness II for 2 → 3 → 4 s | Archery 15 / 35 / 65 |
+| **Night Vision** | Helmet | see in the dark while worn | power level 600 |
+| **Water Breathing** | Helmet | breathe underwater while worn | power level 400 |
+| **Vitality** | Chestplate | +1 → +2 → +3 hearts (IV: +4) | power level 800 / 1500 / 2500 |
+| **Swiftness** | Leggings | +5% → +10% → +15% speed (IV: +20%) | power level 700 / 1400 / 2400 |
+| **Spring** | Boots | +10% → +20% → +30% jump and 1 → 2 → 3 more blocks before fall damage (IV: +40%, 4) | power level 600 / 1300 / 2200 |
+| **Lava Walker** | Boots | lava hardens under you as you walk (not sneaking), turning back after 5 s | power level 2000 |
 | **Boost** | Elytra | sneak while gliding for a push; 1 → 2 → 3 per flight, refilled on landing | Acrobatics 10 / 30 / 60 |
 | **Rocket Saver** | Elytra | 25% → 50% → 75% chance a firework rocket isn't used up | Acrobatics 15 / 35 / 65 |
 | **Crash Guard** | Elytra | no damage from flying into walls, then 3 s of slow falling | Acrobatics 20 |
@@ -54,6 +60,20 @@ Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, 
 - Logs that grew from a sapling still give Woodcutting XP after a piston moves them (tree farms). mcMMO's piston rule still blocks XP for logs a player placed (`mcmmo.pushed-logs-give-xp`).
 - Without mcMMO installed, level requirements are skipped (items only).
 - A one-time chat announcement greets each player after an update (`join-announcement` in the config; change its `id` to show a new one).
+
+## Legendary armor
+
+Helmet, chestplate, leggings and boots (iron, diamond or netherite). Armor has no mcMMO skill, so its upgrades unlock
+with power level (see the table above); its shared upgrades (Durability Saver, Fireproof/Recovery, Soulbound) use
+power level x4 (`skill-multiplier.power`). No Last Stand on armor. Wearing all four legendary pieces gives
+Regeneration after 10 seconds without being hurt. Armor ranks up by hits taken.
+
+## Tier IV (Mythic)
+
+Every three-tier upgrade except Quick Draw, Fireproof and Recovery gets a fourth tier, marked ✦. It needs the
+skill level, power level 3500 (Master rank; `mythic.power-level`) and its cost (4 netherite ingots + a nether
+star by default). Examples: Drill/Excavator 7x7, Vein Mining 64 ores, Timber 300 logs, Harvest/Tiller 9x9,
+Lifesteal 20%, Volley +6 arrows, Boost 5 per flight, Soulbound 12 saves, Vitality +4 hearts.
 
 ## Skill synergy
 

@@ -93,6 +93,14 @@ public final class Settings {
     public int[] quickDrawPower;
     public int[] frostSeconds;
     public int[] boostCharges;
+    /** mythic.*: Tier IV for three-tier upgrades, needing this power level (Standard scale) too. */
+    public boolean mythicEnabled;
+    public int mythicPowerLevel;
+    /** Armor: extra health points, speed %, jump % per tier. */
+    public int[] vitalityHealth;
+    public int[] swiftnessPercent;
+    public int[] springPercent;
+    public boolean armorSetBonus;
     public double boostStrength;
     public int[] rocketSaverChance;
 
@@ -117,6 +125,9 @@ public final class Settings {
             }
         }
         createCost = readCost(c.getConfigurationSection("create-cost"), "create-cost", log);
+        mythicEnabled = c.getBoolean("mythic.enabled", true);
+        mythicPowerLevel = Math.max(0, c.getInt("mythic.power-level", 350));
+        Upgrade.setMythic(mythicEnabled); // before the tiers are read, so Tier IV is read too
 
         for (Upgrade u : Upgrade.values()) {
             List<Tier> list = new ArrayList<>();
@@ -152,20 +163,20 @@ public final class Settings {
         drillMaxHardness = c.getDouble("drill.max-hardness", 5.0);
         drillNeverBreak = readMaterials(c.getStringList("drill.never-break"), "drill.never-break", log);
         drillNeverBreak.add(Material.ANCIENT_DEBRIS);
-        veinMaxBlocks = readTierInts(c.getIntegerList("vein.max-blocks"), new int[]{8, 16, 32});
+        veinMaxBlocks = readTierInts(c.getIntegerList("vein.max-blocks"), new int[]{8, 16, 32, 64});
         veinExhaustion = (float) Math.max(0, c.getDouble("vein.exhaustion-per-block", 0.15));
         veinOres = readMaterials(c.getStringList("vein.ores"), "vein.ores", log);
         veinOres.remove(Material.ANCIENT_DEBRIS);
-        timberMaxLogs = readTierInts(c.getIntegerList("timber.max-logs"), new int[]{16, 64, 150});
+        timberMaxLogs = readTierInts(c.getIntegerList("timber.max-logs"), new int[]{16, 64, 150, 300});
         timberSilkLeavesFromTier = Math.max(1, c.getInt("timber.clear-leaves-from-tier", 1));
         timberMinLeaves = Math.max(0, c.getInt("timber.min-natural-leaves", 3));
         timberXpForAllLogs = c.getBoolean("timber.xp-for-all-logs", true);
         veinXpForAllOres = c.getBoolean("vein.xp-for-all-ores", true);
         excavatorExhaustion = (float) Math.max(0, c.getDouble("excavator.exhaustion-per-block", 0.05));
-        durabilityChance = readTierInts(c.getIntegerList("durability.chance"), new int[]{5, 10, 20});
+        durabilityChance = readTierInts(c.getIntegerList("durability.chance"), new int[]{5, 10, 20, 30});
         fireproofSeconds = readTierInts(c.getIntegerList("fireproof.seconds"), new int[]{60, 180, 300});
         recoverySeconds = readTierInts(c.getIntegerList("recovery.extra-seconds"), new int[]{60, 180, 300});
-        soulboundSaves = readTierInts(c.getIntegerList("soulbound.saves"), new int[]{3, 5, 8});
+        soulboundSaves = readTierInts(c.getIntegerList("soulbound.saves"), new int[]{3, 5, 8, 12});
         soulboundRechargeAnytime = "anytime".equalsIgnoreCase(c.getString("soulbound.recharge", "empty"));
 
         skillsMenuEnabled = c.getBoolean("skills-menu.enabled", true);
@@ -188,27 +199,31 @@ public final class Settings {
             }
         }
         if (!swordRanks.containsKey(0L)) swordRanks.put(0L, "Rusty");
-        lifestealPercent = readTierInts(c.getIntegerList("lifesteal.percent"), new int[]{5, 10, 15});
-        beheadingChance = readTierInts(c.getIntegerList("beheading.chance"), new int[]{3, 6, 10});
-        bountyPercent = readTierInts(c.getIntegerList("bounty.extra-percent"), new int[]{25, 50, 100});
+        lifestealPercent = readTierInts(c.getIntegerList("lifesteal.percent"), new int[]{5, 10, 15, 20});
+        beheadingChance = readTierInts(c.getIntegerList("beheading.chance"), new int[]{3, 6, 10, 15});
+        bountyPercent = readTierInts(c.getIntegerList("bounty.extra-percent"), new int[]{25, 50, 100, 150});
         swordPvpMultiplier = Math.max(0, Math.min(1, c.getDouble("sword-pvp-multiplier", 0.5)));
         harvestXpForAllCrops = c.getBoolean("harvest.xp-for-all-crops", true);
-        growthAuraRadius = readTierInts(c.getIntegerList("growth-aura.radius"), new int[]{4, 6, 8});
-        growthAuraChance = readTierInts(c.getIntegerList("growth-aura.chance-per-second"), new int[]{4, 6, 8});
-        tidalPullStrength = readTierInts(c.getIntegerList("tidal-pull.strength"), new int[]{6, 10, 14});
-        stormCallerCooldown = readTierInts(c.getIntegerList("storm-caller.cooldown-seconds"), new int[]{30, 20, 10});
+        growthAuraRadius = readTierInts(c.getIntegerList("growth-aura.radius"), new int[]{4, 6, 8, 10});
+        growthAuraChance = readTierInts(c.getIntegerList("growth-aura.chance-per-second"), new int[]{4, 6, 8, 10});
+        tidalPullStrength = readTierInts(c.getIntegerList("tidal-pull.strength"), new int[]{6, 10, 14, 18});
+        stormCallerCooldown = readTierInts(c.getIntegerList("storm-caller.cooldown-seconds"), new int[]{30, 20, 10, 5});
         stormCallerDamage = Math.max(0, c.getDouble("storm-caller.damage", 5));
-        arrowSaverChance = readTierInts(c.getIntegerList("arrow-saver.chance"), new int[]{20, 35, 50});
-        volleyArrows = readTierInts(c.getIntegerList("volley.extra-arrows"), new int[]{1, 2, 4});
-        blastBoltsDamage = readTierInts(c.getIntegerList("blast-bolts.damage"), new int[]{2, 3, 5});
+        arrowSaverChance = readTierInts(c.getIntegerList("arrow-saver.chance"), new int[]{20, 35, 50, 65});
+        volleyArrows = readTierInts(c.getIntegerList("volley.extra-arrows"), new int[]{1, 2, 4, 6});
+        blastBoltsDamage = readTierInts(c.getIntegerList("blast-bolts.damage"), new int[]{2, 3, 5, 7});
         blastBoltsRadius = Math.max(1, Math.min(6, c.getDouble("blast-bolts.radius", 2.5)));
-        seekerRadius = readTierInts(c.getIntegerList("seeker.radius"), new int[]{6, 9, 12});
-        seekerTurn = readTierInts(c.getIntegerList("seeker.turn-percent"), new int[]{15, 25, 35});
+        seekerRadius = readTierInts(c.getIntegerList("seeker.radius"), new int[]{6, 9, 12, 16});
+        seekerTurn = readTierInts(c.getIntegerList("seeker.turn-percent"), new int[]{15, 25, 35, 45});
         quickDrawPower = readTierInts(c.getIntegerList("quick-draw.min-power-percent"), new int[]{70, 85, 100});
-        frostSeconds = readTierInts(c.getIntegerList("frost-arrows.seconds"), new int[]{2, 3, 4});
-        boostCharges = readTierInts(c.getIntegerList("boost.charges"), new int[]{1, 2, 3});
+        frostSeconds = readTierInts(c.getIntegerList("frost-arrows.seconds"), new int[]{2, 3, 4, 6});
+        vitalityHealth = readTierInts(c.getIntegerList("vitality.extra-health"), new int[]{2, 4, 6, 8});
+        swiftnessPercent = readTierInts(c.getIntegerList("swiftness.speed-percent"), new int[]{5, 10, 15, 20});
+        springPercent = readTierInts(c.getIntegerList("spring.jump-percent"), new int[]{10, 20, 30, 40});
+        armorSetBonus = c.getBoolean("armor-set-bonus.enabled", true);
+        boostCharges = readTierInts(c.getIntegerList("boost.charges"), new int[]{1, 2, 3, 5});
         boostStrength = Math.max(0.2, Math.min(3, c.getDouble("boost.strength", 1.0)));
-        rocketSaverChance = readTierInts(c.getIntegerList("rocket-saver.chance"), new int[]{25, 50, 75});
+        rocketSaverChance = readTierInts(c.getIntegerList("rocket-saver.chance"), new int[]{25, 50, 75, 90});
         ConfigurationSection rankSection = c.getConfigurationSection("ranks");
         if (rankSection != null) {
             for (String key : rankSection.getKeys(false)) {
@@ -279,8 +294,9 @@ public final class Settings {
 
     private static int[] readTierInts(List<Integer> values, int[] fallback) {
         if (values == null || values.isEmpty()) return fallback;
-        int[] out = new int[values.size()];
-        for (int i = 0; i < out.length; i++) out[i] = Math.max(1, values.get(i));
+        // An older config may list fewer tiers (e.g. no Tier IV yet): fill the rest from the defaults.
+        int[] out = new int[Math.max(values.size(), fallback.length)];
+        for (int i = 0; i < out.length; i++) out[i] = i < values.size() ? Math.max(1, values.get(i)) : fallback[i];
         return out;
     }
 }

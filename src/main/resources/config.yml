@@ -35,6 +35,8 @@ mcmmo:
     crossbows: 1.0
     acrobatics: 1.0
     archery: 1.0
+    # Legendary armor's shared upgrades (Durability Saver, Soulbound...) use power level, so they need more.
+    power: 4.0
   # Only the block the player actually hits gives mcMMO XP, not the extra blocks an ability breaks.
   # Without this, a 5x5 Drill swing would give 25 blocks' worth of XP.
   xp-only-for-hit-block: true
@@ -56,24 +58,29 @@ upgrades:
     - { level: 10, cost: { IRON_INGOT: 16 } }
     - { level: 30, cost: { DIAMOND: 8 } }
     - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   vein:
     - { level: 15, cost: { IRON_INGOT: 16 } }
     - { level: 35, cost: { DIAMOND: 8 } }
     - { level: 65, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 85, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   timber:
     - { level: 5, cost: { IRON_INGOT: 8 } }
     - { level: 30, cost: { DIAMOND: 8 } }
     - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   excavator:
     - { level: 10, cost: { IRON_INGOT: 16 } }
     - { level: 30, cost: { DIAMOND: 8 } }
     - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   magnet:
     - { level: 25, cost: { DIAMOND: 4, ENDER_PEARL: 4 } }
   durability:
     - { level: 20, cost: { IRON_INGOT: 16 } }
     - { level: 40, cost: { DIAMOND: 8 } }
     - { level: 70, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 90, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   last-stand:
     - { level: 30, cost: { DIAMOND: 8 } }
   fireproof:
@@ -90,54 +97,66 @@ upgrades:
     - { level: 15, cost: { GHAST_TEAR: 2 } }
     - { level: 35, cost: { GHAST_TEAR: 4, DIAMOND: 4 } }
     - { level: 65, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 85, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   beheading:
     - { level: 20, cost: { BONE: 32 } }
     - { level: 40, cost: { DIAMOND: 8 } }
     - { level: 70, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 90, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   bounty:
     - { level: 10, cost: { LAPIS_LAZULI: 32 } }
     - { level: 30, cost: { EMERALD: 16 } }
     - { level: 60, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   # Hoe only. Levels are Herbalism levels.
   harvest:
     - { level: 10, cost: { IRON_INGOT: 16 } }
     - { level: 30, cost: { DIAMOND: 8 } }
     - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   growth-aura:
     - { level: 20, cost: { BONE_MEAL: 64 } }
     - { level: 40, cost: { DIAMOND: 8 } }
     - { level: 70, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 90, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   tiller:
     - { level: 5, cost: { IRON_INGOT: 8 } }
     - { level: 25, cost: { DIAMOND: 4 } }
     - { level: 50, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 70, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   # Trident only. Levels are Tridents levels.
   tidal-pull:
     - { level: 15, cost: { PRISMARINE_SHARD: 16 } }
     - { level: 35, cost: { DIAMOND: 8 } }
     - { level: 65, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 85, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   storm-caller:
     - { level: 25, cost: { COPPER_INGOT: 32 } }
     - { level: 45, cost: { DIAMOND: 8 } }
     - { level: 75, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 95, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   # Crossbow only. Levels are Crossbows levels.
   arrow-saver:
     - { level: 10, cost: { ARROW: 64 } }
     - { level: 30, cost: { DIAMOND: 4 } }
     - { level: 60, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   volley:
     - { level: 20, cost: { IRON_INGOT: 16 } }
     - { level: 40, cost: { DIAMOND: 8 } }
     - { level: 70, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 90, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   blast-bolts:
     - { level: 15, cost: { TNT: 8 } }
     - { level: 35, cost: { DIAMOND: 8 } }
     - { level: 65, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 85, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   # Bow only. Levels are Archery levels.
   seeker:
     - { level: 20, cost: { ENDER_EYE: 8 } }
     - { level: 40, cost: { DIAMOND: 8 } }
     - { level: 70, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 90, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   quick-draw:
     - { level: 10, cost: { STRING: 32 } }
     - { level: 30, cost: { DIAMOND: 4 } }
@@ -146,21 +165,47 @@ upgrades:
     - { level: 15, cost: { SNOWBALL: 32 } }
     - { level: 35, cost: { BLUE_ICE: 8 } }
     - { level: 65, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 85, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   # Elytra only. Levels are Acrobatics levels.
   boost:
     - { level: 10, cost: { FIREWORK_ROCKET: 32 } }
     - { level: 30, cost: { DIAMOND: 8 } }
     - { level: 60, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   rocket-saver:
     - { level: 15, cost: { GUNPOWDER: 32 } }
     - { level: 35, cost: { DIAMOND: 8 } }
     - { level: 65, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 85, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   crash-guard:
     - { level: 20, cost: { HAY_BLOCK: 16, DIAMOND: 2 } }
+  # Armor only. Armor has no mcMMO skill: these levels are power levels (all skills added up), x10 in Retro Mode.
+  night-vision:
+    - { level: 60, cost: { GOLDEN_CARROT: 32, DIAMOND: 2 } }
+  water-breathing:
+    - { level: 40, cost: { PUFFERFISH: 4, PRISMARINE_CRYSTALS: 16 } }
+  vitality:
+    - { level: 80, cost: { GOLDEN_APPLE: 4 } }
+    - { level: 150, cost: { DIAMOND: 8, GOLDEN_APPLE: 8 } }
+    - { level: 250, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 350, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
+  swiftness:
+    - { level: 70, cost: { SUGAR: 32 } }
+    - { level: 140, cost: { DIAMOND: 8 } }
+    - { level: 240, cost: { NETHERITE_INGOT: 2 } }
+    - { level: 350, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
+  spring:
+    - { level: 60, cost: { SLIME_BALL: 16 } }
+    - { level: 130, cost: { DIAMOND: 6 } }
+    - { level: 220, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 350, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
+  lava-walker:
+    - { level: 200, cost: { MAGMA_CREAM: 16, OBSIDIAN: 16 } }
   soulbound:
     - { level: 50, cost: { TOTEM_OF_UNDYING: 1 } }
     - { level: 70, cost: { TOTEM_OF_UNDYING: 2 } }
     - { level: 90, cost: { TOTEM_OF_UNDYING: 3 } }
+    - { level: 100, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
 
 drill:
   # Tier 1 = 1x2 (player height), tier 2 = 3x3, tier 3 = 5x5.
@@ -343,6 +388,26 @@ power-ranks:
     - { name: Master, power-level: 350, color: light_purple, reward: { NETHERITE_INGOT: 2, FLIGHT_CHARM: 4 } }
     - { name: Grandmaster, power-level: 550, color: gold, reward: { NETHERITE_INGOT: 4, TOTEM_OF_UNDYING: 2 } }
     - { name: Legend, power-level: 800, color: red, reward: { NETHERITE_BLOCK: 1, NETHER_STAR: 1 } }
+
+# Tier IV "Mythic": every three-tier upgrade (not Quick Draw, Fireproof or Recovery) gets a fourth tier that also needs
+# this power level (Standard scale, x10 in Retro Mode: 350 = 3500, the Master rank). Its cost is the upgrade's
+# fourth entry under upgrades. Effects: 7x7 Drill/Excavator, 64 ores, 300 logs, 9x9 Harvest/Tiller, and so on.
+mythic:
+  enabled: true
+  power-level: 350
+
+# Legendary armor values, per tier I, II, III, IV.
+vitality:
+  # Extra health points (2 = one heart).
+  extra-health: [2, 4, 6, 8]
+swiftness:
+  speed-percent: [5, 10, 15, 20]
+spring:
+  # Higher jumps; each tier also adds a block before fall damage starts.
+  jump-percent: [10, 20, 30, 40]
+armor-set-bonus:
+  # Wearing all four legendary armor pieces: Regeneration after 10 seconds without being hurt.
+  enabled: true
 
 join-announcement:
   enabled: true

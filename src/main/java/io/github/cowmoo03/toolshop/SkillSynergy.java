@@ -97,7 +97,7 @@ public final class SkillSynergy implements Listener {
 
     /** "+12% Mining XP · Super Breaker cooldown -24%", or null if this item gives nothing yet. */
     public static String describe(ToolShopPlugin plugin, ItemStack item, ToolKind kind) {
-        if (plugin.synergy() == null || !plugin.settings().synergyEnabled) return null;
+        if (plugin.synergy() == null || !plugin.settings().synergyEnabled || kind.isArmor()) return null;
         int xp = plugin.synergy().xpPercent(item);
         int cd = plugin.synergy().cooldownPercent(item);
         String ability = SUPER_NAME.get(kind);
@@ -113,7 +113,7 @@ public final class SkillSynergy implements Listener {
     /** What each upgrade tier adds, for menus: "Each upgrade tier: +2% Mining XP, -4% Super Breaker cooldown". */
     public static String perTierText(ToolShopPlugin plugin, ToolKind kind) {
         Settings s = plugin.settings();
-        if (plugin.synergy() == null || !s.synergyEnabled) return null;
+        if (plugin.synergy() == null || !s.synergyEnabled || kind.isArmor()) return null;
         String ability = SUPER_NAME.get(kind);
         return "Each upgrade tier: +" + s.synergyXpPercentPerTier + "% " + kind.skillName() + " XP"
                 + (ability != null ? ", -" + s.synergyCooldownPercentPerTier + "% " + ability + " cooldown" : "");

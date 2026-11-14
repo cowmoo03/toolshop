@@ -160,6 +160,13 @@ public final class ShopListener implements Listener {
                 return;
             }
         }
+        if (upgrade.isMythic(next) && plugin.mythicPowerNeeded() > 0) {
+            int power = plugin.mcmmo().powerLevel(player);
+            if (power < plugin.mythicPowerNeeded()) {
+                fail(player, "Tier IV (Mythic) needs power level " + plugin.mythicPowerNeeded() + " (you're at " + Math.max(0, power) + ").");
+                return;
+            }
+        }
         List<String> missing = missingItems(player, req.cost());
         if (!missing.isEmpty()) {
             fail(player, "You still need: " + String.join(", ", missing));
