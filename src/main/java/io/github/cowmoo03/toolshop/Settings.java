@@ -88,6 +88,8 @@ public final class Settings {
     public int[] volleyArrows;
     public int[] blastBoltsDamage;
     public double blastBoltsRadius;
+    public int[] foragerSaplingChance;
+    public int[] foragerAppleChance;
     public int[] seekerRadius;
     public int[] seekerTurn;
     public int[] quickDrawPower;
@@ -213,6 +215,8 @@ public final class Settings {
         volleyArrows = readTierInts(c.getIntegerList("volley.extra-arrows"), new int[]{1, 2, 4, 6});
         blastBoltsDamage = readTierInts(c.getIntegerList("blast-bolts.damage"), new int[]{2, 3, 5, 7});
         blastBoltsRadius = Math.max(1, Math.min(6, c.getDouble("blast-bolts.radius", 2.5)));
+        foragerSaplingChance = readTierInts(c.getIntegerList("forager.sapling-chance"), new int[]{5, 10, 15, 20});
+        foragerAppleChance = readTierInts(c.getIntegerList("forager.apple-chance"), new int[]{2, 4, 6, 8});
         seekerRadius = readTierInts(c.getIntegerList("seeker.radius"), new int[]{6, 9, 12, 16});
         seekerTurn = readTierInts(c.getIntegerList("seeker.turn-percent"), new int[]{15, 25, 35, 45});
         quickDrawPower = readTierInts(c.getIntegerList("quick-draw.min-power-percent"), new int[]{70, 85, 100});

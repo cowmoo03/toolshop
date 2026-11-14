@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -200,6 +201,7 @@ public final class AbilityListener implements Listener {
                 .thenComparingDouble(b -> b.getLocation().distanceSquared(start.getLocation())));
         breakAll(player, logs, timberNoXp());
         playSound(start, Sound.BLOCK_WOOD_BREAK, 0.6f);
+        if (plugin.legendary().tier(axe, Upgrade.REPLANTER) > 0) replant(felled);
 
         if (collectLeaves) {
             // Give the game a moment to work out which leaves lost their log, then sweep twice.
@@ -240,6 +242,91 @@ public final class AbilityListener implements Listener {
      * drops the leaf blocks themselves, and any other axe drops saplings, sticks and apples). Leaves still held up by a neighbouring tree are left alone, because
      * the game only marks unattached leaves with the maximum distance (7).
      */
+    /** Replanter: a sapling of the tree's wood goes back on every bottom trunk block that sits on soil. */
+    private void replant(Set<Block> felled) {
+        int minY = Integer.MAX_VALUE;
+        for (Block b : felled) minY = Math.min(minY, b.getY());
+        List<Block> spots = new ArrayList<>();
+        List<Material> saplings = new ArrayList<>();
+        for (Block b : felled) {
+            if (b.getY() != minY) continue;
+            Material sapling = saplingFor(b.getType());
+            if (sapling == null) continue;
+            spots.add(b);
+            saplings.add(sapling);
+        }
+        if (spots.isEmpty()) return;
+        // A few ticks later, once the logs (and their drops) are gone.
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            for (int i = 0; i < spots.size(); i++) {
+                Block spot = spots.get(i);
+                BlockData data = saplings.get(i).createBlockData();
+                if (spot.getType().isAir() && spot.canPlace(data)) {
+                    spot.setBlockData(data);
+                    if (plugin.settings().effects) {
+                        spot.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, spot.getLocation().add(0.5, 0.3, 0.5), 5, 0.3, 0.2, 0.3, 0);
+                    }
+                }
+            }
+        }, 5L);
+    }
+
+    /** OAK_LOG / STRIPPED_OAK_WOOD -> OAK_SAPLING; mangrove -> propagule; crimson/warped -> fungus. */
+    private static Material saplingFor(Material log) {
+        String n = log.name().replace("STRIPPED_", "");
+        n = n.replaceAll("_(LOG|WOOD|STEM|HYPHAE)$", "");
+        return switch (n) {
+            case "MANGROVE" -> Material.MANGROVE_PROPAGULE;
+            case "CRIMSON" -> Material.CRIMSON_FUNGUS;
+            case "WARPED" -> Material.WARPED_FUNGUS;
+            default -> Material.matchMaterial(n + "_SAPLING");
+        };
+    }
+
+    /** Leaves -> the sapling they grow from. */
+    private static Material saplingForLeaves(Material leaves) {
+        return switch (leaves) {
+            case AZALEA_LEAVES -> Material.AZALEA;
+            case FLOWERING_AZALEA_LEAVES -> Material.FLOWERING_AZALEA;
+            case MANGROVE_LEAVES -> Material.MANGROVE_PROPAGULE;
+            default -> Material.matchMaterial(leaves.name().replace("_LEAVES", "_SAPLING"));
+        };
+    }
+
+    /** Forager: a cleared leaf may drop an extra sapling, an apple (oak), or at III+ a golden apple. */
+    private void forage(Block at, Material leaves, int tier) {
+        Settings s = plugin.settings();
+        ThreadLocalRandom rng = ThreadLocalRandom.current();
+        Location loc = at.getLocation().add(0.5, 0.5, 0.5);
+        Material sapling = saplingForLeaves(leaves);
+        if (sapling != null && rng.nextInt(100) < Settings.forTier(s.foragerSaplingChance, tier)) {
+            at.getWorld().dropItemNaturally(loc, ItemStack.of(sapling));
+        }
+        boolean appleTree = leaves == Material.OAK_LEAVES || leaves == Material.DARK_OAK_LEAVES;
+        if (appleTree && rng.nextInt(100) < Settings.forTier(s.foragerAppleChance, tier)) {
+            at.getWorld().dropItemNaturally(loc, ItemStack.of(Material.APPLE));
+        }
+        double golden = tier >= 4 ? 0.01 : tier >= 3 ? 0.005 : 0;
+        if (appleTree && golden > 0 && rng.nextDouble() < golden) {
+            at.getWorld().dropItemNaturally(loc, ItemStack.of(Material.GOLDEN_APPLE));
+        }
+    }
+
+    /** Lumberjack's Haste: Haste while chopping logs with the legendary axe. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onStartChopping(org.bukkit.event.block.BlockDamageEvent event) {
+        if (!org.bukkit.Tag.LOGS.isTagged(event.getBlock().getType())) return;
+        Player player = event.getPlayer();
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        Legendary lt = plugin.legendary();
+        if (!lt.usableBy(hand, player) || lt.kind(hand) != ToolKind.AXE) return;
+        int tier = lt.tier(hand, Upgrade.LUMBERJACKS_HASTE);
+        if (tier <= 0) return;
+        org.bukkit.potion.PotionEffect current = player.getPotionEffect(org.bukkit.potion.PotionEffectType.HASTE);
+        if (current != null && current.getAmplifier() > tier - 1) return; // stronger haste from elsewhere (a beacon)
+        player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.HASTE, 60, tier - 1, true, false, true));
+    }
+
     private void clearLooseLeaves(Set<Block> felledLogs, ItemStack axe) {
         if (felledLogs.isEmpty()) return;
         final int reach = 7;
@@ -255,6 +342,7 @@ public final class AbilityListener implements Listener {
         int bottom = Math.max(world.getMinHeight(), minY - 1);
         int top = Math.min(world.getMaxHeight() - 1, maxY + reach);
         boolean effects = plugin.settings().effects;
+        int forager = plugin.legendary().tier(axe, Upgrade.FORAGER);
         int cleared = 0;
         double sumX = 0, sumY = 0, sumZ = 0;
         for (int x = minX - reach; x <= maxX + reach; x++) {
@@ -264,6 +352,7 @@ public final class AbilityListener implements Listener {
                     if (b.getBlockData() instanceof Leaves leaves && !leaves.isPersistent() && leaves.getDistance() >= 7) {
                         BlockData before = b.getBlockData();
                         b.breakNaturally(axe);
+                        if (forager > 0) forage(b, before.getMaterial(), forager);
                         cleared++;
                         sumX += x; sumY += y; sumZ += z;
                         if (effects) {

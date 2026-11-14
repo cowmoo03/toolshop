@@ -822,6 +822,10 @@ public final class ShopMenu implements InventoryHolder {
             case SEEKER -> "locks on within " + Settings.forTier(s.seekerRadius, t) + " blocks";
             case QUICK_DRAW -> "any shot flies at " + Settings.forTier(s.quickDrawPower, t) + "% power or more";
             case FROST_ARROWS -> "Slowness II for " + Settings.forTier(s.frostSeconds, t) + "s" + pvpNote(s);
+            case REPLANTER -> "a sapling of the same wood plants where the trunk stood";
+            case FORAGER -> "+" + Settings.forTier(s.foragerSaplingChance, t) + "% saplings, +" + Settings.forTier(s.foragerAppleChance, t)
+                    + "% apples per leaf" + (t >= 3 ? ", golden apple chance" : "");
+            case LUMBERJACKS_HASTE -> "Haste " + Upgrade.roman(t) + " while chopping";
             case CLEAR_MIND -> "no Blindness, Darkness, Nausea or Mining Fatigue";
             case WATER_BREATHING -> "never run out of air";
             case VITALITY -> "+" + hearts(Settings.forTier(s.vitalityHealth, t)) + " heart" + (Settings.forTier(s.vitalityHealth, t) == 2 ? "" : "s");
@@ -880,6 +884,9 @@ public final class ShopMenu implements InventoryHolder {
             case SEEKER -> Material.ENDER_EYE;
             case QUICK_DRAW -> Material.STRING;
             case FROST_ARROWS -> Material.BLUE_ICE;
+            case REPLANTER -> Material.OAK_SAPLING;
+            case FORAGER -> Material.APPLE;
+            case LUMBERJACKS_HASTE -> Material.GOLDEN_AXE;
             case CLEAR_MIND -> Material.MILK_BUCKET;
             case WATER_BREATHING -> Material.PUFFERFISH;
             case VITALITY -> Material.GOLDEN_APPLE;

@@ -69,6 +69,18 @@ upgrades:
     - { level: 30, cost: { DIAMOND: 8 } }
     - { level: 60, cost: { NETHERITE_INGOT: 2 } }
     - { level: 80, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
+  replanter:
+    - { level: 15, cost: { BONE_MEAL: 32, OAK_SAPLING: 8 } }
+  forager:
+    - { level: 10, cost: { APPLE: 8 } }
+    - { level: 30, cost: { GOLDEN_APPLE: 2 } }
+    - { level: 60, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 80, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
+  lumberjacks-haste:
+    - { level: 5, cost: { GOLD_INGOT: 16 } }
+    - { level: 25, cost: { DIAMOND: 6 } }
+    - { level: 50, cost: { NETHERITE_INGOT: 1 } }
+    - { level: 70, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   excavator:
     - { level: 10, cost: { IRON_INGOT: 16 } }
     - { level: 30, cost: { DIAMOND: 8 } }
@@ -448,6 +460,12 @@ sword-pvp-multiplier: 0.5
 harvest:
   # Every crop Harvest breaks gives Herbalism XP (they all grew there). false = only the one you hit.
   xp-for-all-crops: true
+# Axe: Forager. Each leaf Timber clears has this % chance to drop an extra sapling, and oak/dark oak leaves this %
+# chance to drop an apple. From tier III there's also a small golden apple chance (0.5%, 1% at IV). Per tier I-IV.
+forager:
+  sapling-chance: [5, 10, 15, 20]
+  apple-chance: [2, 4, 6, 8]
+
 # Hoe: Growth Aura. While you hold the hoe, each crop within this many blocks has this % chance per second to grow
 # a stage (vanilla crops grow a stage about once a minute on average). Per tier I, II, III.
 growth-aura:
