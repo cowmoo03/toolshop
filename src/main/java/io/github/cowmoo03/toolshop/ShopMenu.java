@@ -428,8 +428,8 @@ public final class ShopMenu implements InventoryHolder {
             lore.add(Component.empty());
             lore.add(i == idx ? text("◀ Your rank", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true)
                     : reached ? text("✔ Reached", NamedTextColor.GREEN)
-                    : text((pr.needed(r) - Math.max(0, power)) + " power levels to go", NamedTextColor.YELLOW));
-            Material mat = reached ? Material.LIME_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE;
+                    : text("✘ " + (pr.needed(r) - Math.max(0, power)) + " power levels to go", NamedTextColor.RED));
+            Material mat = reached ? Material.LIME_STAINED_GLASS : Material.RED_STAINED_GLASS; // full blocks read clearly
             if (i == idx) mat = Material.NETHER_STAR;
             inventory.setItem(slots[i], icon(mat, text(r.name(), r.color()).decoration(TextDecoration.BOLD, true), lore, i == idx));
         }
