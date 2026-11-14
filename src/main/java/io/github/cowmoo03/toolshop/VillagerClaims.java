@@ -152,7 +152,10 @@ public final class VillagerClaims implements Listener {
     private void migrateOldPrices(ConfigurationSection c, ConfigurationSection d) {
         if (c == null || d == null) return;
         List<Map<?, ?>> t = c.getMapList("tiers");
-        boolean oldTiers = t.size() == 4 && String.valueOf(t.get(3).get("cost")).contains("NETHER_STAR");
+        // 2.17.0 (nether star top tier) and 2.17.1 (40% top tier for 5 emerald blocks) defaults.
+        boolean oldTiers = t.size() == 4 && t.get(3).get("discount") instanceof Number top && top.intValue() == 40
+                && (String.valueOf(t.get(3).get("cost")).contains("NETHER_STAR")
+                    || String.valueOf(t.get(3).get("cost")).replace(" ", "").contains("EMERALD_BLOCK=5"));
         boolean oldBooks = c.getInt("enchant-trade-cost.treasure.EMERALD_BLOCK") == 40
                 && c.getInt("enchant-trade-cost.very-rare.EMERALD_BLOCK") == 32;
         if (!oldTiers && !oldBooks) return;

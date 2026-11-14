@@ -364,10 +364,10 @@ villager-claims:
     cost: { EMERALD: 16 }
   # discount = percent off each trade's emerald price (always at least 1 off).
   tiers:
-    - { discount: 10, power-level: 5, cost: { EMERALD: 5 } }
-    - { discount: 20, power-level: 20, cost: { EMERALD: 16 } }
-    - { discount: 30, power-level: 40, cost: { EMERALD: 32 } }
-    - { discount: 40, power-level: 80, cost: { EMERALD_BLOCK: 5 } }
+    - { discount: 15, power-level: 5, cost: { EMERALD: 5 } }
+    - { discount: 30, power-level: 20, cost: { EMERALD: 16 } }
+    - { discount: 45, power-level: 40, cost: { EMERALD: 32 } }
+    - { discount: 60, power-level: 80, cost: { EMERALD_BLOCK: 5 } }
   # What the owner pays to set a librarian's enchanted book trade, by how rare the enchantment is.
   # Common: Protection, Efficiency, Sharpness, Power. Uncommon: Unbreaking, Smite, Feather Falling, Piercing...
   # Rare: Fortune, Looting, Respiration, Sweeping Edge, Multishot... Very rare: Silk Touch, Infinity, Thorns, Channeling.
