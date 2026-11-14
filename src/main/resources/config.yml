@@ -316,6 +316,34 @@ synergy:
   cooldown-percent-per-tier: 4
   max-cooldown-percent: 50
 
+# Backpack: extra storage separate from the inventory. /backpack (/bp) or the button in /toolshop.
+# Each tier needs an mcMMO power level (Standard scale, x10 in Retro Mode) and items. rows: 1 row = 9 slots (max 5).
+backpack:
+  enabled: true
+  # From this tier the backpack keeps its items when you die; below it they drop with your inventory.
+  keep-on-death-from-tier: 4
+  tiers:
+    - { rows: 1, power-level: 20, cost: { LEATHER: 8, CHEST: 1 } }
+    - { rows: 2, power-level: 60, cost: { LEATHER: 16, IRON_INGOT: 16 } }
+    - { rows: 3, power-level: 120, cost: { DIAMOND: 8 } }
+    - { rows: 4, power-level: 220, cost: { DIAMOND: 16, GOLD_BLOCK: 4 } }
+    - { rows: 5, power-level: 350, cost: { NETHERITE_INGOT: 2, SHULKER_SHELL: 4 } }
+
+# Power ranks by mcMMO power level (all skill levels added up; Standard scale, x10 in Retro Mode). Shown before the
+# name in chat, the tab list and death messages. Reaching a rank is announced and gives its reward once
+# (FLIGHT_CHARM = Flight Charms). Colors: Minecraft color names like gold, aqua, light_purple.
+power-ranks:
+  enabled: true
+  show-in-chat-and-tab: true
+  ranks:
+    - { name: Novice, power-level: 0, color: gray }
+    - { name: Apprentice, power-level: 50, color: white, reward: { IRON_INGOT: 32 } }
+    - { name: Adept, power-level: 100, color: green, reward: { DIAMOND: 8 } }
+    - { name: Expert, power-level: 200, color: aqua, reward: { DIAMOND: 16, FLIGHT_CHARM: 2 } }
+    - { name: Master, power-level: 350, color: light_purple, reward: { NETHERITE_INGOT: 2, FLIGHT_CHARM: 4 } }
+    - { name: Grandmaster, power-level: 550, color: gold, reward: { NETHERITE_INGOT: 4, TOTEM_OF_UNDYING: 2 } }
+    - { name: Legend, power-level: 800, color: red, reward: { NETHERITE_BLOCK: 1, NETHER_STAR: 1 } }
+
 join-announcement:
   enabled: true
   id: "2.0"

@@ -62,6 +62,21 @@ tier on it gives +2% XP in its skill (up to +30%) and cuts that skill's super ab
 Super Breaker (pickaxe), Giga Drill Breaker (shovel), Green Terra (hoe), Serrated Strikes (sword), Skull Splitter
 (axe). The item shows its bonus on a ⚡ line. Settings under `synergy`.
 
+## Backpack and trash
+
+`/backpack` (`/bp`), or the bundle in `/toolshop`, opens extra storage separate from the inventory. Tiers:
+9 → 18 → 27 → 36 → 45 slots, each needing an mcMMO power level (200 / 600 / 1200 / 2200 / 3500 in Retro Mode) and
+items; buy them from the backpack's bottom row (two clicks). From Tier IV it keeps its items when you die; below
+that they drop with your inventory. `/trash` (or the lava bucket in the backpack) opens a window whose contents are
+deleted when it closes. Contents are saved in `plugins/ToolShop/backpacks/`.
+
+## Power ranks
+
+Ranks by power level, shown before the name in chat, the tab list and death messages: Novice, Apprentice (500),
+Adept (1000), Expert (2000), Master (3500), Grandmaster (5500), Legend (8000) in Retro Mode. Reaching one is
+announced to everyone and gives its reward once (iron, diamonds, Flight Charms, netherite, totems, a nether star).
+The ladder is on the Power Ranks page in `/toolshop`. Settings under `power-ranks`; progress in `ranks.yml`.
+
 ## Spawners
 
 Spawners work like vanilla whether they're claimed or not. Right-click one to open its menu (no sneaking;

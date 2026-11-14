@@ -31,6 +31,8 @@ public final class ToolShopPlugin extends JavaPlugin {
     private SkillsListener skills;
     private FlightCharm flight;
     private SpawnerUpgrades spawners;
+    private Backpacks backpacks;
+    private PowerRanks ranks;
     private volatile SkillSynergy synergy;
 
     @Override
@@ -66,12 +68,18 @@ public final class ToolShopPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(flight, this);
         spawners = new SpawnerUpgrades(this);
         getServer().getPluginManager().registerEvents(spawners, this);
+        backpacks = new Backpacks(this);
+        getServer().getPluginManager().registerEvents(backpacks, this);
+        ranks = new PowerRanks(this);
+        getServer().getPluginManager().registerEvents(ranks, this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
         {
             event.registrar().register("toolshop", "Make and upgrade legendary tools", new ToolShopCommand(this));
             event.registrar().register("skills", "Your mcMMO skills and abilities", java.util.List.of("skill"),
                     new SkillsCommand(this));
+            event.registrar().register("backpack", "Open your backpack", java.util.List.of("bp"), backpacks.backpackCommand());
+            event.registrar().register("trash", "Open a trash window (deleted when closed)", backpacks.trashCommand());
         });
 
         // Connect to mcMMO after every plugin has enabled, so load order doesn't matter.
@@ -90,6 +98,7 @@ public final class ToolShopPlugin extends JavaPlugin {
         if (recovery != null) recovery.shutdown();
         if (flight != null) flight.shutdown();
         if (spawners != null) spawners.save();
+        if (backpacks != null) backpacks.shutdown();
     }
 
     /** ToolShop 1.x used a different config (rental prices). Keep it as a backup and start fresh. */
@@ -122,6 +131,8 @@ public final class ToolShopPlugin extends JavaPlugin {
         settings = new Settings(getConfig(), getLogger());
         if (flight != null) flight.reload();
         if (spawners != null) spawners.reload();
+        if (backpacks != null) backpacks.reload();
+        if (ranks != null) ranks.reload();
     }
 
     public Settings settings() { return settings; }
@@ -133,6 +144,8 @@ public final class ToolShopPlugin extends JavaPlugin {
     public FlightCharm flight() { return flight; }
     public SpawnerUpgrades spawners() { return spawners; }
     public SkillSynergy synergy() { return synergy; }
+    public Backpacks backpacks() { return backpacks; }
+    public PowerRanks ranks() { return ranks; }
     void setSynergy(SkillSynergy s) { synergy = s; }
 
     /**

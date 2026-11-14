@@ -34,6 +34,8 @@ public final class ShopMenu implements InventoryHolder {
     public static final int FLIGHT_SLOT = 31;
     public static final int SPAWNER_SLOT = 33;
     public static final int RETIRE_SLOT = 44;
+    public static final int BACKPACK_SLOT = 40;
+    public static final int RANKS_SLOT = 44;
     public static final int BACK_SLOT = 36;
     public static final int MODE_SLOT = 40;
     public static final int RECHARGE_SLOT = 42;
@@ -43,7 +45,9 @@ public final class ShopMenu implements InventoryHolder {
 
     /** What a slot does. */
     public sealed interface Action permits Create, Buy, ToggleMode, Recharge, Open, Back, Retire, Preview,
-            Spawners, OpenSpawner, SpawnerUpgrade, SpawnerToggle, SpawnerUnclaim, SpawnerClaim {}
+            Spawners, OpenSpawner, SpawnerUpgrade, SpawnerToggle, SpawnerUnclaim, SpawnerClaim, OpenBackpack, Ranks {}
+    public record OpenBackpack() implements Action {}
+    public record Ranks() implements Action {}
     /** Claim an unclaimed spawner, or take over someone else's (takeover = true). */
     public record SpawnerClaim(String key, boolean takeover) implements Action {}
     /** "Your Spawners" list, one claimed spawner's dashboard, and its buttons. */
@@ -74,6 +78,8 @@ public final class ShopMenu implements InventoryHolder {
     /** True on the "Your Spawners" list; spawnerKey is set on one spawner's dashboard. */
     private boolean spawnerList;
     private String spawnerKey;
+    /** True on the Power Ranks page. */
+    private boolean ranksPage;
     /** The spawner a player right-clicked in the world (may not be claimed yet), and whether the menu came from there. */
     private SpawnerUpgrades.Record worldSpawner;
     private boolean fromWorld;
@@ -118,7 +124,13 @@ public final class ShopMenu implements InventoryHolder {
         spawnerKey = null;
         worldSpawner = null;
         fromWorld = false;
+        ranksPage = false;
         pending = null;
+    }
+
+    public void showRanks() {
+        setPage(null);
+        ranksPage = true;
     }
 
     /** Opened by right-clicking a spawner: its own page, whoever owns it. */
@@ -186,7 +198,8 @@ public final class ShopMenu implements InventoryHolder {
             spawnerKey = null;
             spawnerList = true;
         }
-        if (spawnerKey != null) renderSpawner(player, shown);
+        if (ranksPage) renderRanks(player);
+        else if (spawnerKey != null) renderSpawner(player, shown);
         else if (spawnerList) renderSpawnerList(player);
         else if (preview != null) renderPreview(player, preview);
         else if (page == null) renderHome(player);
@@ -235,6 +248,33 @@ public final class ShopMenu implements InventoryHolder {
         }
 
         if (plugin.flight() != null && plugin.flight().enabled()) inventory.setItem(FLIGHT_SLOT, flightButton(player));
+        if (plugin.backpacks() != null && plugin.backpacks().enabled()) {
+            int bp = plugin.backpacks().tierOf(player.getUniqueId());
+            actions.put(BACKPACK_SLOT, new OpenBackpack());
+            inventory.setItem(BACKPACK_SLOT, icon(Material.BUNDLE, text("Backpack", NamedTextColor.GOLD).decoration(TextDecoration.BOLD, true),
+                    List.of(text(bp == 0 ? "Extra storage, separate from your inventory." : "Tier " + Upgrade.roman(bp), NamedTextColor.GRAY),
+                            text("Upgrades with power level + items.", NamedTextColor.GRAY),
+                            text("Also: /backpack (/bp), /trash", NamedTextColor.DARK_GRAY),
+                            Component.empty(),
+                            text(bp == 0 ? "Click to get one" : "Click to open", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true)), bp > 0));
+        }
+        if (plugin.ranks() != null && plugin.ranks().enabled()) {
+            PowerRanks pr = plugin.ranks();
+            int power = plugin.mcmmo().powerLevel(player);
+            int idx = power < 0 ? -1 : pr.rankIndex(power);
+            List<Component> lore = new ArrayList<>();
+            lore.add(text("Power level: " + (power < 0 ? "?" : power), NamedTextColor.WHITE));
+            if (idx >= 0) lore.add(text("Rank: " + pr.ranks().get(idx).name(), pr.ranks().get(idx).color()));
+            if (idx + 1 < pr.ranks().size()) {
+                PowerRanks.Rank next = pr.ranks().get(idx + 1);
+                lore.add(text("Next: " + next.name() + " at " + pr.needed(next), NamedTextColor.GRAY));
+            }
+            lore.add(Component.empty());
+            lore.add(text("Click to see all ranks and rewards", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
+            actions.put(RANKS_SLOT, new Ranks());
+            inventory.setItem(RANKS_SLOT, icon(Material.GOLDEN_HELMET, text("Power Ranks", NamedTextColor.YELLOW)
+                    .decoration(TextDecoration.BOLD, true), lore, false));
+        }
         if (plugin.spawners() != null && plugin.spawners().enabled()) {
             actions.put(SPAWNER_SLOT, new Spawners());
             inventory.setItem(SPAWNER_SLOT, spawnerButton(player));
@@ -358,6 +398,35 @@ public final class ShopMenu implements InventoryHolder {
         lore.add(text("Click to manage them", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true));
         return icon(Material.SPAWNER, text("Your Spawners", NamedTextColor.LIGHT_PURPLE)
                 .decoration(TextDecoration.BOLD, true), lore, have > 0);
+    }
+
+    /** The rank ladder: each rank's power level and reward, with the player's progress. */
+    private void renderRanks(Player player) {
+        PowerRanks pr = plugin.ranks();
+        backButton("Back to your tools");
+        int power = plugin.mcmmo().powerLevel(player);
+        int idx = power < 0 ? -1 : pr.rankIndex(power);
+        inventory.setItem(TOOL_SLOT, icon(Material.GOLDEN_HELMET, text("Power Ranks", NamedTextColor.YELLOW).decoration(TextDecoration.BOLD, true),
+                List.of(text("Power level = all your mcMMO skill levels added up.", NamedTextColor.GRAY),
+                        text("Yours: " + (power < 0 ? "?" : power), NamedTextColor.WHITE),
+                        text("Your rank shows in chat and the tab list.", NamedTextColor.GRAY),
+                        text("Each rank's reward is given once.", NamedTextColor.GRAY),
+                        text("Leaderboard: /mctop", NamedTextColor.DARK_GRAY)), false));
+        int[] slots = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34};
+        for (int i = 0; i < pr.ranks().size() && i < slots.length; i++) {
+            PowerRanks.Rank r = pr.ranks().get(i);
+            boolean reached = i <= idx;
+            List<Component> lore = new ArrayList<>();
+            lore.add(text("Power level " + pr.needed(r), NamedTextColor.WHITE));
+            lore.add(text("Reward: " + pr.rewardText(r), NamedTextColor.GRAY));
+            lore.add(Component.empty());
+            lore.add(i == idx ? text("◀ Your rank", NamedTextColor.GREEN).decoration(TextDecoration.BOLD, true)
+                    : reached ? text("✔ Reached", NamedTextColor.GREEN)
+                    : text((pr.needed(r) - Math.max(0, power)) + " power levels to go", NamedTextColor.YELLOW));
+            Material mat = reached ? Material.LIME_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE;
+            if (i == idx) mat = Material.NETHER_STAR;
+            inventory.setItem(slots[i], icon(mat, text(r.name(), r.color()).decoration(TextDecoration.BOLD, true), lore, i == idx));
+        }
     }
 
     private void backButton(String to) {

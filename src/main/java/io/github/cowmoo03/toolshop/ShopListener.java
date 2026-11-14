@@ -57,6 +57,12 @@ public final class ShopListener implements Listener {
             SpawnerUpgrades.Record r = plugin.spawners().record(st.key());
             if (r != null) plugin.spawners().toggle(player, r);
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        } else if (action instanceof ShopMenu.Ranks) {
+            menu.showRanks();
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+        } else if (action instanceof ShopMenu.OpenBackpack) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> plugin.backpacks().open(player));
+            return;
         } else if (action instanceof ShopMenu.Back) {
             menu.back();
             player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 0.9f);
