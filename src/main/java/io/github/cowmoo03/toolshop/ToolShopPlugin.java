@@ -78,6 +78,7 @@ public final class ToolShopPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(villagers, this);
         search = new SearchPrompt(this);
         getServer().getPluginManager().registerEvents(search, this);
+        getServer().getPluginManager().registerEvents(new EmpoweredListener(this), this);
 
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event ->
         {

@@ -95,9 +95,7 @@ upgrades:
     - { level: 90, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   last-stand:
     - { level: 30, cost: { DIAMOND: 8 } }
-  # Every legendary item. Its main enchantment: Efficiency (tools), Sharpness (sword, trident), Power (bow),
-  # Piercing (crossbow), Protection (armor), Unbreaking (elytra). Tier I keeps it at vanilla's max (can't be lost),
-  # II +1 past max, III +2, IV (Mythic) +3.
+  # Every legendary item. A percent boost to what its main enchant does (amounts under empowered: below).
   empowered:
     - { level: 40, cost: { LAPIS_LAZULI: 32, DIAMOND: 4 } }
     - { level: 60, cost: { EXPERIENCE_BOTTLE: 16, DIAMOND: 8 } }
@@ -274,6 +272,15 @@ timber:
 excavator:
   # Tier 1 = 1x2, tier 2 = 3x3, tier 3 = 5x5. Only shovel blocks (dirt, sand, gravel...).
   exhaustion-per-block: 0.05
+
+# Empowered, per tier (I, II, III, IV Mythic):
+empowered:
+  # Tools: mining speed. Sword/trident: damage. Bow/crossbow: arrow damage. (Weapons: x sword-pvp-multiplier vs players.)
+  percent: [10, 20, 30, 40]
+  # Armor: less damage taken, per piece (they add up; at most 60% in all).
+  armor-percent: [2, 4, 6, 8]
+  # Elytra: chance for gliding to use no durability.
+  elytra-percent: [25, 50, 75, 90]
 
 durability:
   # Chance (%) for a block to use no durability, for tier 1, 2 and 3. Stacks with Unbreaking.

@@ -41,7 +41,7 @@ pickaxe, axe, shovel, hoe, sword, bow, trident, crossbow, elytra, helmet, chestp
 | **Magnet** | Pickaxe, axe, shovel, hoe | drops go straight into your inventory | 25 + 4 diamonds, 4 ender pearls |
 | **Durability Saver** | Any | 5% → 10% → 20% chance to use no durability | 20 / 40 / 70 |
 | **Last Stand** | Any | stops at 1 durability instead of breaking | 30 + 8 diamonds |
-| **Empowered** | Any | main enchant kept at its max → +1 → +2 past it (IV: +3): Efficiency (tools), Sharpness (sword, trident), Power (bow), Piercing (crossbow), Protection (armor), Unbreaking (elytra) | skill level 400 / 600 / 800 |
+| **Empowered** | Any | +10% → +20% → +30% (IV: +40%) mining speed (tools) or damage (sword, trident, bow, crossbow; half vs players); armor: 2% → 4% → 6% (IV: 8%) less damage taken per piece; elytra: 25% → 50% → 75% (IV: 90%) chance to use no durability | skill level 400 / 600 / 800 |
 | **Soulbound** | Any | survives 3 → 5 → 8 deaths; recharge in /toolshop once used up (or upgrade to refill) | 50 + 1 totem · 70 + 2 totems · 90 + 3 totems |
 
 Tool abilities (pickaxe, axe, shovel, hoe) work while sneaking; sword, trident, crossbow and elytra abilities work on their own. Weapon abilities work at half strength against players (`sword-pvp-multiplier`). Weapons rank up by kills and the elytra by blocks flown. The elytra can't get Last Stand (elytras already stop at 1 durability). No upgrade repeats an mcMMO ability: replanting is Green Thumb, bonus trident/crossbow damage is Impale/Powered Shot, fall damage is Roll. Everything above is set in `config.yml`.

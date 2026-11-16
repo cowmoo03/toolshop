@@ -227,7 +227,7 @@ public final class Legendary {
         if (upgrade == Upgrade.EMPOWERED) applyEmpowered(item);
     }
 
-    /** The enchantment Empowered raises for this kind of item. */
+    /** The enchantment Empowered used to raise for this kind of item. */
     public static Enchantment empoweredEnchant(ToolKind kind) {
         return switch (kind) {
             case SWORD, TRIDENT -> Enchantment.SHARPNESS;
@@ -239,32 +239,30 @@ public final class Legendary {
         };
     }
 
-    /** Level Empowered gives at this tier: Tier I keeps the enchant at its normal max, each tier after adds one. */
-    public static int empoweredLevel(Enchantment e, int tier) {
-        return tier <= 0 ? 0 : e.getMaxLevel() + tier - 1;
-    }
-
-    /** "Efficiency VI": the level Empowered gives this item at this tier. */
-    public static String empoweredText(ToolKind kind, int tier) {
-        Enchantment e = empoweredEnchant(kind);
-        String name = e.getKey().getKey().replace('_', ' ');
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1) + " " + Upgrade.roman(empoweredLevel(e, tier));
+    /** "+10% mining speed": what Empowered gives this kind of item at this tier. */
+    public String empoweredText(ToolKind kind, int tier) {
+        Settings s = plugin.settings();
+        int pct = Settings.forTier(s.empoweredPercent, tier);
+        return switch (kind) {
+            case PICKAXE, AXE, SHOVEL, HOE -> "+" + pct + "% mining speed";
+            case SWORD, TRIDENT -> "+" + pct + "% damage";
+            case BOW, CROSSBOW -> "+" + pct + "% arrow damage";
+            case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> "-" + Settings.forTier(s.empoweredArmorPercent, tier) + "% damage taken";
+            case ELYTRA -> Settings.forTier(s.empoweredElytraPercent, tier) + "% chance to use no durability";
+        };
     }
 
     /**
-     * Empowered: sets the item's main enchantment to the tier's level (it may have lost levels to a repair, or be
-     * above it from before 2.17.3, when Tier I already went past max). Returns true if it changed anything.
+     * Before 2.17.4 Empowered raised the main enchantment past its max; it's now a percent boost instead
+     * (EmpoweredListener). Puts those extra levels back to the normal max. Returns true if it changed anything.
      */
     public boolean applyEmpowered(ItemStack item) {
         ToolKind kind = kind(item);
-        int t = kind == null ? 0 : tier(item, Upgrade.EMPOWERED);
-        if (t <= 0) return false;
+        if (kind == null) return false;
         Enchantment e = empoweredEnchant(kind);
-        int want = empoweredLevel(e, t);
-        int have = item.getEnchantmentLevel(e);
-        if (have == want) return false; // anything above want is past the normal max, so it came from the old Tier I
+        if (item.getEnchantmentLevel(e) <= e.getMaxLevel()) return false;
         ItemMeta meta = item.getItemMeta();
-        meta.addEnchant(e, want, true);
+        meta.addEnchant(e, e.getMaxLevel(), true);
         item.setItemMeta(meta);
         return true;
     }

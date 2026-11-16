@@ -58,6 +58,10 @@ public final class Settings {
     public final int[] soulboundSaves;
     /** True = saves can be refilled whenever below max; false = only once all are used up. */
     public final boolean soulboundRechargeAnytime;
+    /** Empowered, per tier: % boost for tools and weapons, % less damage per armor piece, % no-durability chance (elytra). */
+    public final int[] empoweredPercent;
+    public final int[] empoweredArmorPercent;
+    public final int[] empoweredElytraPercent;
     /** Legendary bow: a Mending book gives Mending alongside Infinity for this many days. */
     public final boolean bowMendingEnabled;
     public final double bowMendingDays;
@@ -176,6 +180,9 @@ public final class Settings {
         veinXpForAllOres = c.getBoolean("vein.xp-for-all-ores", true);
         excavatorExhaustion = (float) Math.max(0, c.getDouble("excavator.exhaustion-per-block", 0.05));
         durabilityChance = readTierInts(c.getIntegerList("durability.chance"), new int[]{5, 10, 20, 30});
+        empoweredPercent = readTierInts(c.getIntegerList("empowered.percent"), new int[]{10, 20, 30, 40});
+        empoweredArmorPercent = readTierInts(c.getIntegerList("empowered.armor-percent"), new int[]{2, 4, 6, 8});
+        empoweredElytraPercent = readTierInts(c.getIntegerList("empowered.elytra-percent"), new int[]{25, 50, 75, 90});
         soulboundSaves = readTierInts(c.getIntegerList("soulbound.saves"), new int[]{3, 5, 8, 12});
         soulboundRechargeAnytime = "anytime".equalsIgnoreCase(c.getString("soulbound.recharge", "empty"));
         bowMendingEnabled = c.getBoolean("bow-mending.enabled", true);

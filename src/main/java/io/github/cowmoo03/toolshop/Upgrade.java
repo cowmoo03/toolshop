@@ -37,7 +37,7 @@ public enum Upgrade {
     MAGNET("magnet", "Magnet", null, 1, "Drops from blocks you break go straight into your inventory"),
     DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block or hit to use no durability"),
     LAST_STAND("last-stand", "Last Stand", null, 1, "Stops at 1 durability instead of breaking"),
-    EMPOWERED("empowered", "Empowered", null, 3, "Keeps the main enchantment at max, then pushes it past (from Tier II)"),
+    EMPOWERED("empowered", "Empowered", null, 3, "A percent boost to what the item's main enchantment does"),
     SOULBOUND("soulbound", "Soulbound", null, 3, "Saves the tool when you die, a set number of times");
 
     private final String id;
@@ -84,6 +84,15 @@ public enum Upgrade {
                 case ELYTRA -> "Chance for gliding to use no durability";
                 case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> "Chance for a hit to cost no armor durability";
                 default -> "Chance for a block to use no durability";
+            };
+        }
+        if (this == EMPOWERED) {
+            return switch (kind) {
+                case PICKAXE, AXE, SHOVEL, HOE -> "Mines faster (a percent on top of Efficiency)";
+                case SWORD, TRIDENT -> "Hits harder (a percent on top of Sharpness)";
+                case BOW, CROSSBOW -> "Arrows hit harder (a percent on top of Power)";
+                case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> "Take less damage (a percent, adds up over pieces)";
+                case ELYTRA -> "Chance for gliding to use no durability";
             };
         }
         if (this == LAST_STAND && (kind == ToolKind.SWORD || kind == ToolKind.TRIDENT)) {

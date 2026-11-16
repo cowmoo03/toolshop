@@ -485,7 +485,7 @@ public final class ShopMenu implements InventoryHolder {
         lore.add(text(u.summary(kind), NamedTextColor.GRAY));
         for (int t = 1; t <= u.maxTier(); t++) {
             lore.add(Component.empty());
-            String detail = u == Upgrade.EMPOWERED ? Legendary.empoweredText(kind, t) : tierDetail(u, t);
+            String detail = u == Upgrade.EMPOWERED ? plugin.legendary().empoweredText(kind, t) : tierDetail(u, t);
             String head = u.maxTier() > 1 ? Upgrade.roman(t) + (detail != null ? ": " + detail : "") : (detail != null ? detail : "");
             if (!head.isEmpty()) lore.add(text(head, NamedTextColor.WHITE));
             if (levels) {
@@ -1241,7 +1241,7 @@ public final class ShopMenu implements InventoryHolder {
         List<Component> lore = new ArrayList<>();
         lore.add(text(u.summary(kind), NamedTextColor.GRAY));
         for (int t = 1; t <= u.maxTier(); t++) {
-            String detail = u == Upgrade.EMPOWERED ? Legendary.empoweredText(kind, t) : tierDetail(u, t);
+            String detail = u == Upgrade.EMPOWERED ? plugin.legendary().empoweredText(kind, t) : tierDetail(u, t);
             if (detail == null) continue;
             NamedTextColor c = t <= current ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY;
             lore.add(text((t <= current ? "✔ " : "  ") + (u.maxTier() > 1 ? Upgrade.roman(t) + ": " : "") + detail, c));
@@ -1320,8 +1320,7 @@ public final class ShopMenu implements InventoryHolder {
             case TIMBER -> "up to " + Settings.forTier(s.timberMaxLogs, t) + " logs"
                     + (t >= s.timberSilkLeavesFromTier ? " + clears its leaves (Silk Touch: leaf blocks)" : "");
             case DURABILITY -> Settings.forTier(s.durabilityChance, t) + "% chance to save durability";
-            case EMPOWERED -> t <= 1 ? "main enchant kept at its normal max"
-                    : "main enchant " + (t - 1) + " level" + (t == 2 ? "" : "s") + " past its max";
+            case EMPOWERED -> "+" + Settings.forTier(plugin.settings().empoweredPercent, t) + "% to what the main enchant does";
             case SOULBOUND -> Settings.forTier(s.soulboundSaves, t) + " saves (upgrading refills them)";
             case LIFESTEAL -> "heal " + Settings.forTier(s.lifestealPercent, t) + "% of damage dealt" + pvpNote(s);
             case BEHEADING -> Settings.forTier(s.beheadingChance, t) + "% head chance per kill" + pvpNote(s);
