@@ -37,7 +37,7 @@ public enum Upgrade {
     MAGNET("magnet", "Magnet", null, 1, "Drops from blocks you break go straight into your inventory"),
     DURABILITY("durability", "Durability Saver", null, 3, "Chance for a block or hit to use no durability"),
     LAST_STAND("last-stand", "Last Stand", null, 1, "Stops at 1 durability instead of breaking"),
-    EMPOWERED("empowered", "Empowered", null, 3, "Pushes the item's main enchantment past its normal max"),
+    EMPOWERED("empowered", "Empowered", null, 3, "Keeps the main enchantment at max, then pushes it past (from Tier II)"),
     SOULBOUND("soulbound", "Soulbound", null, 3, "Saves the tool when you die, a set number of times");
 
     private final String id;

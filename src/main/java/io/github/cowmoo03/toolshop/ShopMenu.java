@@ -1320,7 +1320,8 @@ public final class ShopMenu implements InventoryHolder {
             case TIMBER -> "up to " + Settings.forTier(s.timberMaxLogs, t) + " logs"
                     + (t >= s.timberSilkLeavesFromTier ? " + clears its leaves (Silk Touch: leaf blocks)" : "");
             case DURABILITY -> Settings.forTier(s.durabilityChance, t) + "% chance to save durability";
-            case EMPOWERED -> "main enchant " + t + " level" + (t == 1 ? "" : "s") + " past its max";
+            case EMPOWERED -> t <= 1 ? "main enchant kept at its normal max"
+                    : "main enchant " + (t - 1) + " level" + (t == 2 ? "" : "s") + " past its max";
             case SOULBOUND -> Settings.forTier(s.soulboundSaves, t) + " saves (upgrading refills them)";
             case LIFESTEAL -> "heal " + Settings.forTier(s.lifestealPercent, t) + "% of damage dealt" + pvpNote(s);
             case BEHEADING -> Settings.forTier(s.beheadingChance, t) + "% head chance per kill" + pvpNote(s);

@@ -239,24 +239,30 @@ public final class Legendary {
         };
     }
 
-    /** "Efficiency VII": the level Empowered gives this item at this tier. */
+    /** Level Empowered gives at this tier: Tier I keeps the enchant at its normal max, each tier after adds one. */
+    public static int empoweredLevel(Enchantment e, int tier) {
+        return tier <= 0 ? 0 : e.getMaxLevel() + tier - 1;
+    }
+
+    /** "Efficiency VI": the level Empowered gives this item at this tier. */
     public static String empoweredText(ToolKind kind, int tier) {
         Enchantment e = empoweredEnchant(kind);
         String name = e.getKey().getKey().replace('_', ' ');
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1) + " " + Upgrade.roman(e.getMaxLevel() + tier);
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1) + " " + Upgrade.roman(empoweredLevel(e, tier));
     }
 
     /**
-     * Empowered: makes sure the item's main enchantment is at least max + tier (it may have lost levels to a
-     * grindstone or a repair). Returns true if it changed anything.
+     * Empowered: sets the item's main enchantment to the tier's level (it may have lost levels to a repair, or be
+     * above it from before 2.17.3, when Tier I already went past max). Returns true if it changed anything.
      */
     public boolean applyEmpowered(ItemStack item) {
         ToolKind kind = kind(item);
         int t = kind == null ? 0 : tier(item, Upgrade.EMPOWERED);
         if (t <= 0) return false;
         Enchantment e = empoweredEnchant(kind);
-        int want = e.getMaxLevel() + t;
-        if (item.getEnchantmentLevel(e) >= want) return false;
+        int want = empoweredLevel(e, t);
+        int have = item.getEnchantmentLevel(e);
+        if (have == want) return false; // anything above want is past the normal max, so it came from the old Tier I
         ItemMeta meta = item.getItemMeta();
         meta.addEnchant(e, want, true);
         item.setItemMeta(meta);

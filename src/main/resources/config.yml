@@ -95,8 +95,9 @@ upgrades:
     - { level: 90, cost: { NETHERITE_INGOT: 4, NETHER_STAR: 1 } }   # Tier IV (Mythic)
   last-stand:
     - { level: 30, cost: { DIAMOND: 8 } }
-  # Every legendary item. Raises its main enchantment past vanilla's max: Efficiency (tools), Sharpness (sword,
-  # trident), Power (bow), Piercing (crossbow), Protection (armor), Unbreaking (elytra). +1 / +2 / +3 / +4 levels.
+  # Every legendary item. Its main enchantment: Efficiency (tools), Sharpness (sword, trident), Power (bow),
+  # Piercing (crossbow), Protection (armor), Unbreaking (elytra). Tier I keeps it at vanilla's max (can't be lost),
+  # II +1 past max, III +2, IV (Mythic) +3.
   empowered:
     - { level: 40, cost: { LAPIS_LAZULI: 32, DIAMOND: 4 } }
     - { level: 60, cost: { EXPERIENCE_BOTTLE: 16, DIAMOND: 8 } }
